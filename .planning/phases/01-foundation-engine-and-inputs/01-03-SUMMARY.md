@@ -158,6 +158,12 @@ None — plan executed cleanly. Build and tests pass.
 - Phase 2 can read calculationStore computed refs to drive charts and results panel
 - i18n translation keys established — Phase 3 fills FR/DE/IT translations
 
+## Self-Check: PASSED
+
+All 8 created/modified files confirmed present on disk.
+Both task commits verified in git log (0c3661a, 854969d).
+npm run build: exits 0, npm run test: 30/30 pass.
+
 ---
 *Phase: 01-foundation-engine-and-inputs*
 *Completed: 2026-03-28*
