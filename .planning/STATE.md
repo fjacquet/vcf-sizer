@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 01-01-PLAN.md"
-last_updated: "2026-03-29T00:15:00Z"
-last_activity: 2026-03-29 — Plan 01-01 complete: scaffold with Vite 8, Tailwind v4, vue-i18n v11, Pinia stores
+stopped_at: Completed 01-foundation-engine-and-inputs/01-02-PLAN.md
+last_updated: "2026-03-28T23:30:17.560Z"
+last_activity: 2026-03-28
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 9
-  completed_plans: 1
+  total_plans: 3
+  completed_plans: 2
   percent: 11
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 1 of 3 (Foundation, Engine and Inputs)
-Plan: 1 of 3 in current phase
-Status: Executing
-Last activity: 2026-03-29 — Plan 01-01 complete: scaffold with Vite 8, Tailwind v4, vue-i18n v11, Pinia stores
+Plan: 2 of 3 in current phase
+Status: Ready to execute
+Last activity: 2026-03-28
 
 Progress: [█░░░░░░░░░] 11%
 
@@ -52,6 +52,7 @@ Progress: [█░░░░░░░░░] 11%
 - Trend: Baseline established
 
 *Updated after each plan completion*
+| Phase 01-foundation-engine-and-inputs P02 | 4m | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ Recent decisions affecting current work:
 - [01-01]: @intlify/unplugin-vue-i18n include pattern breaks rolldown — locale files handled natively by Vite 8; plugin kept without include for SFC i18n blocks
 - [01-01]: vue-i18n Swiss locales use full BCP47 codes (fr-CH, de-CH, it-CH) in numberFormats, not short codes, to prevent European separator inheritance
 - [01-01]: Engine test files excluded from tsconfig.app.json — vitest globals (describe/it/expect) provided by vitest config, not TypeScript declarations
+- [Phase 01-foundation-engine-and-inputs]: Fleet Manager and Collector are ×1 ALWAYS singletons (MGMT-04) — not scaled with HA multiplier
+- [Phase 01-foundation-engine-and-inputs]: Adaptive RAID-5 uses host-count gate (≥6 hosts = 4+1 scheme), not raidy drive-count gate
+- [Phase 01-foundation-engine-and-inputs]: calculationStore exposes only computed() — zero ref() — ensuring read-only contract (CALC-02)
 
 ### Pending Todos
 
@@ -79,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T00:15:00Z
-Stopped at: Completed 01-01-PLAN.md
-Resume file: .planning/phases/01-foundation-engine-and-inputs/01-02-PLAN.md
+Last session: 2026-03-28T23:30:17.557Z
+Stopped at: Completed 01-foundation-engine-and-inputs/01-02-PLAN.md
+Resume file: None

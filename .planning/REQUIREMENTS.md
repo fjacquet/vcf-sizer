@@ -30,13 +30,13 @@
 
 ### Management Domain Sizing
 
-- [ ] **MGMT-01**: Tool computes vCenter Server baseline: 4 vCPU / 21 GB RAM (always 1 instance)
-- [ ] **MGMT-02**: Tool computes SDDC Manager baseline: 4 vCPU / 16 GB RAM (always 1 instance)
-- [ ] **MGMT-03**: Tool computes NSX Manager: 6 vCPU / 24 GB RAM × 1 (Simple) or × 3 (HA/Stretch)
-- [ ] **MGMT-04**: Tool computes VCF Operations: 4 vCPU / 16 GB RAM × 1 or × 3, plus Fleet Manager (12 GB) and Collector (16 GB)
-- [ ] **MGMT-05**: Tool computes VCF Automation (VCFA): 24 vCPU / 96 GB RAM × 1 (Simple) or × 3 (HA/Stretch)
-- [ ] **MGMT-06**: Tool displays total management domain overhead: aggregate vCPU and RAM before workload addition
-- [ ] **MGMT-07**: Tool shows prominent blocker warning when selected host has fewer than 12 physical cores (24 threads) — VCFA deployment prerequisite
+- [x] **MGMT-01**: Tool computes vCenter Server baseline: 4 vCPU / 21 GB RAM (always 1 instance)
+- [x] **MGMT-02**: Tool computes SDDC Manager baseline: 4 vCPU / 16 GB RAM (always 1 instance)
+- [x] **MGMT-03**: Tool computes NSX Manager: 6 vCPU / 24 GB RAM × 1 (Simple) or × 3 (HA/Stretch)
+- [x] **MGMT-04**: Tool computes VCF Operations: 4 vCPU / 16 GB RAM × 1 or × 3, plus Fleet Manager (12 GB) and Collector (16 GB)
+- [x] **MGMT-05**: Tool computes VCF Automation (VCFA): 24 vCPU / 96 GB RAM × 1 (Simple) or × 3 (HA/Stretch)
+- [x] **MGMT-06**: Tool displays total management domain overhead: aggregate vCPU and RAM before workload addition
+- [x] **MGMT-07**: Tool shows prominent blocker warning when selected host has fewer than 12 physical cores (24 threads) — VCFA deployment prerequisite
 
 ### Host Specifications
 
@@ -45,7 +45,7 @@
 - [ ] **HOST-03**: User can input total RAM per host (GB)
 - [ ] **HOST-04**: User can input raw storage per host (TB) for vSAN configurations
 - [ ] **HOST-05**: User can input number of hosts in the cluster
-- [ ] **HOST-06**: Tool validates host minimum for each selected deployment model (VCFA blocker enforced)
+- [x] **HOST-06**: Tool validates host minimum for each selected deployment model (VCFA blocker enforced)
 
 ### Workload Profiles
 
@@ -58,14 +58,14 @@
 
 ### Storage Engine
 
-- [ ] **STOR-01**: User can select principal storage: vSAN ESA, Fibre Channel (FC), or NFS
-- [ ] **STOR-02**: vSAN ESA capacity calculation applies Adaptive RAID-5 thresholds (2+1 at 5 hosts; 4+1 at 6+ hosts) — port from raidy
-- [ ] **STOR-03**: vSAN ESA calculation stacks all overhead layers: RAID overhead + LFS overhead (~13%) + global metadata pool (~10%) — port from raidy
-- [ ] **STOR-04**: User can select FTT policy (FTT=1 RAID-1, FTT=1 RAID-5, FTT=2 RAID-6)
-- [ ] **STOR-05**: Global Deduplication toggle available for vSAN ESA (disabled when: Stretch Cluster selected, encryption active, < 3 or > 16 hosts, < 25GbE)
-- [ ] **STOR-06**: Global Deduplication ratio configurable (default 2x conservative; user adjustable)
-- [ ] **STOR-07**: FC and NFS paths skip vSAN overhead, show raw capacity pass-through
-- [ ] **STOR-08**: Tool displays raw capacity vs. net usable capacity with breakdown of each overhead layer
+- [x] **STOR-01**: User can select principal storage: vSAN ESA, Fibre Channel (FC), or NFS
+- [x] **STOR-02**: vSAN ESA capacity calculation applies Adaptive RAID-5 thresholds (2+1 at 5 hosts; 4+1 at 6+ hosts) — port from raidy
+- [x] **STOR-03**: vSAN ESA calculation stacks all overhead layers: RAID overhead + LFS overhead (~13%) + global metadata pool (~10%) — port from raidy
+- [x] **STOR-04**: User can select FTT policy (FTT=1 RAID-1, FTT=1 RAID-5, FTT=2 RAID-6)
+- [x] **STOR-05**: Global Deduplication toggle available for vSAN ESA (disabled when: Stretch Cluster selected, encryption active, < 3 or > 16 hosts, < 25GbE)
+- [x] **STOR-06**: Global Deduplication ratio configurable (default 2x conservative; user adjustable)
+- [x] **STOR-07**: FC and NFS paths skip vSAN overhead, show raw capacity pass-through
+- [x] **STOR-08**: Tool displays raw capacity vs. net usable capacity with breakdown of each overhead layer
 
 ### NVMe Memory Tiering
 
@@ -90,11 +90,11 @@
 
 ### Calculation Engine
 
-- [ ] **CALC-01**: All formulas implemented as pure TypeScript functions with no Vue imports (testable with Vitest)
-- [ ] **CALC-02**: Calculation store (`calculationStore`) exposes only `computed()` read-only results derived from `inputStore`
-- [ ] **CALC-03**: Total cluster compute output: required vCPUs, required RAM, available vCPUs, available RAM, utilization %
-- [ ] **CALC-04**: Minimum host count recommendation computed and displayed
-- [ ] **CALC-05**: Context7 MCP used to verify all library API calls before implementation
+- [x] **CALC-01**: All formulas implemented as pure TypeScript functions with no Vue imports (testable with Vitest)
+- [x] **CALC-02**: Calculation store (`calculationStore`) exposes only `computed()` read-only results derived from `inputStore`
+- [x] **CALC-03**: Total cluster compute output: required vCPUs, required RAM, available vCPUs, available RAM, utilization %
+- [x] **CALC-04**: Minimum host count recommendation computed and displayed
+- [x] **CALC-05**: Context7 MCP used to verify all library API calls before implementation
 
 ### Visualizations
 
