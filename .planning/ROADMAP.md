@@ -13,7 +13,7 @@ The project builds a zero-backend browser SPA that computes VCF 9.x hardware req
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation, Engine and Inputs** - Scaffold the project, port the storage engine from raidy, implement all calculation logic as pure TypeScript, and build all input panels
+- [x] **Phase 1: Foundation, Engine and Inputs** - Scaffold the project, port the storage engine from raidy, implement all calculation logic as pure TypeScript, and build all input panels (completed 2026-03-28)
 - [ ] **Phase 2: Outputs, Charts and Export** - Surface all computed results through a split-screen UI, real-time charts, shareable URL, and document export
 - [ ] **Phase 3: Advanced Features and Polish** - Add Stretch Cluster, NVMe Memory Tiering, AI/GPU workloads, Global Deduplication, and complete all four Swiss locales
 
@@ -32,12 +32,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. User can enter workload profile (VM count, vCPU, vRAM, storage, overcommit ratios) and see total required compute updated without pressing a submit button
   5. User can select vSAN ESA with an FTT policy and see raw vs. usable capacity with all overhead layers (RAID + LFS + metadata) computed correctly — validated against raidy reference values
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 01-01-PLAN.md — Project scaffold, Tailwind v4, vue-i18n v11 with all four Swiss locales, Pinia stores, LanguageSwitcher
 - [x] 01-02-PLAN.md — Calculation engine TDD: management.ts, compute.ts, storage.ts, validation.ts + calculationStore
-- [ ] 01-03-PLAN.md — Input panel components: DeploymentModelSelector, HostSpecsForm, WorkloadProfileForm, StorageConfigForm + human verify
+- [x] 01-03-PLAN.md — Input panel components: DeploymentModelSelector, HostSpecsForm, WorkloadProfileForm, StorageConfigForm + human verify
 
 ### Phase 2: Outputs, Charts and Export
 
@@ -73,6 +73,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Engine and Inputs | 2/3 | In Progress|  |
+| 1. Foundation, Engine and Inputs | 3/3 | Complete   | 2026-03-28 |
 | 2. Outputs, Charts and Export | 0/TBD | Not started | - |
 | 3. Advanced Features and Polish | 0/TBD | Not started | - |

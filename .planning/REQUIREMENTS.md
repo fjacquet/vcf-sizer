@@ -24,9 +24,9 @@
 
 ### Deployment Models
 
-- [ ] **DEPLOY-01**: User can select Simple (Lab/POC) deployment model
-- [ ] **DEPLOY-02**: User can select High Availability (Production) deployment model — applies x3 multiplier to NSX Manager, VCF Operations, VCF Automation
-- [ ] **DEPLOY-03**: User can select Stretch Cluster deployment model — 2-site topology with witness node
+- [x] **DEPLOY-01**: User can select Simple (Lab/POC) deployment model
+- [x] **DEPLOY-02**: User can select High Availability (Production) deployment model — applies x3 multiplier to NSX Manager, VCF Operations, VCF Automation
+- [x] **DEPLOY-03**: User can select Stretch Cluster deployment model — 2-site topology with witness node
 
 ### Management Domain Sizing
 
@@ -40,21 +40,21 @@
 
 ### Host Specifications
 
-- [ ] **HOST-01**: User can input number of cores per socket
-- [ ] **HOST-02**: User can input number of sockets per host
-- [ ] **HOST-03**: User can input total RAM per host (GB)
-- [ ] **HOST-04**: User can input raw storage per host (TB) for vSAN configurations
-- [ ] **HOST-05**: User can input number of hosts in the cluster
+- [x] **HOST-01**: User can input number of cores per socket
+- [x] **HOST-02**: User can input number of sockets per host
+- [x] **HOST-03**: User can input total RAM per host (GB)
+- [x] **HOST-04**: User can input raw storage per host (TB) for vSAN configurations
+- [x] **HOST-05**: User can input number of hosts in the cluster
 - [x] **HOST-06**: Tool validates host minimum for each selected deployment model (VCFA blocker enforced)
 
 ### Workload Profiles
 
-- [ ] **WKLD-01**: User can input number of VMs
-- [ ] **WKLD-02**: User can input average vCPU per VM
-- [ ] **WKLD-03**: User can input average vRAM per VM (GB)
-- [ ] **WKLD-04**: User can input average storage per VM (GB)
-- [ ] **WKLD-05**: User can input vCPU over-commitment ratio (default 4:1)
-- [ ] **WKLD-06**: User can input RAM over-commitment ratio (default 1:1)
+- [x] **WKLD-01**: User can input number of VMs
+- [x] **WKLD-02**: User can input average vCPU per VM
+- [x] **WKLD-03**: User can input average vRAM per VM (GB)
+- [x] **WKLD-04**: User can input average storage per VM (GB)
+- [x] **WKLD-05**: User can input vCPU over-commitment ratio (default 4:1)
+- [x] **WKLD-06**: User can input RAM over-commitment ratio (default 1:1)
 
 ### Storage Engine
 
