@@ -34,17 +34,22 @@
     "ramOvercommit": "RAM Over-Commit Ratio"
   },
   "storage": {
-    "label": "Principal Storage",
+    "label": "Archiviazione principale",
     "vsanEsa": "vSAN ESA",
     "fc": "Fibre Channel (FC)",
     "nfs": "NFS",
-    "fttLevel": "Fault Tolerance Level (FTT)",
-    "raidType": "RAID Policy",
+    "fttLevel": "Livello di tolleranza ai guasti (FTT)",
+    "raidType": "Politica RAID",
     "raid1": "RAID-1 (Mirroring)",
     "raid5": "RAID-5 (Erasure Coding)",
     "raid6": "RAID-6 (Erasure Coding)",
-    "dedupEnabled": "Global Deduplication",
-    "dedupRatio": "Deduplication Ratio"
+    "dedupEnabled": "Deduplicazione globale",
+    "dedupRatio": "Rapporto di deduplicazione",
+    "rawCapacity": "Capacità grezza",
+    "raidOverhead": "Overhead RAID",
+    "netUsable": "Utilizzabile netto (sicurezza 70%)",
+    "netUsablePassthrough": "Utilizzabile netto (pass-through)",
+    "minHosts": "min {count} host"
   },
   "warnings": {
     "vcfaMinCores": "WARNING: VCF Automation (VCFA) requires a host with at least 12 physical cores (24 threads). Deployment will be blocked with the current host specification.",

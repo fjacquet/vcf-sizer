@@ -44,7 +44,12 @@
     "raid5": "RAID-5 (Erasure Coding)",
     "raid6": "RAID-6 (Erasure Coding)",
     "dedupEnabled": "Global Deduplication",
-    "dedupRatio": "Deduplication Ratio"
+    "dedupRatio": "Deduplication Ratio",
+    "rawCapacity": "Raw Capacity",
+    "raidOverhead": "RAID Overhead",
+    "netUsable": "Net Usable (safe 70%)",
+    "netUsablePassthrough": "Net Usable (pass-through)",
+    "minHosts": "min {count} hosts"
   },
   "warnings": {
     "vcfaMinCores": "WARNING: VCF Automation (VCFA) requires a host with at least 12 physical cores (24 threads). Deployment will be blocked with the current host specification.",

@@ -44,7 +44,12 @@
     "raid5": "RAID-5 (Codage d'effacement)",
     "raid6": "RAID-6 (Codage d'effacement)",
     "dedupEnabled": "Déduplication globale",
-    "dedupRatio": "Ratio de déduplication"
+    "dedupRatio": "Ratio de déduplication",
+    "rawCapacity": "Capacité brute",
+    "raidOverhead": "Surcoût RAID",
+    "netUsable": "Utilisable net (sécurité 70%)",
+    "netUsablePassthrough": "Utilisable net (pass-through)",
+    "minHosts": "min {count} hôtes"
   },
   "warnings": {
     "vcfaMinCores": "AVERTISSEMENT : VCF Automation (VCFA) requiert un hôte avec au moins 12 cœurs physiques (24 threads). Le déploiement sera bloqué avec la spécification d'hôte actuelle.",
