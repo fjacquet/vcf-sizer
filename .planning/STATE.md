@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-28T16:34:58.706Z"
-last_activity: 2026-03-28 — Roadmap created; three-phase coarse structure derived from 55 v1 requirements
+status: executing
+stopped_at: "Completed 01-01-PLAN.md"
+last_updated: "2026-03-29T00:15:00Z"
+last_activity: 2026-03-29 — Plan 01-01 complete: scaffold with Vite 8, Tailwind v4, vue-i18n v11, Pinia stores
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 9
+  completed_plans: 1
+  percent: 11
 ---
 
 # Project State
@@ -26,30 +26,30 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 1 of 3 (Foundation, Engine and Inputs)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-28 — Roadmap created; three-phase coarse structure derived from 55 v1 requirements
+Plan: 1 of 3 in current phase
+Status: Executing
+Last activity: 2026-03-29 — Plan 01-01 complete: scaffold with Vite 8, Tailwind v4, vue-i18n v11, Pinia stores
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 11%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 35 min
+- Total execution time: ~0.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| Phase 1 | 1 | 35 min | 35 min |
 
 **Recent Trend:**
 
-- Last 5 plans: -
-- Trend: -
+- Last 5 plans: 35 min
+- Trend: Baseline established
 
 *Updated after each plan completion*
 
@@ -64,6 +64,9 @@ Recent decisions affecting current work:
 - [Roadmap]: Storage engine (STOR-02, STOR-03) is a PORT from raidy project, not greenfield — de-risks Adaptive RAID-5 and LFS+metadata overhead math
 - [Roadmap]: Stretch Cluster + Global Deduplication mutual exclusion (STRCH-04) is enforced in Phase 3; UI must prevent the combination
 - [Roadmap]: PDF export strategy (html2canvas vs. print CSS) requires a spike at the start of Phase 2 before committing to an approach
+- [01-01]: @intlify/unplugin-vue-i18n include pattern breaks rolldown — locale files handled natively by Vite 8; plugin kept without include for SFC i18n blocks
+- [01-01]: vue-i18n Swiss locales use full BCP47 codes (fr-CH, de-CH, it-CH) in numberFormats, not short codes, to prevent European separator inheritance
+- [01-01]: Engine test files excluded from tsconfig.app.json — vitest globals (describe/it/expect) provided by vitest config, not TypeScript declarations
 
 ### Pending Todos
 
@@ -76,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T16:34:58.703Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundation-engine-and-inputs/01-CONTEXT.md
+Last session: 2026-03-29T00:15:00Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: .planning/phases/01-foundation-engine-and-inputs/01-02-PLAN.md

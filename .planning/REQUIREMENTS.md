@@ -7,20 +7,20 @@
 
 ### Project Foundation
 
-- [ ] **FOUND-01**: Project scaffolds with Vite 8 + Vue 3 (Composition API) + TypeScript
-- [ ] **FOUND-02**: Tailwind CSS v4 integrated via Vite plugin (no PostCSS config required)
-- [ ] **FOUND-03**: Pinia 3 state management installed and configured
-- [ ] **FOUND-04**: Decimal.js installed and used for all arithmetic (no native JS float math in calculation engine)
-- [ ] **FOUND-05**: Project deploys as static site to GitHub Pages, Vercel, or Netlify with no backend
-- [ ] **FOUND-06**: Unit test framework (Vitest) configured for pure calculation engine tests
+- [x] **FOUND-01**: Project scaffolds with Vite 8 + Vue 3 (Composition API) + TypeScript
+- [x] **FOUND-02**: Tailwind CSS v4 integrated via Vite plugin (no PostCSS config required)
+- [x] **FOUND-03**: Pinia 3 state management installed and configured
+- [x] **FOUND-04**: Decimal.js installed and used for all arithmetic (no native JS float math in calculation engine)
+- [x] **FOUND-05**: Project deploys as static site to GitHub Pages, Vercel, or Netlify with no backend
+- [x] **FOUND-06**: Unit test framework (Vitest) configured for pure calculation engine tests
 
 ### Internationalization
 
-- [ ] **I18N-01**: vue-i18n v11 installed with explicit Swiss locale declarations: `fr-CH`, `de-CH`, `it-CH`, `en`
-- [ ] **I18N-02**: Language switcher component allows selecting FR, EN, DE, IT
-- [ ] **I18N-03**: All visible UI text externalized to locale message files (no hardcoded strings)
-- [ ] **I18N-04**: Number formatting uses locale-aware `Intl.NumberFormat` per locale (apostrophe for `de-CH`, space for `fr-CH`)
-- [ ] **I18N-05**: Default language detected from browser locale; falls back to English
+- [x] **I18N-01**: vue-i18n v11 installed with explicit Swiss locale declarations: `fr-CH`, `de-CH`, `it-CH`, `en`
+- [x] **I18N-02**: Language switcher component allows selecting FR, EN, DE, IT
+- [x] **I18N-03**: All visible UI text externalized to locale message files (no hardcoded strings)
+- [x] **I18N-04**: Number formatting uses locale-aware `Intl.NumberFormat` per locale (apostrophe for `de-CH`, space for `fr-CH`)
+- [x] **I18N-05**: Default language detected from browser locale; falls back to English
 
 ### Deployment Models
 

@@ -20,6 +20,7 @@ Developers write `totalRAM * 0.5` and compare with `<=` to detect the threshold,
 Use `decimal.js` (arbitrary-precision) or `Decimal` for all sizing arithmetic — never native `+`, `*`, `/` on floating-point inputs. For integer-bounded quantities (host counts, vCPU counts) use `Math.ceil()` on the result of a Decimal computation, not native division. Define a project-wide `Calc` wrapper that rejects raw numbers and always operates on `Decimal` instances.
 
 **Warning signs:**
+
 - Unit tests show values like `3.0000000000000004` for a host count
 - Snapshot tests for known VCF sizing scenarios diverge after adding or removing a workload profile
 - The NVMe tiering toggle flips state unexpectedly near the 50% boundary
@@ -40,6 +41,7 @@ Older OSA documentation stated "RAID-5 FTT=1 requires 4 hosts minimum" — this 
 
 **How to avoid:**
 Implement a `raidOverhead(hostCount, ftLevel, raidType)` function with the correct ESA thresholds:
+
 - RAID-1 FTT=1: min 3 hosts, 200% overhead (2 copies)
 - RAID-5 (2+1): 3 to 5 hosts, 150% overhead
 - RAID-5 (4+1): 6+ hosts, 125% overhead
@@ -49,6 +51,7 @@ Implement a `raidOverhead(hostCount, ftLevel, raidType)` function with the corre
 Source the thresholds from Duncan Epping's January 2024 ESA post, not the OSA guide.
 
 **Warning signs:**
+
 - Storage results for a 5-node cluster look the same as for a 6-node cluster
 - RAID-5 overhead is always displayed as 1.25x regardless of host count
 - No visual distinction between 2+1 and 4+1 in the UI
@@ -72,6 +75,7 @@ The LFS and metadata overheads are documented in a separate VMware blog post ("C
 
 **How to avoid:**
 The correct formula stack (sequential application):
+
 ```
 1. raw_after_dedup    = raw_input x dedup_ratio            (if Global Dedup enabled)
 2. data_for_raid      = raw_after_dedup
@@ -80,9 +84,11 @@ The correct formula stack (sequential application):
 5. global_meta_pool   = total_raw_cluster x 0.10            (metadata approx 10% of raw)
 6. net_usable         = usable_after_lfs - global_meta_pool
 ```
+
 Apply these as a chain of Decimal operations. Write a unit test that reproduces the worked example from the VMware ESA capacity blog.
 
 **Warning signs:**
+
 - Usable capacity output is suspiciously high compared to vSAN ReadyNode Sizer for the same inputs
 - No mention of LFS or metadata overhead fields in the storage breakdown chart
 - Storage "surplus" bar in the chart never turns negative even at 100% fill
@@ -97,6 +103,7 @@ Apply these as a chain of Decimal operations. Write a unit test that reproduces 
 In HA (Production) mode, the management domain requires 3 instances of NSX Manager, VCF Operations, AND VCF Automation (VCFA). A common mistake is applying the x3 multiplier only to NSX Manager while treating VCF Operations and VCFA as singletons, or forgetting to multiply storage disk requirements by 3 as well. This silently under-counts management domain resource consumption by 50 to 60%.
 
 VCFA specifics that are easy to get wrong:
+
 - VCFA requires 24 vCPU / 96 GB RAM per instance — in HA mode that is 72 vCPU / 288 GB RAM for VCFA alone
 - VCFA HA uses medium (150 GB disk) or large (200 GB disk) volumes — not the singleton 75 GB
 - Physical hosts must have at least 12 physical cores / 24 threads for VCFA to deploy at all; this is a hard blocker, not a performance concern
@@ -108,6 +115,7 @@ The VCF 9 deployment documentation describes HA mode globally but lists per-comp
 Model each management component (vCenter, SDDC Mgr, NSX Mgr, VCF Ops, VCFA) as a typed object with `{ vCPU, ramGB, diskGB, count }`. The `count` field is driven by deployment mode: `count = 1` (Simple) or `count = 3` (HA). Total management overhead = sum across all components. Validate totals against the known minimums from Broadcom KB 397782 and the VCF 9 deployment guide.
 
 **Warning signs:**
+
 - Management domain vCPU count in HA mode is less than approximately 100 vCPU total (it should be well above this)
 - Storage overview shows no disk difference between Simple and HA modes
 - The tool never warns about the 12-core / 24-thread physical host requirement for VCFA
@@ -128,6 +136,7 @@ The VCF 9 NVMe tiering documentation states "keep active memory at or below 50% 
 Add an explicit "memory activeness %" input (default 70%, representing typical enterprise workloads) alongside total VM RAM. Active memory = total VM RAM x activeness %. NVMe tiering is then beneficial only when active memory is at or below 50% of DRAM. Display both the input assumption and the derived active-memory figure prominently so users can override the default.
 
 **Warning signs:**
+
 - NVMe tiering is triggered for a workload where all VMs are described as memory-intensive databases
 - The activeness percentage has no input field — the tool implicitly assumes 100%
 - DRAM reduction benefit shows 2x for workloads where active memory clearly exceeds DRAM
@@ -152,6 +161,7 @@ vue-i18n delegates to `Intl.NumberFormat` under the hood. Developers define `fr`
 Explicitly define `numberFormats` for all four Swiss locales in the vue-i18n configuration. Write cross-locale snapshot tests using `@formatjs/intl-numberformat` as a polyfill to get deterministic output regardless of browser CLDR version. Test input values like `1234567.89` and `0.5` in all four locales.
 
 **Warning signs:**
+
 - Numbers display identically in `fr-CH` and `fr` locale
 - Storage figures display as `1.500.000,00` (European format) after switching to German
 - CI tests pass but user reports the DE locale shows wrong separators in their browser
@@ -174,6 +184,7 @@ Developers use `btoa()` + `JSON.stringify()` directly without applying URL-safe 
 Use **Base64URL** encoding (RFC 4648 section 5): replace `+` with `-`, `/` with `_`, and strip trailing `=`. In modern browsers, apply `encodeURIComponent(btoa(json))` at minimum, or a library that outputs Base64URL natively. Compress the JSON with `lz-string` or `pako` before encoding to stay well under 2,000 characters for typical configurations. Add a unit test that round-trips a maximum-complexity configuration (all deployment modes, all workloads, all languages) and verifies URL length below 1,800 characters.
 
 **Warning signs:**
+
 - Pasting a shared URL into Outlook strips content after the `+`
 - State round-trip test fails when workload names contain spaces or special characters
 - URL length exceeds 2,000 characters for a 10-workload configuration
@@ -196,6 +207,7 @@ Vue's deep reactivity wraps every nested object in a Proxy. Chart.js instances m
 Store Chart.js instances in `shallowRef()`, never in `reactive()` or `ref()`. Pass data to charts via computed properties derived from the Pinia store, using `watch(computedChartData, () => chart.value.update())` with `{ flush: 'post' }` to batch updates after the DOM cycle. For Pinia, break the monolithic state store into domain-specific stores (compute store, storage store, network store) so watchers are scoped and do not cascade. Use `vue-chartjs` as the integration layer — it handles the `shallowRef` pattern correctly.
 
 **Warning signs:**
+
 - Browser console shows "Maximum update depth exceeded" when chart inputs change
 - Charts correctly update in development but are one update behind in production
 - CPU spikes to 100% when the user types quickly in the VM count input field
@@ -208,6 +220,7 @@ Store Chart.js instances in `shallowRef()`, never in `reactive()` or `ref()`. Pa
 
 **What goes wrong:**
 `html2canvas` + `jsPDF` rasterizes the DOM into a PNG and embeds it in a PDF. This approach has three VCF-sizer-specific failure modes:
+
 1. **Font rendering:** Web fonts (e.g., Inter, the default Tailwind sans) are not loaded at the time html2canvas captures the DOM — the PDF shows fallback serif fonts or blank text boxes.
 2. **CSS layout collapse:** Flex and Grid layouts used by Tailwind lose their computed styles during the DOM clone that html2canvas performs. Charts collapse to zero-height divs.
 3. **File size:** A full-page raster at 2x DPI for a complex sizing report produces a 5 to 15 MB PDF — impractical for email attachment.
@@ -219,6 +232,7 @@ html2canvas operates on a cloned DOM, and the clone does not inherit computed st
 Use the `@page` CSS print media approach first: a `window.print()` triggered PDF with `@media print` overrides is zero-dependency and preserves fonts and layout correctly. For a "true PDF" button, use `@vueuse/core`'s `useEventListener` to trigger a print dialog styled with a print stylesheet. If a downloadable file (not print dialog) is required, evaluate `jspdf-autotable` for data tables and render charts to `canvas.toDataURL()` explicitly before calling html2canvas. Always test PDF export in both Chrome and Firefox headless.
 
 **Warning signs:**
+
 - PDF preview shows "Helvetica" instead of the project typeface
 - Bar charts appear as empty rectangles in the exported PDF
 - PDF file sizes exceed 5 MB for a standard 3-workload configuration
@@ -240,6 +254,7 @@ The witness appliance is perceived as a "small helper VM" — developers default
 
 **How to avoid:**
 Implement a `witnessComponentCount(vmCount, disksPerVM, policy)` function. Map the result to witness size tiers:
+
 - Below 750 components: Tiny
 - 750 to 21,833 components: Medium
 - 21,834 to 45,000 components: Large
@@ -248,6 +263,7 @@ Implement a `witnessComponentCount(vmCount, disksPerVM, policy)` function. Map t
 Display the calculated component count alongside the recommended witness tier so users can audit the result.
 
 **Warning signs:**
+
 - The tool always recommends "Tiny" witness regardless of VM count
 - No component count figure appears in the stretch cluster section
 - The witness section has no inputs for disks-per-VM or storage policy
