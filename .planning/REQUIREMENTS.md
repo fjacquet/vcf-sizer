@@ -154,17 +154,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | FOUND-01 to FOUND-06 | Phase 1 | Pending |
 | I18N-01 to I18N-05 | Phase 1 | Pending |
-| DEPLOY-01 to DEPLOY-03 | Phase 2 | Pending |
-| MGMT-01 to MGMT-07 | Phase 2 | Pending |
-| HOST-01 to HOST-06 | Phase 2 | Pending |
-| WKLD-01 to WKLD-06 | Phase 2 | Pending |
-| STOR-01 to STOR-08 | Phase 2 | Pending |
+| DEPLOY-01 to DEPLOY-03 | Phase 1 | Pending |
+| MGMT-01 to MGMT-07 | Phase 1 | Pending |
+| HOST-01 to HOST-06 | Phase 1 | Pending |
+| WKLD-01 to WKLD-06 | Phase 1 | Pending |
+| STOR-01 to STOR-08 | Phase 1 | Pending |
+| CALC-01 to CALC-05 | Phase 1 | Pending |
+| VIZ-01 to VIZ-07 | Phase 2 | Pending |
+| EXPORT-01 to EXPORT-04 | Phase 2 | Pending |
 | NVME-01 to NVME-04 | Phase 3 | Pending |
 | STRCH-01 to STRCH-05 | Phase 3 | Pending |
 | GPU-01 to GPU-03 | Phase 3 | Pending |
-| CALC-01 to CALC-05 | Phase 2 | Pending |
-| VIZ-01 to VIZ-07 | Phase 2 | Pending |
-| EXPORT-01 to EXPORT-04 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 55 total
@@ -173,4 +173,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 after initial definition*
+*Last updated: 2026-03-28 — traceability updated for 3-phase coarse roadmap*
