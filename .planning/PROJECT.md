@@ -43,6 +43,8 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 
 ## Context
 
+**Existing asset:** The `raidy` project already contains working vSAN calculation logic. The storage engine in this project should port/adapt those formulas rather than rebuilding from scratch. This de-risks the vSAN ESA overhead math (RAID + LFS + metadata stacking) and Adaptive RAID-5 threshold logic.
+
 VCF 9 introduces significant changes that make sizing more complex:
 - VCFA requires a minimum 24 vCPU / 96 GB RAM, multiplied by 3 for HA
 - NVMe Memory Tiering can halve DRAM requirements when active memory ≤ 50% of DRAM
