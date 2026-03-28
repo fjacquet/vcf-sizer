@@ -1,0 +1,63 @@
+{
+  "app": {
+    "title": "Calculateur de dimensionnement VCF 9.x"
+  },
+  "language": {
+    "label": "Langue",
+    "en": "EN",
+    "fr": "FR",
+    "de": "DE",
+    "it": "IT"
+  },
+  "deployment": {
+    "label": "Modèle de déploiement",
+    "simple": "Simple (Lab / POC)",
+    "ha": "Haute disponibilité (Production)",
+    "stretch": "Cluster étendu (2 sites)"
+  },
+  "host": {
+    "label": "Spécifications de l'hôte",
+    "coresPerSocket": "Cœurs par socket",
+    "socketsPerHost": "Sockets par hôte",
+    "totalCores": "Total de cœurs par hôte",
+    "ramGB": "RAM par hôte (Go)",
+    "storageTB": "Stockage brut par hôte (To)",
+    "hostCount": "Nombre d'hôtes"
+  },
+  "workload": {
+    "label": "Profil de charge de travail",
+    "vmCount": "Nombre de VMs",
+    "avgVcpu": "vCPU moyen par VM",
+    "avgVram": "vRAM moyen par VM (Go)",
+    "avgStorage": "Stockage moyen par VM (Go)",
+    "cpuOvercommit": "Ratio de surengagement vCPU",
+    "ramOvercommit": "Ratio de surengagement RAM"
+  },
+  "storage": {
+    "label": "Stockage principal",
+    "vsanEsa": "vSAN ESA",
+    "fc": "Fibre Channel (FC)",
+    "nfs": "NFS",
+    "fttLevel": "Niveau de tolérance aux pannes (FTT)",
+    "raidType": "Politique RAID",
+    "raid1": "RAID-1 (Miroir)",
+    "raid5": "RAID-5 (Codage d'effacement)",
+    "raid6": "RAID-6 (Codage d'effacement)",
+    "dedupEnabled": "Déduplication globale",
+    "dedupRatio": "Ratio de déduplication"
+  },
+  "warnings": {
+    "vcfaMinCores": "AVERTISSEMENT : VCF Automation (VCFA) requiert un hôte avec au moins 12 cœurs physiques (24 threads). Le déploiement sera bloqué avec la spécification d'hôte actuelle.",
+    "dedupStretchExclusion": "La déduplication globale ne peut pas être activée avec le cluster étendu."
+  },
+  "management": {
+    "label": "Surcharge du domaine de gestion",
+    "vcenter": "vCenter Server",
+    "sddc": "SDDC Manager",
+    "nsx": "NSX Manager",
+    "ops": "VCF Operations",
+    "automation": "VCF Automation (VCFA)",
+    "totalCores": "Total des cœurs de gestion",
+    "totalRam": "Total de la RAM de gestion"
+  }
+}
