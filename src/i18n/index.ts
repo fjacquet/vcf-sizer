@@ -37,8 +37,13 @@ export const i18n = createI18n({
 // Lazy-load non-EN locale files on demand (called from uiStore.setLocale)
 export async function loadLocale(locale: 'fr' | 'de' | 'it'): Promise<void> {
   const localeMap: Record<string, string> = { fr: 'fr-CH', de: 'de-CH', it: 'it-CH' }
-  const messages = await import(`./locales/${locale}.json`)
-  // Register under the vue-i18n locale key (fr-CH, de-CH, it-CH)
+  // Explicit imports (not a template literal) so bundler can tree-shake
+  // and avoids the INEFFECTIVE_DYNAMIC_IMPORT warning with en.json
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let messages: { default: any }
+  if (locale === 'fr') messages = await import('./locales/fr.json')
+  else if (locale === 'de') messages = await import('./locales/de.json')
+  else messages = await import('./locales/it.json')
   i18n.global.setLocaleMessage(localeMap[locale], messages.default)
   i18n.global.locale.value = localeMap[locale] as 'fr-CH' | 'de-CH' | 'it-CH'
 }
