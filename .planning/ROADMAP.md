@@ -31,7 +31,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can enter host specs (cores, sockets, RAM, storage, host count) and see a hard blocker warning when the host has fewer than 12 physical cores
   4. User can enter workload profile (VM count, vCPU, vRAM, storage, overcommit ratios) and see total required compute updated without pressing a submit button
   5. User can select vSAN ESA with an FTT policy and see raw vs. usable capacity with all overhead layers (RAID + LFS + metadata) computed correctly — validated against raidy reference values
-**Plans**: TBD
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Project scaffold, Tailwind v4, vue-i18n v11 with all four Swiss locales, Pinia stores, LanguageSwitcher
+- [ ] 01-02-PLAN.md — Calculation engine TDD: management.ts, compute.ts, storage.ts, validation.ts + calculationStore
+- [ ] 01-03-PLAN.md — Input panel components: DeploymentModelSelector, HostSpecsForm, WorkloadProfileForm, StorageConfigForm + human verify
 
 ### Phase 2: Outputs, Charts and Export
 
@@ -67,6 +73,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Engine and Inputs | 0/TBD | Not started | - |
+| 1. Foundation, Engine and Inputs | 0/3 | Not started | - |
 | 2. Outputs, Charts and Export | 0/TBD | Not started | - |
 | 3. Advanced Features and Polish | 0/TBD | Not started | - |
