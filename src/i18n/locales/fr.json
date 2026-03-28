@@ -52,6 +52,9 @@
   },
   "management": {
     "label": "Surcharge du domaine de gestion",
+    "component": "Composant",
+    "vcpu": "vCPU",
+    "ramLabel": "RAM (Go)",
     "vcenter": "vCenter Server",
     "sddc": "SDDC Manager",
     "nsx": "NSX Manager",

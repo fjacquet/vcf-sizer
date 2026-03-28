@@ -52,6 +52,9 @@
   },
   "management": {
     "label": "Management Domain Overhead",
+    "component": "Component",
+    "vcpu": "vCPU",
+    "ramLabel": "RAM (GB)",
     "vcenter": "vCenter Server",
     "sddc": "SDDC Manager",
     "nsx": "NSX Manager",

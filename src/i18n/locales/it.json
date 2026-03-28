@@ -51,13 +51,16 @@
     "dedupStretchExclusion": "Global Deduplication cannot be enabled with Stretch Cluster."
   },
   "management": {
-    "label": "Management Domain Overhead",
+    "label": "Overhead del dominio di gestione",
+    "component": "Componente",
+    "vcpu": "vCPU",
+    "ramLabel": "RAM (GB)",
     "vcenter": "vCenter Server",
     "sddc": "SDDC Manager",
     "nsx": "NSX Manager",
     "ops": "VCF Operations",
     "automation": "VCF Automation (VCFA)",
-    "totalCores": "Total Management Cores",
-    "totalRam": "Total Management RAM"
+    "totalCores": "Totale core di gestione",
+    "totalRam": "Totale RAM di gestione"
   }
 }
