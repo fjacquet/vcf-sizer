@@ -8,6 +8,7 @@ import { useInputStore } from './inputStore'
 import { calcManagement } from '../engine/management'
 import { calcCompute } from '../engine/compute'
 import { calcStorage } from '../engine/storage'
+import { calcVsanMax } from '../engine/vsanMax'
 import { calcStretch } from '../engine/stretch'
 import { validateInputs } from '../engine/validation'
 
@@ -80,6 +81,17 @@ export const useCalculationStore = defineStore('calculation', () => {
     return Math.max(4, Math.ceil(management.value.totalCores / coresPerHost))
   })
 
+  // vSAN Max storage cluster sizing (only meaningful when storageType === 'vsan-max')
+  const vsanMax = computed(() =>
+    input.storageType === 'vsan-max'
+      ? calcVsanMax({
+          profile: input.vsanMaxProfile,
+          storageNodeCount: input.vsanMaxStorageNodes,
+          computeNodeCount: input.hostCount,
+        })
+      : null
+  )
+
   // Validation warnings and errors
   const validationErrors = computed(() =>
     validateInputs({
@@ -92,9 +104,11 @@ export const useCalculationStore = defineStore('calculation', () => {
       preferredSiteHosts: input.preferredSiteHosts,
       secondarySiteHosts: input.secondarySiteHosts,
       managementArchitecture: input.managementArchitecture,
+      networkSpeedGbE: input.networkSpeedGbE,
+      vsanMaxStorageNodes: input.vsanMaxStorageNodes,
     })
   )
 
   // All returned values are computed — ZERO ref() in this store (CALC-02)
-  return { management, compute, storage, validationErrors, stretch, dedicatedMgmtHostCount }
+  return { management, compute, storage, validationErrors, stretch, dedicatedMgmtHostCount, vsanMax }
 })

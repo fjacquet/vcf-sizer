@@ -21,12 +21,15 @@ const InputStateSchema = z
     avgStorageGbPerVm: z.number().positive().default(100),
     cpuOvercommitRatio: z.number().positive().max(20).default(4),
     ramOvercommitRatio: z.number().positive().max(4).default(1),
-    storageType: z.enum(['vsan-esa', 'fc', 'nfs']).default('vsan-esa'),
+    storageType: z.enum(['vsan-esa', 'fc', 'nfs', 'vsan-max']).default('vsan-esa'),
     fttLevel: z.union([z.literal(1), z.literal(2)]).default(1),
     raidType: z.enum(['raid1', 'raid5', 'raid6']).default('raid5'),
     dedupEnabled: z.boolean().default(false),
     dedupRatio: z.number().min(1).max(10).default(2),
     managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
+    vsanMaxProfile: z.enum(['xs', 'sm', 'med', 'lrg', 'xl']).default('med'),
+    vsanMaxStorageNodes: z.number().int().min(4).max(64).default(4),
+    networkSpeedGbE: z.union([z.literal(10), z.literal(25), z.literal(100)]).default(25),
   })
   .strip()
 
@@ -49,6 +52,9 @@ const defaultState = {
   dedupEnabled: false,
   dedupRatio: 2,
   managementArchitecture: 'shared' as const,
+  vsanMaxProfile: 'med' as const,
+  vsanMaxStorageNodes: 4,
+  networkSpeedGbE: 25 as const,
 }
 
 describe('useUrlState — lz-string round-trip (EXPORT-01, EXPORT-02)', () => {
@@ -190,6 +196,59 @@ describe('useUrlState — Zod schema validation (EXPORT-01 safe parse)', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.managementArchitecture).toBe('shared')
+    }
+  })
+})
+
+describe('useUrlState — vSAN Max round-trip (VMAX-01)', () => {
+  it('round-trip preserves vsanMaxProfile=lrg', () => {
+    const original = { ...defaultState, storageType: 'vsan-max' as const, vsanMaxProfile: 'lrg' as const }
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(original))
+    const decompressed = LZString.decompressFromEncodedURIComponent(compressed)
+    const restored = JSON.parse(decompressed!)
+    const result = InputStateSchema.safeParse(restored)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.vsanMaxProfile).toBe('lrg')
+      expect(result.data.storageType).toBe('vsan-max')
+    }
+  })
+
+  it('round-trip preserves vsanMaxStorageNodes=8 and networkSpeedGbE=100', () => {
+    const original = { ...defaultState, vsanMaxStorageNodes: 8, networkSpeedGbE: 100 as const }
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(original))
+    const decompressed = LZString.decompressFromEncodedURIComponent(compressed)
+    const restored = JSON.parse(decompressed!)
+    const result = InputStateSchema.safeParse(restored)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.vsanMaxStorageNodes).toBe(8)
+      expect(result.data.networkSpeedGbE).toBe(100)
+    }
+  })
+
+  it('defaults vsanMaxProfile to med when field missing', () => {
+    const stateWithout = { ...defaultState }
+    delete (stateWithout as Record<string, unknown>)['vsanMaxProfile']
+    const result = InputStateSchema.safeParse(stateWithout)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.vsanMaxProfile).toBe('med')
+    }
+  })
+
+  it('accepts storageType=vsan-max', () => {
+    const result = InputStateSchema.safeParse({ ...defaultState, storageType: 'vsan-max' })
+    expect(result.success).toBe(true)
+  })
+
+  it('defaults networkSpeedGbE to 25 when missing', () => {
+    const stateWithout = { ...defaultState }
+    delete (stateWithout as Record<string, unknown>)['networkSpeedGbE']
+    const result = InputStateSchema.safeParse(stateWithout)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.networkSpeedGbE).toBe(25)
     }
   })
 })

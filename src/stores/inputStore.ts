@@ -36,11 +36,18 @@ export const useInputStore = defineStore('input', () => {
   const vgpuMemoryGB = ref(16)
 
   // Storage configuration (per STOR-01/02/03/04/05/06)
-  const storageType = ref<'vsan-esa' | 'fc' | 'nfs'>('vsan-esa')
+  const storageType = ref<'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'>('vsan-esa')
   const fttLevel = ref<1 | 2>(1)
   const raidType = ref<'raid1' | 'raid5' | 'raid6'>('raid5')
   const dedupEnabled = ref(false)
   const dedupRatio = ref(2)
+
+  // vSAN Max storage cluster (VMAX-01, VMAX-02)
+  const vsanMaxProfile = ref<'xs' | 'sm' | 'med' | 'lrg' | 'xl'>('med')
+  const vsanMaxStorageNodes = ref(4)
+
+  // Network speed (Phase 5 — STOR-05 dedup eligibility, STRCH-05 bandwidth cap)
+  const networkSpeedGbE = ref<10 | 25 | 100>(25)
 
   return {
     deploymentMode,
@@ -52,5 +59,6 @@ export const useInputStore = defineStore('input', () => {
     cpuOvercommitRatio, ramOvercommitRatio,
     gpuVmCount, vgpuMemoryGB,
     storageType, fttLevel, raidType, dedupEnabled, dedupRatio,
+    vsanMaxProfile, vsanMaxStorageNodes, networkSpeedGbE,
   }
 })

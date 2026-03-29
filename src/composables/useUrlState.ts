@@ -24,12 +24,15 @@ const InputStateSchema = z
     avgStorageGbPerVm: z.number().positive().default(100),
     cpuOvercommitRatio: z.number().positive().max(20).default(4),
     ramOvercommitRatio: z.number().positive().max(4).default(1),
-    storageType: z.enum(['vsan-esa', 'fc', 'nfs']).default('vsan-esa'),
+    storageType: z.enum(['vsan-esa', 'fc', 'nfs', 'vsan-max']).default('vsan-esa'),
     fttLevel: z.union([z.literal(1), z.literal(2)]).default(1),
     raidType: z.enum(['raid1', 'raid5', 'raid6']).default('raid5'),
     dedupEnabled: z.boolean().default(false),
     dedupRatio: z.number().min(1).max(10).default(2),
     managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
+    vsanMaxProfile: z.enum(['xs', 'sm', 'med', 'lrg', 'xl']).default('med'),
+    vsanMaxStorageNodes: z.number().int().min(4).max(64).default(4),
+    networkSpeedGbE: z.union([z.literal(10), z.literal(25), z.literal(100)]).default(25),
   })
   .strip()
 
@@ -88,6 +91,9 @@ export function hydrateFromUrl(): void {
   store.dedupEnabled = state.dedupEnabled
   store.dedupRatio = state.dedupRatio
   store.managementArchitecture = state.managementArchitecture
+  store.vsanMaxProfile = state.vsanMaxProfile
+  store.vsanMaxStorageNodes = state.vsanMaxStorageNodes
+  store.networkSpeedGbE = state.networkSpeedGbE
 }
 
 /**
@@ -115,6 +121,9 @@ export function generateShareUrl(): string {
     dedupEnabled: store.dedupEnabled,
     dedupRatio: store.dedupRatio,
     managementArchitecture: store.managementArchitecture,
+    vsanMaxProfile: store.vsanMaxProfile,
+    vsanMaxStorageNodes: store.vsanMaxStorageNodes,
+    networkSpeedGbE: store.networkSpeedGbE,
   }
   const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(state))
   const url = new URL(window.location.href)

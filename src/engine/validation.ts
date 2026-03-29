@@ -18,6 +18,12 @@ const DEDICATED_MGMT_MIN_HOSTS = 4
 const COLLOCATED_MIN_HOSTS_VSAN = 3
 const COLLOCATED_MIN_HOSTS_FC_NFS = 2
 
+// vSAN Max requires minimum 4 storage nodes (VMAX-03)
+const VSAN_MAX_MIN_STORAGE_NODES = 4
+
+// Global Dedup requires minimum 25 GbE network speed (STOR-05)
+const DEDUP_MIN_NETWORK_SPEED_GBE = 25
+
 // ─── validateInputs ────────────────────────────────────────────────────────
 
 /**
@@ -39,6 +45,8 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
     preferredSiteHosts = 3,
     secondarySiteHosts = 3,
     managementArchitecture = 'shared',
+    networkSpeedGbE = 25,
+    vsanMaxStorageNodes = 4,
   } = inputs
   const errors: ValidationWarning[] = []
 
@@ -106,6 +114,26 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
         messageKey: 'validation.colocatedMinHosts',
       })
     }
+  }
+
+  // Rule 6: DEDUP_NETWORK_SPEED — STOR-05
+  // Global Deduplication requires minimum 25 GbE network speed
+  if (dedupEnabled && networkSpeedGbE < DEDUP_MIN_NETWORK_SPEED_GBE) {
+    errors.push({
+      code: 'DEDUP_NETWORK_SPEED',
+      severity: 'warning',
+      messageKey: 'validation.dedupNetworkSpeed',
+    })
+  }
+
+  // Rule 7: VSAN_MAX_MIN_NODES — VMAX-03
+  // vSAN Max storage cluster requires minimum 4 nodes
+  if (storageType === 'vsan-max' && vsanMaxStorageNodes < VSAN_MAX_MIN_STORAGE_NODES) {
+    errors.push({
+      code: 'VSAN_MAX_MIN_NODES',
+      severity: 'error',
+      messageKey: 'validation.vsanMaxMinNodes',
+    })
   }
 
   return errors
