@@ -49,6 +49,8 @@
     "ramGB": "RAM par hôte (Go)",
     "storageTB": "Stockage brut par hôte (To)",
     "hostCount": "Nombre d'hôtes",
+    "networkSpeed": "Vitesse reseau",
+    "vsanMaxComputeNote": "Le nombre d'hotes = taille du cluster de calcul quand vSAN Max est selectionne",
     "nvme": {
       "label": "Hiérarchisation mémoire NVMe",
       "activeMemoryPct": "Mémoire active %",
@@ -75,6 +77,9 @@
     "vsanEsa": "vSAN ESA",
     "fc": "Fibre Channel (FC)",
     "nfs": "NFS",
+    "vsanMax": "vSAN Max",
+    "vsanMaxProfile": "Profil ReadyNode",
+    "vsanMaxStorageNodes": "Noeuds de stockage",
     "fttLevel": "Niveau de tolérance aux pannes (FTT)",
     "raidType": "Politique RAID",
     "raid1": "RAID-1 (Miroir)",
@@ -96,7 +101,9 @@
   "validation": {
     "stretchMinHosts": "Le Cluster étendu nécessite au minimum 3 hôtes par site.",
     "dedicatedMgmtMinHosts": "Le cluster de gestion dedie necessite au moins 4 hotes (Broadcom KB 392993).",
-    "colocatedMinHosts": "Mode co-localise : minimum {min} hotes requis pour ce type de stockage."
+    "colocatedMinHosts": "Mode co-localise : minimum {min} hotes requis pour ce type de stockage.",
+    "vsanMaxMinNodes": "Minimum 4 noeuds de stockage requis pour un cluster vSAN Max.",
+    "dedupNetworkSpeed": "La deduplication globale necessite un reseau 25 GbE ou plus rapide (STOR-05)."
   },
   "results": {
     "toolbar": {

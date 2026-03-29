@@ -10,18 +10,26 @@ import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
 const { t } = useI18n()
 const input = useInputStore()
 const calc = useCalculationStore()
-const { storageType, fttLevel, raidType, dedupEnabled, dedupRatio, deploymentMode } = storeToRefs(input)
-const { validationErrors, storage } = storeToRefs(calc)
+const { storageType, fttLevel, raidType, dedupEnabled, dedupRatio, deploymentMode, vsanMaxProfile, vsanMaxStorageNodes, networkSpeedGbE } = storeToRefs(input)
+const { validationErrors, storage, vsanMax } = storeToRefs(calc)
 
 const dedupExclusionError = computed(() =>
   validationErrors.value.find(e => e.code === 'DEDUP_STRETCH_EXCLUSION')
 )
 const isStretch = computed(() => deploymentMode.value === 'stretch')
 
+const vsanMaxMinNodesError = computed(() =>
+  validationErrors.value.find(e => e.code === 'VSAN_MAX_MIN_NODES')
+)
+const dedupNetworkSpeedError = computed(() =>
+  validationErrors.value.find(e => e.code === 'DEDUP_NETWORK_SPEED')
+)
+
 const storageTypes = [
   { value: 'vsan-esa' as const, labelKey: 'storage.vsanEsa' },
   { value: 'fc' as const, labelKey: 'storage.fc' },
   { value: 'nfs' as const, labelKey: 'storage.nfs' },
+  { value: 'vsan-max' as const, labelKey: 'storage.vsanMax' },
 ]
 </script>
 
@@ -103,6 +111,11 @@ const storageTypes = [
           :message="t('warnings.dedupStretchExclusion')"
           severity="warning"
         />
+        <WarningBanner
+          v-if="dedupNetworkSpeedError"
+          :message="t('validation.dedupNetworkSpeed')"
+          severity="warning"
+        />
         <NumberSliderInput
           v-if="dedupEnabled && !dedupExclusionError"
           v-model="dedupRatio"
@@ -114,16 +127,62 @@ const storageTypes = [
       </div>
     </template>
 
+    <!-- vSAN Max options (VMAX-01) -->
+    <template v-if="storageType === 'vsan-max'">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Profile dropdown -->
+        <div class="space-y-1">
+          <label class="text-sm font-normal text-gray-700 dark:text-gray-300">
+            {{ t('storage.vsanMaxProfile') }}
+          </label>
+          <select
+            v-model="vsanMaxProfile"
+            class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="xs">XS — 20 TB/node</option>
+            <option value="sm">SM — 50 TB/node</option>
+            <option value="med">MED — 100 TB/node</option>
+            <option value="lrg">LRG — 150 TB/node</option>
+            <option value="xl">XL — 200 TB/node</option>
+          </select>
+        </div>
+        <!-- Storage nodes slider -->
+        <NumberSliderInput
+          v-model="vsanMaxStorageNodes"
+          :label="t('storage.vsanMaxStorageNodes')"
+          :min="4"
+          :max="64"
+          :step="1"
+        />
+      </div>
+      <!-- VSAN_MAX_MIN_NODES error banner -->
+      <WarningBanner
+        v-if="vsanMaxMinNodesError"
+        :message="t('validation.vsanMaxMinNodes')"
+        severity="error"
+      />
+    </template>
+
     <!-- Storage capacity summary (STOR-08) -->
     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
       <span>{{ t('storage.rawCapacity') }}</span>
-      <span class="font-mono text-right">{{ storage.rawCapacityTB.toFixed(2) }} TB</span>
+      <span class="font-mono text-right">
+        {{ storageType === 'vsan-max' && vsanMax ? vsanMax.rawCapacityTB.toFixed(2) : storage.rawCapacityTB.toFixed(2) }} TB
+      </span>
       <template v-if="storageType === 'vsan-esa'">
         <span>{{ t('storage.raidOverhead') }}</span>
         <span class="font-mono text-right">{{ storage.raidMultiplier }}x</span>
         <span>{{ t('storage.netUsable') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
           {{ storage.safeUsableCapacityTB.toFixed(2) }} TB
+        </span>
+      </template>
+      <template v-else-if="storageType === 'vsan-max' && vsanMax">
+        <span>{{ t('storage.raidOverhead') }}</span>
+        <span class="font-mono text-right">{{ vsanMax.raidScheme }}</span>
+        <span>{{ t('storage.netUsable') }}</span>
+        <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
+          {{ vsanMax.usableCapacityTB.toFixed(2) }} TB
         </span>
       </template>
       <template v-else>

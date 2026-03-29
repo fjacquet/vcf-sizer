@@ -49,6 +49,8 @@
     "ramGB": "RAM pro Host (GB)",
     "storageTB": "Rohspeicher pro Host (TB)",
     "hostCount": "Anzahl Hosts",
+    "networkSpeed": "Netzwerkgeschwindigkeit",
+    "vsanMaxComputeNote": "Hostanzahl = Groesse des Compute-Clusters, wenn vSAN Max ausgewaehlt ist",
     "nvme": {
       "label": "NVMe-Speicher-Tiering",
       "activeMemoryPct": "Aktiver Speicher %",
@@ -75,6 +77,9 @@
     "vsanEsa": "vSAN ESA",
     "fc": "Fibre Channel (FC)",
     "nfs": "NFS",
+    "vsanMax": "vSAN Max",
+    "vsanMaxProfile": "ReadyNode-Profil",
+    "vsanMaxStorageNodes": "Speicherknoten",
     "fttLevel": "Fehlertoleranz (FTT)",
     "raidType": "RAID-Richtlinie",
     "raid1": "RAID-1 (Spiegelung)",
@@ -96,7 +101,9 @@
   "validation": {
     "stretchMinHosts": "Der Stretch-Cluster benötigt mindestens 3 Hosts pro Standort.",
     "dedicatedMgmtMinHosts": "Dedizierter Management-Cluster erfordert mindestens 4 Hosts (Broadcom KB 392993).",
-    "colocatedMinHosts": "Zusammengefasster Modus: Mindestens {min} Hosts fuer diesen Speichertyp erforderlich."
+    "colocatedMinHosts": "Zusammengefasster Modus: Mindestens {min} Hosts fuer diesen Speichertyp erforderlich.",
+    "vsanMaxMinNodes": "Mindestens 4 Speicherknoten fuer vSAN Max-Cluster erforderlich.",
+    "dedupNetworkSpeed": "Globale Deduplizierung erfordert 25 GbE oder schnellere Netzwerkgeschwindigkeit (STOR-05)."
   },
   "results": {
     "toolbar": {
