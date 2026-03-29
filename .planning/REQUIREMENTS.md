@@ -108,10 +108,10 @@
 
 ### Export & Sharing
 
-- [ ] **EXPORT-01**: Shareable URL generated using lz-string compression + Base64URL encoding of full input state
-- [ ] **EXPORT-02**: Loading a shared URL restores all input state exactly
-- [ ] **EXPORT-03**: Export to Markdown: formatted sizing report with all computed values
-- [ ] **EXPORT-04**: Export to PDF via browser print CSS (`@media print`) — no html2canvas dependency
+- [x] **EXPORT-01**: Shareable URL generated using lz-string compression + Base64URL encoding of full input state
+- [x] **EXPORT-02**: Loading a shared URL restores all input state exactly
+- [x] **EXPORT-03**: Export to Markdown: formatted sizing report with all computed values
+- [x] **EXPORT-04**: Export to PDF via browser print CSS (`@media print`) — no html2canvas dependency
 
 ## v2 Requirements
 

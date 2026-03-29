@@ -14,7 +14,7 @@ The project builds a zero-backend browser SPA that computes VCF 9.x hardware req
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation, Engine and Inputs** - Scaffold the project, port the storage engine from raidy, implement all calculation logic as pure TypeScript, and build all input panels (completed 2026-03-28)
-- [ ] **Phase 2: Outputs, Charts and Export** - Surface all computed results through a split-screen UI, real-time charts, shareable URL, and document export
+- [x] **Phase 2: Outputs, Charts and Export** - Surface all computed results through a split-screen UI, real-time charts, shareable URL, and document export (completed 2026-03-29)
 - [ ] **Phase 3: Advanced Features and Polish** - Add Stretch Cluster, NVMe Memory Tiering, AI/GPU workloads, Global Deduplication, and complete all four Swiss locales
 
 ## Phase Details
@@ -52,11 +52,11 @@ Plans:
   4. User can copy a shareable URL that, when opened in a new browser tab, restores all input state exactly
   5. User can export a formatted Markdown sizing report and can print to PDF via browser print without installing any additional dependency
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — Install deps + split-screen layout + HostCountCard + CoresChart + RamChart + StorageChart
-- [ ] 02-02-PLAN.md — URL state composable (lz-string + Zod) + main.ts hydration + ExportToolbar (Share URL, Markdown, PDF print)
+- [x] 02-02-PLAN.md — URL state composable (lz-string + Zod) + main.ts hydration + ExportToolbar (Share URL, Markdown, PDF print)
 
 ### Phase 3: Advanced Features and Polish
 
@@ -79,5 +79,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation, Engine and Inputs | 3/3 | Complete   | 2026-03-28 |
-| 2. Outputs, Charts and Export | 1/2 | In Progress|  |
+| 2. Outputs, Charts and Export | 2/2 | Complete   | 2026-03-29 |
 | 3. Advanced Features and Polish | 0/TBD | Not started | - |

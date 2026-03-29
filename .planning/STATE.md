@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 02-outputs-charts-and-export-01-PLAN.md
-last_updated: "2026-03-29T05:20:02.149Z"
+stopped_at: Completed 02-outputs-charts-and-export-02-PLAN.md
+last_updated: "2026-03-29T05:30:28.575Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 11
 ---
 
@@ -55,6 +55,7 @@ Progress: [█░░░░░░░░░] 11%
 | Phase 01-foundation-engine-and-inputs P02 | 4m | 3 tasks | 10 files |
 | Phase 01-foundation-engine-and-inputs P03 | 9 | 2 tasks | 11 files |
 | Phase 02-outputs-charts-and-export P01 | 6 | 3 tasks | 13 files |
+| Phase 02-outputs-charts-and-export P02 | 8 | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation-engine-and-inputs]: VCFA blocker warning driven by calculationStore.validationErrors.VCFA_MIN_CORES — not local computed
 - [Phase 02-outputs-charts-and-export]: Used computed() + vue-chartjs declarative :data prop pattern (not shallowRef+triggerRef) for chart reactivity
 - [Phase 02-outputs-charts-and-export]: HostCountCard green threshold: recommendedHostCount <= both minHostsForCpu AND minHostsForRam
+- [Phase 02-outputs-charts-and-export]: lz-string default import for URL compression + Zod .strip() for untrusted URL state validation
+- [Phase 02-outputs-charts-and-export]: hydrateFromUrl() called in main.ts after app.use(pinia) but before app.mount() to prevent flash of default state
+- [Phase 02-outputs-charts-and-export]: PDF export = window.print() only with print: Tailwind variants — no html2canvas or jsPDF
 
 ### Pending Todos
 
@@ -89,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T05:20:02.147Z
-Stopped at: Completed 02-outputs-charts-and-export-01-PLAN.md
+Last session: 2026-03-29T05:30:28.573Z
+Stopped at: Completed 02-outputs-charts-and-export-02-PLAN.md
 Resume file: None
