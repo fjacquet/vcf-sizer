@@ -55,6 +55,24 @@
     "vcfaMinCores": "AVERTISSEMENT : VCF Automation (VCFA) requiert un hôte avec au moins 12 cœurs physiques (24 threads). Le déploiement sera bloqué avec la spécification d'hôte actuelle.",
     "dedupStretchExclusion": "La déduplication globale ne peut pas être activée avec le cluster étendu."
   },
+  "results": {
+    "hostCount": {
+      "title": "Nombre d'hôtes recommandé",
+      "recommended": "Hôtes recommandés",
+      "minForCpu": "Min pour CPU",
+      "minForRam": "Min pour RAM"
+    },
+    "charts": {
+      "required": "Requis",
+      "available": "Disponible",
+      "cores": "Cœurs",
+      "ram": "RAM (Go)",
+      "storage": "Stockage (To)",
+      "storageUsable": "Utilisable sécurisé",
+      "storageLfs": "Surcharge LFS",
+      "storageMetadata": "Surcharge métadonnées"
+    }
+  },
   "management": {
     "label": "Surcharge du domaine de gestion",
     "component": "Composant",

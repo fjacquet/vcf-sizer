@@ -55,6 +55,24 @@
     "vcfaMinCores": "WARNING: VCF Automation (VCFA) requires a host with at least 12 physical cores (24 threads). Deployment will be blocked with the current host specification.",
     "dedupStretchExclusion": "Global Deduplication cannot be enabled with Stretch Cluster."
   },
+  "results": {
+    "hostCount": {
+      "title": "Recommended Host Count",
+      "recommended": "Recommended Hosts",
+      "minForCpu": "Min for CPU",
+      "minForRam": "Min for RAM"
+    },
+    "charts": {
+      "required": "Required",
+      "available": "Available",
+      "cores": "Cores",
+      "ram": "RAM (GB)",
+      "storage": "Storage (TB)",
+      "storageUsable": "Safe Usable",
+      "storageLfs": "LFS Overhead",
+      "storageMetadata": "Metadata Overhead"
+    }
+  },
   "management": {
     "label": "Management Domain Overhead",
     "component": "Component",
