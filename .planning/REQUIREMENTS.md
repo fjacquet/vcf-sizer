@@ -78,7 +78,7 @@
 
 - [ ] **STRCH-01**: Stretch cluster configures preferred site and secondary site independently (host count, storage per site)
 - [ ] **STRCH-02**: Witness node overhead calculated and added to total resource requirements
-- [ ] **STRCH-03**: Storage calculation uses PFTT=1 + SFTT policy — data written to both sites
+- [ ] **STRCH-03**: Storage calculation models PFTT=1 site mirroring: `calcStorage(totalHosts)` gives total cluster capacity; per-site usable = `safeUsableCapacityTB / 2` (each site holds a full copy). UI displays per-site usable as the effective workload capacity.
 - [ ] **STRCH-04**: Mutual exclusion enforced: Stretch Cluster + Global Deduplication cannot both be active (UI prevents combination)
 - [ ] **STRCH-05**: Minimum bandwidth recommendation displayed (cross-site link sizing guidance)
 

@@ -40,7 +40,7 @@ Add the three VCF 9.x differentiating features (NVMe Memory Tiering, Stretch Clu
 
 **Engine changes:**
 - `calcStretch(inputs)` new function in `src/engine/stretch.ts`:
-  - Witness node overhead: 2 vCPU, 8 GB RAM (small form factor witness)
+  - Witness node overhead: 4 vCPU, 16 GB RAM (vSAN ESA M-profile witness — ESA does not support the Tiny/2vCPU profile; minimum is M per Yellow Bricks Mar 2026)
   - Per-site storage: each site holds a full copy → storage calc uses PFTT=1 (2× site replication on top of FTT policy)
   - Cross-site bandwidth recommendation: `(totalWorkloadStorageTB × 0.1)` GB/s minimum link (10% of total storage as daily change rate heuristic)
   - Total host count for capacity: `preferredSiteHosts + secondarySiteHosts`
