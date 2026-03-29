@@ -128,9 +128,9 @@
 
 ### vSAN Max / Storage Clusters
 
-- [ ] **VMAX-01**: User can select "vSAN Max (Storage Cluster)" as a storage type; tool presents 5 ReadyNode profiles (XS / SM / MED / LRG / XL) with capacity per node (20 / 50 / 100 / 150 / 200 TB); tool sizes the storage cluster (node count, raw capacity, usable capacity) using the selected profile and node count
-- [ ] **VMAX-02**: When vSAN Max is selected, the compute cluster is sized independently from the storage cluster — compute hosts use the standard HCI engine (no vSAN overhead on compute); tool outputs two separate host counts: storage cluster and compute cluster
-- [ ] **VMAX-03**: Validation rule fires when vSAN Max storage node count is below 4 (minimum cluster size for all vSAN-SC profiles)
+- [x] **VMAX-01**: User can select "vSAN Max (Storage Cluster)" as a storage type; tool presents 5 ReadyNode profiles (XS / SM / MED / LRG / XL) with capacity per node (20 / 50 / 100 / 150 / 200 TB); tool sizes the storage cluster (node count, raw capacity, usable capacity) using the selected profile and node count
+- [x] **VMAX-02**: When vSAN Max is selected, the compute cluster is sized independently from the storage cluster — compute hosts use the standard HCI engine (no vSAN overhead on compute); tool outputs two separate host counts: storage cluster and compute cluster
+- [x] **VMAX-03**: Validation rule fires when vSAN Max storage node count is below 4 (minimum cluster size for all vSAN-SC profiles)
 
 ## v2+ Future Requirements
 

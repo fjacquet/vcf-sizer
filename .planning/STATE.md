@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: completed
-last_updated: "2026-03-29T15:00:00.000Z"
-last_activity: "2026-03-29 — Phase 5 UI-SPEC approved (vSAN Max Storage Cluster design contract)"
+last_updated: "2026-03-29T15:57:22.034Z"
+last_activity: "2026-03-29 — Completed 04-01-PLAN.md (engine layer: bandwidth floor, stretch checklist, management architecture)"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 11
+  completed_plans: 10
 ---
 
 # Project State
@@ -38,6 +38,7 @@ v2.0 progress: [█████████░] 89% (8/9 plans)
 |-------|------|----------|-------|-------|
 | 04 | 01 | 8min | 2 | 9 |
 | Phase 04 P02 | 10min | 3 tasks | 7 files |
+| Phase 05 P01 | 9min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ v2.0 decisions:
 - [04-01]: COLLOCATED_MIN_HOSTS uses storageType gate: vSAN = 3 hosts min, FC/NFS = 2 hosts min
 - [Phase 04]: StretchNetworkChecklist placed in ResultsPanel (output side) — checklist is a result, not a configuration control
 - [Phase 04]: Architecture toggle guarded by deploymentMode !== 'simple' (visible in both HA and Stretch modes)
+- [Phase 05]: [05-01]: calcVsanMax() reuses vsanEsaRaidOverhead() + exported storage constants — no formula duplication
+- [Phase 05]: [05-01]: calcStorage() converted to exhaustive switch with never case — future StorageType additions are compile-time errors
+- [Phase 05]: [05-01]: vsanMaxStorageNodes Zod min(4) enforces floor in URL state, matching VSAN_MAX_MIN_STORAGE_NODES validation constant
 
 ### Pending Todos
 
