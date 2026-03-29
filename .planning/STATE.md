@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: Roadmap ready — awaiting plan-phase 4
-last_updated: "2026-03-29T12:32:03.823Z"
-last_activity: 2026-03-29 — v2.0 roadmap created (Phase 4 and Phase 5 appended)
+status: completed
+last_updated: "2026-03-29T14:14:24.015Z"
+last_activity: "2026-03-29 — Completed 04-01-PLAN.md (engine layer: bandwidth floor, stretch checklist, management architecture)"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -37,6 +37,7 @@ v2.0 progress: [█████████░] 89% (8/9 plans)
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 04 | 01 | 8min | 2 | 9 |
+| Phase 04 P02 | 10min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ v2.0 decisions:
 - [04-01]: Witness RTT threshold uses binary gate: <=10 hosts/site = 200ms, >10 hosts/site = 100ms (conservative fallback)
 - [04-01]: dedicatedMgmtHostCount returns null when managementArchitecture != 'dedicated' — UI must null-check before rendering
 - [04-01]: COLLOCATED_MIN_HOSTS uses storageType gate: vSAN = 3 hosts min, FC/NFS = 2 hosts min
+- [Phase 04]: StretchNetworkChecklist placed in ResultsPanel (output side) — checklist is a result, not a configuration control
+- [Phase 04]: Architecture toggle guarded by deploymentMode !== 'simple' (visible in both HA and Stretch modes)
 
 ### Pending Todos
 

@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation, Engine and Inputs** - Scaffold the project, port the storage engine from raidy, implement all calculation logic as pure TypeScript, and build all input panels (completed 2026-03-28)
 - [x] **Phase 2: Outputs, Charts and Export** - Surface all computed results through a split-screen UI, real-time charts, shareable URL, and document export (completed 2026-03-29)
 - [ ] **Phase 3: Advanced Features and Polish** - Add Stretch Cluster, NVMe Memory Tiering, AI/GPU workloads, Global Deduplication, and complete all four Swiss locales
-- [ ] **Phase 4: Correctness and Architecture Validation** - Enforce the 10 Gbps stretch bandwidth floor, surface the stretch network requirements checklist, and add management architecture host-minimum validation
+- [x] **Phase 4: Correctness and Architecture Validation** - Enforce the 10 Gbps stretch bandwidth floor, surface the stretch network requirements checklist, and add management architecture host-minimum validation (completed 2026-03-29)
 - [ ] **Phase 5: vSAN Max Storage Cluster** - Add vSAN Max as a new disaggregated storage type with 5 ReadyNode profiles, separate storage and compute cluster sizing, and minimum node validation
 
 ## Phase Details
@@ -90,11 +90,11 @@ Plans:
   3. User can toggle "Dedicated management cluster" in HA or Stretch mode and sees an error when fewer than 4 management hosts are provisioned
   4. User working in co-located mode with below-minimum hosts sees an informational note pointing to the minimum required host count for vSAN vs FC/NFS configurations
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 04-01-PLAN.md — Engine + stores: extend types.ts (ManagementArchitecture, StretchNetworkChecklist, StretchResult fields), TDD bandwidth floor + checklist in stretch.ts, validation rules (ARCH-01/02), inputStore + calculationStore + useUrlState sync
-- [ ] 04-02-PLAN.md — UI: DeploymentModelSelector (architecture toggle + bandwidth floor indicator), StretchNetworkChecklist.vue output card, ResultsPanel wiring, all 4 locale files + human verify
+- [x] 04-02-PLAN.md — UI: DeploymentModelSelector (architecture toggle + bandwidth floor indicator), StretchNetworkChecklist.vue output card, ResultsPanel wiring, all 4 locale files + human verify
 
 **Key constraints:**
 - `engine/types.ts` additive changes (new union members, new interfaces, new optional fields) must land before any other file in this phase
@@ -133,5 +133,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation, Engine and Inputs | 3/3 | Complete | 2026-03-28 |
 | 2. Outputs, Charts and Export | 2/2 | Complete | 2026-03-29 |
 | 3. Advanced Features and Polish | 0/2 | Not started | - |
-| 4. Correctness and Architecture Validation | 0/2 | Not started | - |
+| 4. Correctness and Architecture Validation | 2/2 | Complete   | 2026-03-29 |
 | 5. vSAN Max Storage Cluster | 0/? | Not started | - |
