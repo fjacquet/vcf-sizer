@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Outputs, Charts and Export** - Surface all computed results through a split-screen UI, real-time charts, shareable URL, and document export (completed 2026-03-29)
 - [ ] **Phase 3: Advanced Features and Polish** - Add Stretch Cluster, NVMe Memory Tiering, AI/GPU workloads, Global Deduplication, and complete all four Swiss locales
 - [x] **Phase 4: Correctness and Architecture Validation** - Enforce the 10 Gbps stretch bandwidth floor, surface the stretch network requirements checklist, and add management architecture host-minimum validation (completed 2026-03-29)
-- [ ] **Phase 5: vSAN Max Storage Cluster** - Add vSAN Max as a new disaggregated storage type with 5 ReadyNode profiles, separate storage and compute cluster sizing, and minimum node validation
+- [x] **Phase 5: vSAN Max Storage Cluster** - Add vSAN Max as a new disaggregated storage type with 5 ReadyNode profiles, separate storage and compute cluster sizing, and minimum node validation (completed 2026-03-29)
 
 ## Phase Details
 
@@ -119,12 +119,12 @@ Plans:
   3. User sees a validation error when the storage node count is below 4, preventing under-provisioning of the minimum vSAN-SC cluster size
   4. A shared URL containing a vSAN Max configuration restores the storage type, selected profile, storage node count, and compute node count exactly on reload
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 
 - [x] 05-01-PLAN.md — Engine layer: extend types.ts (VsanMaxProfile, VsanMaxInputs, VsanMaxResult, StorageType union), convert calcStorage() to exhaustive switch, TDD calcVsanMax() in engine/vsanMax.ts, validation rules (DEDUP_NETWORK_SPEED, VSAN_MAX_MIN_NODES), inputStore + calculationStore + useUrlState triple-sync
-- [ ] 05-02-PLAN.md — UI layer: StorageConfigForm (vSAN Max button + profile dropdown + storage nodes slider), HostSpecsForm (network speed button group + compute cluster note), VsanMaxClusterCard.vue (new results card), ResultsPanel wiring, DeploymentModelSelector stretch bandwidth cap, all 4 locale files + human verify
+- [x] 05-02-PLAN.md — UI layer: StorageConfigForm (vSAN Max button + profile dropdown + storage nodes slider), HostSpecsForm (network speed button group + compute cluster note), VsanMaxClusterCard.vue (new results card), ResultsPanel wiring, DeploymentModelSelector stretch bandwidth cap, all 4 locale files + human verify
 
 **Key constraints:**
 
@@ -145,4 +145,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Outputs, Charts and Export | 2/2 | Complete | 2026-03-29 |
 | 3. Advanced Features and Polish | 0/2 | Not started | - |
 | 4. Correctness and Architecture Validation | 2/2 | Complete   | 2026-03-29 |
-| 5. vSAN Max Storage Cluster | 1/2 | In Progress|  |
+| 5. vSAN Max Storage Cluster | 2/2 | Complete   | 2026-03-29 |
