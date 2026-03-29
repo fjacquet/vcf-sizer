@@ -145,4 +145,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Outputs, Charts and Export | 2/2 | Complete | 2026-03-29 |
 | 3. Advanced Features and Polish | 0/2 | Not started | - |
 | 4. Correctness and Architecture Validation | 2/2 | Complete   | 2026-03-29 |
-| 5. vSAN Max Storage Cluster | 2/2 | Complete   | 2026-03-29 |
+| 5. vSAN Max Storage Cluster | 2/2 | Complete    | 2026-03-29 |
