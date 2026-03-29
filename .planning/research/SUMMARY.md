@@ -1,244 +1,205 @@
 # Project Research Summary
 
-**Project:** vcf-sizer — VCF 9.x On-Premises Sizing Calculator
-**Domain:** Client-side SPA infrastructure sizing tool (VMware Cloud Foundation 9.x)
-**Researched:** 2026-03-28
-**Confidence:** HIGH
+**Project:** VCF Sizer — Milestone v2.0
+**Domain:** Client-side SPA infrastructure sizing calculator (VMware Cloud Foundation 9.x)
+**Researched:** 2026-03-29
+**Confidence:** HIGH (stack, architecture patterns, stretch specs); MEDIUM (vSAN Max ReadyNode profiles, Standard/Consolidated terminology)
+
+---
 
 ## Executive Summary
 
-The vcf-sizer project is a browser-only, zero-backend single-page application that enables VMware Cloud Foundation 9.x architects to compute management domain overhead, workload host requirements, and vSAN storage sizing without relying on existing tools that are either VMC-focused, storage-only, or too outdated for VCF 9.x specifics. Research confirms a genuine gap in the public tooling landscape: no existing tool combines VCF 9 management domain sizing, NVMe Memory Tiering, vSAN ESA Global Deduplication, stretch cluster support, per-component HA/Simple toggling, VCF Fleet topology awareness, and Swiss four-language localization in a single client-side interface.
+VCF Sizer v2.0 adds four concrete correctness and feature improvements to an already-shipping v1 SPA: a bandwidth floor bug fix for stretch clusters, a stretch network requirements checklist, Standard vs Consolidated architecture host-minimum validation (now correctly called "Dedicated Domains vs Co-located" in VCF 9), and a vSAN Max disaggregated storage cluster sizing engine. The entire existing stack — Vue 3 + Pinia + TypeScript + Decimal.js + Zod + Tailwind v4 — is fully sufficient to implement all four features. No new npm dependencies are required.
 
-The recommended approach is Vue 3 (Composition API) + Pinia 3 + Vite 8 + Tailwind CSS 4 + vue-i18n 11. This stack is specifically advantageous over React for this domain: Vue's fine-grained reactivity is a better fit than React's re-render model for deeply nested reactive computation trees, vue-i18n has materially stronger four-language localization support than any React alternative, and the Pinia store model maps directly to the sizing domains (input, calculation, UI). All versions are verified against GitHub releases as of 2026-03-28 and are mutually compatible. The entire stack produces a static `/dist/` folder deployable to GitHub Pages or any CDN at zero recurring cost.
+The recommended implementation order prioritises safety: begin with additive-only type changes to `engine/types.ts`, then apply the stretch bandwidth floor bug fix, then add the stretch checklist and management architecture flag (low risk, all additive), and finish with vSAN Max which is the only genuinely new engine subsystem. The key architectural insight is that vSAN Max is NOT a variant of vSAN ESA HCI — it requires two separate input groups (storage cluster hosts and compute cluster hosts) and a dedicated engine file `vsanMax.ts`. Conflating the two is the most dangerous implementation mistake in this milestone.
 
-The primary risks are in the calculation layer, not the UI: VCF 9.x has several non-obvious formula subtleties (vSAN ESA Adaptive RAID-5 thresholds, mandatory LFS + metadata overhead stacking, HA multiplier completeness, NVMe tiering active-memory vs. allocated-memory distinction). Floating-point arithmetic must be addressed in Phase 1 using Decimal.js before any formula is written, because retrofitting arbitrary-precision math after the fact carries high recovery cost. Swiss locale number formatting (apostrophe as thousands separator) must also be configured explicitly for all four Swiss locales on day one — vue-i18n does not inherit `fr-CH` from `fr` automatically.
+The primary risks are (a) the Zod URL state schema and its test replica silently drifting when new store fields are added, causing new state fields to be dropped on URL deserialisation; (b) the existing stretch bandwidth test pinning the pre-floor formula value, which will produce a guaranteed red CI build if not updated before the floor is added; and (c) using deprecated VCF 5.x UI labels ("Standard"/"Consolidated") in i18n keys, which will confuse VCF 9 users. All three risks are fully preventable with the concrete mitigations documented in PITFALLS.md.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-Vue 3 + Pinia 3 is the foundation. The Composition API via `<script setup>` is mandatory; Options API should not be used. The calculation engine must be isolated in pure TypeScript modules with zero Vue imports so formulas are independently testable. Vite 8 with the Rolldown bundler provides substantially faster builds and explicit Tailwind v4 support. The `@tailwindcss/vite` plugin eliminates the PostCSS configuration entirely.
+The v1 stack requires zero additions for v2.0. All arithmetic is pure TypeScript + Decimal.js; new profile constants are hardcoded; new validation rules extend the existing `ValidationWarning[]` pattern. The only affected files are within `src/engine/` (types, stretch, storage, validation) and `src/stores/` (inputStore, calculationStore), plus two new engine files and two to four new Vue components.
 
-**Core technologies:**
-- **Vue 3.5.31:** UI framework — fine-grained reactivity ideal for live sizing math; Composition API keeps computation logic separated from templates
-- **Pinia 3.0.4:** State management — Vue 3-only focus; three-store split (inputStore / calculationStore / uiStore) enforces unidirectional data flow
-- **Vite 8.0.3:** Build tool — Rolldown-powered, 10–30x faster builds; static deployment to GitHub Pages with `base: '/vcf-sizer/'`
-- **Tailwind CSS 4.2.2:** Styling — Oxide (Rust) engine via `@tailwindcss/vite`; single `@import "tailwindcss"` line, no config file
-- **vue-i18n 11.3.0:** Localization — Composition API (`useI18n()`); lazy locale loading; `unplugin-vue-i18n` pre-compiles JSON at build time
-- **TypeScript 5.7+:** Type safety — `strict: true`; `moduleResolution: "bundler"`; `vue-tsc` for SFC type checking in CI
-- **vue-chartjs 5.3.3 + Chart.js 4.5.1:** Visualizations — `shallowRef` integration; 11 KB gzipped; canvas-based (performant reactive updates)
-- **jsPDF 4.2.1 + html2canvas 1.4.1:** PDF export — v4.2.x mandatory for security fixes
-- **lz-string 1.5.0:** URL compression — keeps shared config URLs under 2,000 characters
-- **@vueuse/core 14.2.1:** Composable utilities — `useClipboard`, `useUrlSearchParams`, `useLocalStorage`
-- **Decimal.js:** Arbitrary-precision arithmetic — mandatory for all sizing formulas; must be adopted in Phase 1
-
-**What not to use:** Vuex (superseded), vue-i18n v9/v10 (maintenance mode), html2pdf.js (outdated jsPDF 2.x dependency), Options API, full component libraries (Vuetify/Quasar), Axios (no backend needed).
+**Core technologies (unchanged from v1):**
+- TypeScript 5.7 (strict mode) — all new engine code; compile-time exhaustiveness checking is the primary regression guard
+- Decimal.js 10.6.0 — all arithmetic including the bandwidth floor `Decimal.max(formula, 10)`
+- Pinia 3.0.4 — `inputStore` gains new `ref()` fields; `calculationStore` gains new `computed()` fields; CALC-02 rule (zero `ref()` in calculationStore) must be preserved
+- Zod 4.3.6 — URL state schema must be updated atomically with every new `inputStore` field
+- vue-i18n 11.3.0 — new keys required in all four locale files (en, fr, de, it) in the same commit as UI components
+- Vitest 4.1.2 — existing stretch and storage tests will need targeted updates for bandwidth floor behaviour
 
 ### Expected Features
 
-Research identified a clear three-tier prioritization. The management domain constants (vCPU, RAM, disk per component for Simple and HA modes) are fully documented and ready to encode directly.
+**Must have for v2.0 (confirmed table stakes corrections):**
+- Stretch bandwidth floor enforcement — 10 Gbps hard minimum per Broadcom TechDocs VCF 9.0; current code returns values as low as ~0.1 Gbps for small workloads
+- Stretch network requirements checklist — MTU 9000 on inter-site links, <5ms site-to-site RTT, witness RTT <200ms (<=10 hosts/site) or <100ms (11-15 hosts/site), 2 Mbps/1,000 components witness bandwidth
+- Dedicated Domains vs Co-located host minimum validation — management cluster requires 4 hosts minimum (vSAN) per Broadcom KB 392993; currently no validation exists
+- vSAN Max / Storage Cluster sizing — new storage type with 5 ReadyNode profiles (vSAN-SC-XS/SM/MED/LRG/XL), minimum 4 storage cluster hosts, separate compute cluster sizing
 
-**Must have (table stakes — P1, launch-blocking):**
-- Deployment model selector (Simple / HA) with per-component HA/Simple toggle for NSX, VCF Operations, VCF Automation
-- Physical host specification inputs with hard blocking warning when host cores < 12 (VCFA 24-vCPU hard requirement)
-- VCF Fleet position selector (first instance vs. additional — determines Fleet Manager overhead inclusion)
-- Management domain baseline calculation using verified component specs from Broadcom TechDocs
-- Workload profile inputs (VM count, avg vCPU, avg vRAM, CPU overcommit ratio)
-- vSAN ESA storage type with FTT/RAID policy selection and Adaptive RAID-5 capacity math
-- Host count recommendation (compute-bound vs. storage-bound, N+1 admission control)
-- vCPU and memory headroom display (management vs. workload vs. available)
-- Shareable URL (lz-string compressed, Base64URL encoded)
-- EN/FR/DE/IT localization with Swiss locale number formatting
+**Should have (quality improvements alongside v2.0 features):**
+- `bandwidthFloorApplied` boolean in `StretchResult` surfaced in UI with a note explaining the correction — maintains trust in existing shared URLs
+- Profile names using VCF 9 terminology (`vSAN-SC-*`) not legacy names (`vSAN-Max-*`)
+- Witness latency threshold derived from actual per-site host count, not hardcoded to 200ms
 
-**Should have (competitive differentiators — P2, v1.x):**
-- NVMe Memory Tiering toggle with explicit "memory activeness %" input (guards 50% active-memory threshold)
-- vSAN ESA Global Deduplication toggle (mutually exclusive with stretch cluster)
-- Stretch cluster mode (2-site + witness node with component count-based witness size selection)
-- Chart visualizations (doughnut/bar for CPU/RAM/storage breakdown)
-- Export to PDF and Markdown
-
-**Defer (v2+):**
-- AI/GPU workload sizing section
-- VCF Operations appliance size sub-calculator
-- Multi-workload-domain scenario planning
-- Additional vCenter/NSX size tiers (Large, XL) for hyperscale environments
-
-**Anti-features (explicitly excluded):** Backend API, user accounts, vSphere 7.x/VCF 5.x support, network topology designer, hardware vendor SKU matching, RVTools import, license cost calculator.
+**Defer to v2.1+:**
+- vSAN Max stretched topology (stretched storage cluster with witness) — separate feature, not part of the standard vSAN Max disaggregated model
+- GPU/AI workload host sizing
+- RVTools / LiveOptics import
 
 ### Architecture Approach
 
-The architecture enforces strict separation between three layers: a pure TypeScript calculation engine (zero Vue imports), Pinia stores (inputStore as single source of truth for mutable state, calculationStore as read-only computed getters, uiStore for locale/layout), and thin Vue components that only read stores and emit events. This separation makes formulas independently testable with Vitest before any UI exists, prevents business logic from leaking into components, and ensures circular reactivity is impossible by construction.
+All v2.0 changes follow the established unidirectional pattern: new `ref()` inputs in `inputStore` -> new `computed()` in `calculationStore` -> pure engine functions in `src/engine/` with zero Vue imports. All type changes to `engine/types.ts` are additive (optional fields, union extensions) — no existing call sites require modification. The only new engine file is `engine/vsanMax.ts`; `engine/stretch.ts`, `engine/storage.ts`, and `engine/validation.ts` receive targeted additions only.
 
-**Major components:**
-1. **`engine/*.ts`** — Pure TypeScript sizing formulas: `mgmtDomainCalc.ts`, `workloadCalc.ts`, `storageCalc.ts`, `stretchCalc.ts`, `nvmeTieringCalc.ts`, `validationRules.ts`
-2. **`stores/inputStore.ts`** — All user inputs; single mutable source of truth; serialized to URL for sharing
-3. **`stores/calculationStore.ts`** — Read-only computed results derived from inputStore via engine functions
-4. **`components/input/`** — Input panels (DeploymentModePanel, HostSpecPanel, WorkloadPanel, StoragePanel, StretchClusterPanel)
-5. **`components/output/`** — Result components (SummaryCard, ResourceResult, StorageResult, ChartPanel)
-6. **`composables/`** — Cross-cutting logic: `useUrlState.ts`, `useExport.ts`, `useValidation.ts`, `useChartData.ts`
-7. **`i18n/locales/`** — Flat JSON per locale (en, fr, de, it); lazy-loaded on demand except EN
+**Major components added/modified for v2.0:**
 
-**Key patterns:**
-- Unidirectional reactive data flow: UI input → inputStore → calculationStore computed → output components
-- Pure calculation engine: all formulas take typed input objects, return typed result objects, no Vue dependency
-- URL state as sole persistence: `lz-string.compressToEncodedURIComponent()` → `?state=` param; no localStorage
-- `shallowRef` for Chart.js instances (never `reactive()`); `watch(..., { flush: 'post' })` for chart updates
+1. `engine/types.ts` — foundation: `StorageType` union extended with `'vsan-max'`; new interfaces `VsanMaxInputs`, `VsanMaxResult`, `VsanMaxProfile`; `StretchResult` extended with `bandwidthFloorApplied`, `networkChecklist`; new type `ManagementArchitecture = 'shared' | 'dedicated'`
+2. `engine/vsanMax.ts` (NEW) — `calcVsanMax()` pure function; 5 ReadyNode profile constants (XS/SM/MED/LRG/XL with capacity, min cores, min RAM, min NIC); uses shared `vsanEsaRaidOverhead()` with `storageNodeCount` (not HCI `hostCount`)
+3. `engine/stretch.ts` (PATCHED) — `STRETCH_MIN_BANDWIDTH_GBPS = 10` constant; `bandwidthFloorApplied` field; `networkChecklist` population with witness RTT derived from per-site host count
+4. `engine/validation.ts` (ADDITIVE) — `DEDICATED_MGMT_MIN_HOSTS` rule (error when `managementArchitecture === 'dedicated'` and `hostCount < 4`)
+5. `engine/storage.ts` (ADDITIVE) — guard clause routing `storageType === 'vsan-max'` to `calcVsanMax()`
+6. `components/input/VsanMaxPanel.vue` (NEW) — profile selector + storage node count + compute node count inputs, visible when `storageType === 'vsan-max'`
+7. `components/output/VsanMaxResult.vue` (NEW) — storage cluster totals + compute cluster totals
+8. `components/output/StretchNetworkChecklist.vue` (NEW) — reads `calculationStore.stretch.networkChecklist`
 
 ### Critical Pitfalls
 
-Research identified 10 pitfalls with severity ratings. The top 5 by impact and recovery cost:
+1. **StorageType enum exhaustiveness gap** — Adding `'vsan-max'` to the `StorageType` union without converting the `if/else` tree in `calcStorage()` to a `switch` with a `never` exhaustive case will silently fall through to wrong logic. The Zod schema in `useUrlState.ts` and its test replica must also be updated or the new value is silently dropped on URL deserialisation. Fix: single source of truth in `engine/types.ts`; export Zod enum from `useUrlState.ts` instead of replicating it in the test file. Address first, before any engine logic.
 
-1. **Floating-point arithmetic errors** — Use Decimal.js for all sizing arithmetic from day one; never native `+`, `*`, `/` on float inputs; establish a project-wide `Calc` wrapper before any formula is written. Recovery cost after launch: HIGH.
+2. **URL state schema silent discard** — Three places must stay synchronised for every new `inputStore` field: the `ref()` declaration, the Zod schema shape, and the `hydrateFromUrl` explicit assignment block. Missing any one means the field silently reverts to default on URL load. Fix: create a `URL_STATE_FIELDS` constant shared by `generateShareUrl` and `hydrateFromUrl`; add a schema completeness test. Address before writing any new UI.
 
-2. **vSAN ESA Adaptive RAID-5 threshold miscalculation** — Hard-code: RAID-5 with 3–5 hosts = 2+1 scheme (150% overhead); RAID-5 with 6+ hosts = 4+1 scheme (125% overhead). Source from ESA-specific docs, not OSA guide. Failure produces 20% raw capacity under-estimate for small clusters.
+3. **vSAN Max modelled as a storage variant, not a two-cluster topology** — Reusing the HCI host-count formula for vSAN Max produces wrong storage capacity (compute host storage specs applied to storage cluster math) and an ambiguous single host count output. Fix: separate `VsanMaxInputs` interface with distinct `storageNodeCount` and `computeNodeCount`; `calcVsanMax()` sizes the two pools independently. Design the type before writing UI.
 
-3. **vSAN LFS + metadata overhead omission** — Apply the full formula stack sequentially: raw → dedup → RAID overhead → minus 13% LFS → minus 10% global metadata. Missing these two overheads under-reports required raw disk capacity by 20–25%.
+4. **Bandwidth floor test regression** — The existing `stretch.test.ts` pins the pre-floor formula value. A 100-VM test case produces ~0.097 Gbps, which is below the 10 Gbps floor — the test will fail immediately on a correct floor implementation. Fix: update the test before adding the floor (TDD order: write the failing test first). Address as the first sub-task of the stretch bandwidth floor work.
 
-4. **VCFA HA multiplier not applied to all components** — NSX Manager, VCF Operations, AND VCF Automation all scale x3 in HA mode. VCFA alone is 72 vCPU / 288 GB RAM in HA. Model each component as `{ vCPU, ramGB, diskGB, count }` where count is 1 (Simple) or 3 (HA).
+5. **VCF 9 terminology in UI labels** — "Standard" and "Consolidated" are retired VCF 5.x terms. Using them in i18n keys will confuse VCF 9 users. Fix: use "Dedicated Domains" and "Co-located" in all i18n keys (engine enum values can remain `'shared' | 'dedicated'` for brevity). Lock i18n key naming before committing any locale files.
 
-5. **Swiss locale number formatting inconsistency** — Explicitly define `numberFormats` for `fr-CH`, `de-CH`, `it-CH`, `en` in vue-i18n; `fr-CH` does NOT inherit from `fr`. Write cross-locale snapshot tests on day one. Failure: European separators render for DE/IT Swiss users.
-
-Additional important pitfalls: NVMe tiering must check active memory (not allocated), URL state requires Base64URL encoding (not standard Base64), Chart.js instances must use `shallowRef` (never `reactive()`), PDF export with html2canvas has known Tailwind layout collapse and font-loading issues that require early spike validation.
+---
 
 ## Implications for Roadmap
 
-Research is unambiguous about phase order. Dependencies run strictly downward: types and engine functions must exist before stores, stores must exist before input components, input components and calculation results must exist before output components and charts. The build order from ARCHITECTURE.md maps cleanly to a phased roadmap.
+Based on the dependency graph from ARCHITECTURE.md and the pitfall ordering from PITFALLS.md, v2.0 maps cleanly to two sequential sub-phases.
 
-### Phase 1: Foundation and Core Engine
+### Phase v2.0-A: Correctness and Architecture Validation
 
-**Rationale:** All downstream phases depend on the calculation engine and type system. Decimal.js math, i18n configuration, and Pinia store structure must be established before any UI work begins — retrofitting any of these after the fact carries high or medium recovery cost. This phase has zero UI; everything is validated via unit tests.
+**Rationale:** All changes are additive-only to existing types and engine functions. No new engine subsystems. Lowest risk. Fixes a live bug (bandwidth floor). Can ship independently of vSAN Max.
 
-**Delivers:** TypeScript types (`engine/types.ts`), all pure calculation engine modules (management domain, workload, storage, NVMe tiering), Pinia store scaffolding (inputStore, calculationStore, uiStore), vue-i18n setup with all four Swiss locales explicitly configured, Vite + Tailwind project scaffold, Vitest test suite validating all formulas against known Broadcom reference values.
+**Delivers:**
+- Bug fix: stretch bandwidth floor at 10 Gbps with `bandwidthFloorApplied` transparency field
+- New display: stretch network checklist (MTU, RTT, witness latency) in all 4 locales
+- New validation: `DEDICATED_MGMT_MIN_HOSTS` rule for Dedicated Domains architecture selection
+- New output: `dedicatedMgmtHostCount` computed when management architecture is dedicated
 
-**Addresses:** Management domain baseline (P1), host minimum-cores hard warning (P1), deployment model selector logic (P1), EN localization baseline (P1).
+**Addresses (from FEATURES.md):**
+- Stretch bandwidth floor enforcement
+- Stretch network requirements checklist
+- Dedicated Domains vs Co-located host minimum validation
 
-**Avoids:** Floating-point arithmetic errors (Pitfall 1), VCFA HA multiplier incompleteness (Pitfall 4), Swiss locale misconfiguration (Pitfall 6).
+**Avoids (from PITFALLS.md):**
+- Pitfall 15 (bandwidth floor test regression) — update test first
+- Pitfall 16 (i18n keys in only one locale) — all 4 locale files in same commit
+- Pitfall 17 (architectureModel ref in calculationStore) — add to inputStore only
+- Pitfall 14 (VCF 5.x UI labels) — use Dedicated Domains/Co-located terminology
 
-**Research flag:** Standard patterns — well-documented Vue 3 + Pinia setup; no phase-level research needed.
+**Build order within phase:**
+1. `types.ts` foundation (all additive type changes)
+2. Bandwidth floor patch in `calcStretch()` + test update
+3. Stretch network checklist in `StretchResult` + `StretchNetworkChecklist.vue` + i18n (all 4 locales)
+4. `ManagementArchitecture` flag in `inputStore` + Zod schema + `DEDICATED_MGMT_MIN_HOSTS` rule + `dedicatedMgmtHostCount` computed + UI toggle + i18n (all 4 locales)
 
-### Phase 2: Input Panel and Core Storage Module
+**Research flag:** Standard patterns — no deeper research needed. All specs are confirmed HIGH confidence from Broadcom TechDocs.
 
-**Rationale:** Input components can be built once inputStore is stable. The vSAN storage calculation module is placed here (not Phase 3) because it contains the highest-risk formulas (Adaptive RAID-5, LFS + metadata overhead stack) and must be fully validated before building output displays that depend on it.
+---
 
-**Delivers:** All input panel components (DeploymentModePanel, HostSpecPanel, WorkloadPanel, StoragePanel), vSAN ESA + OSA storage calculation module with Adaptive RAID-5 matrix and full overhead stack, FC/NFS storage type selection, warning system (VCFA min-cores blocker), per-component HA/Simple toggle, VCF Fleet position selector.
+### Phase v2.0-B: vSAN Max Engine
 
-**Addresses:** Physical host spec inputs (P1), workload profile inputs (P1), principal storage selection (P1), vSAN FTT policy selector (P1), vSAN ESA vs. OSA capacity math (P2).
+**Rationale:** Introduces a genuinely new engine subsystem with new UI. Medium risk. Depends on `types.ts` foundation from Phase v2.0-A but otherwise independent.
 
-**Avoids:** Adaptive RAID-5 threshold miscalculation (Pitfall 2), LFS + metadata overhead omission (Pitfall 3).
+**Delivers:**
+- New storage type: vSAN Max (vSAN-SC-XS/SM/MED/LRG/XL ReadyNode profiles)
+- Separate storage cluster sizing and compute cluster sizing
+- Validation: minimum 4 storage cluster hosts
+- URL state persistence for vSAN Max fields
 
-**Research flag:** Storage formula validation against vSAN ReadyNode Sizer output is required before declaring this phase complete — use as acceptance test.
+**Addresses (from FEATURES.md):**
+- vSAN Max disaggregated storage cluster sizing
+- Two-cluster topology modelling (storage nodes + compute nodes as separate pools)
+- ReadyNode profile capacity constants (20/50/100/150/200 TB per host)
 
-### Phase 3: Output Panel and Visualizations
+**Avoids (from PITFALLS.md):**
+- Pitfall 11 (StorageType enum exhaustiveness) — convert `calcStorage()` to switch + never case; single Zod enum source of truth
+- Pitfall 12 (URL state silent discard) — `URL_STATE_FIELDS` constant; schema completeness test
+- Pitfall 13 (vSAN Max modelled as storage variant) — separate `VsanMaxInputs` type; `calcVsanMax()` dedicated function in `vsanMax.ts`
+- Pitfall 18 (ReadyNode profile specs actively changing) — source comment with URL and verification date in constants file
 
-**Rationale:** Output components are built once calculationStore is stable and feeding correct results from Phase 2. Chart integration requires early prototype validation (Chart.js + Vue 3 reactivity has a known proxy recursion pitfall) before full integration.
+**Build order within phase:**
+1. `useUrlState.ts` Zod schema updated for new fields + test (schema completeness)
+2. `engine/vsanMax.ts` — ReadyNode profile constants + `calcVsanMax()` pure function
+3. `calcStorage()` routing guard for `'vsan-max'`
+4. `inputStore` new refs + `calculationStore` new `vsanMax` computed
+5. `VsanMaxPanel.vue` + `VsanMaxResult.vue` + i18n (all 4 locales)
+6. Validation rule: `vsanMaxNodeCount < 4` -> error
 
-**Delivers:** calculationStore computed results, SummaryCard, ResourceResult, StorageResult, ChartPanel with doughnut/bar charts, useChartData composable, ExportToolbar scaffold.
+**Research flag:** Verify ReadyNode profile constants against the Broadcom vSAN ESA ReadyNode Hardware Guidance at `compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance` at implementation time. The Nov 2025 blog documents percentage reductions but not all updated absolute values. The XS 128 GB RAM minimum is inferred, not explicitly confirmed.
 
-**Addresses:** Total host count recommendation (P1), vCPU/RAM headroom display (P1), storage raw vs. usable visualization (P1), chart visualizations (P2).
-
-**Avoids:** Chart.js reactivity crash via Proxy (Pitfall 8) — use `shallowRef` and `vue-chartjs`; prototype in isolation before integration.
-
-**Research flag:** Chart.js + vue-chartjs integration is standard but needs careful `shallowRef` application — no research phase needed, but integration spike recommended.
-
-### Phase 4: URL State Sharing and Export
-
-**Rationale:** URL state can only be implemented correctly once all input state is stable (changing the inputStore schema after URL encoding is deployed breaks shared links). Export requires complete output components.
-
-**Delivers:** `useUrlState` composable with lz-string compression and Base64URL encoding, `useExport` composable (PDF + Markdown), ExportToolbar, LanguageSwitcher component, shareable URL copy-to-clipboard.
-
-**Addresses:** Shareable configuration URL (P1), export to PDF and Markdown (P2).
-
-**Avoids:** URL state Base64 corruption (Pitfall 7) — Base64URL encoding from the start; URL length validation; PDF export font and layout regression (Pitfall 9) — spike html2canvas vs. `@media print` approach early in this phase.
-
-**Research flag:** PDF export implementation strategy (html2canvas vs. print stylesheet) needs a spike in week 1 of this phase before committing to an approach.
-
-### Phase 5: Advanced Features (NVMe Tiering, Stretch Cluster, Global Dedup)
-
-**Rationale:** These features are high-complexity and depend on the core engine being fully stable. Stretch cluster adds significant input UI complexity; NVMe tiering adds a new formula path; Global Dedup adds mutual-exclusion logic with stretch cluster. All are P2 (v1.x) and can be released incrementally.
-
-**Delivers:** NVMe Memory Tiering toggle with explicit activeness % input, `nvmeTieringCalc.ts` integration, StretchClusterPanel with site inputs and witness component count calculation, `stretchCalc.ts`, Global Deduplication toggle with mutual exclusion enforcement (dedup ↔ stretch, dedup ↔ encryption).
-
-**Addresses:** NVMe Memory Tiering (P2), vSAN ESA Global Deduplication (P2), stretch cluster 2-site (P2).
-
-**Avoids:** NVMe tiering active vs. allocated memory confusion (Pitfall 5) — explicit activeness % input field with tooltip; witness size always "Tiny" bug (Pitfall 10) — implement component count formula.
-
-**Research flag:** Stretch cluster witness component count formula needs validation against Broadcom vSAN Stretched Cluster Guide before implementation.
-
-### Phase 6: Localization Completion and Polish
-
-**Rationale:** FR, DE, IT translations are deferred until all UI components are complete and all translation keys are known, to avoid translating then immediately refactoring. Validation rules and accessibility are final-pass concerns.
-
-**Delivers:** Complete FR, DE, IT locale JSON files, lazy locale loading, full validation composable (`useValidation.ts`), responsive/mobile layout testing, accessibility (aria-label, keyboard navigation), security hardening (Zod schema validation on URL state deserialization, input bounds clamping).
-
-**Addresses:** FR/DE/IT translations (P1 — deferred within v1 to this phase per FEATURES.md MVP guidance), responsive layout (P1), input bounds validation for security.
-
-**Avoids:** Language-switch resetting in-progress calculations (UX pitfall) — all state in Pinia is locale-independent; only display layer applies `t()`.
-
-**Research flag:** Standard patterns — no research phase needed.
+---
 
 ### Phase Ordering Rationale
 
-- **Engine before stores before UI:** The calculation engine is the highest-risk component (VCF formulas are precise and sourced from official docs); it must be unit-tested before any UI is built on top of it.
-- **Storage module early:** The vSAN capacity math (Adaptive RAID-5 + LFS + metadata) has the most pitfalls by count and the highest risk of shipping silently wrong results. Placing it in Phase 2 allows validation against vSAN ReadyNode Sizer before the output panel is built.
-- **Charts after calculation is stable:** Building charts against unstable computed values creates churn. Phase 3 starts only after Phase 2 formulas are validated.
-- **URL state after schema is stable:** The inputStore schema must be frozen before URL state encoding is deployed. Changing the schema after sharing breaks all existing shared links.
-- **Advanced features after core:** NVMe Tiering, Stretch Cluster, and Global Dedup are differentiators but are not blocking for an MVP that architects can use for standard HA sizing.
-- **Translations last:** Translating keys that will be renamed or deleted during feature development wastes effort.
+- Phase v2.0-A first because it contains a live correctness bug (bandwidth floor), carries lowest risk, and can ship to users while vSAN Max is being built.
+- Types foundation is step 1 of v2.0-A because all subsequent changes depend on it; it has zero breaking changes.
+- vSAN Max is isolated to its own phase because it is the only change that adds a new engine subsystem, new UI components, and new URL state fields — it has the most failure modes and benefits from the clean baseline that v2.0-A establishes.
+- URL state schema changes (Pitfall 11, 12) must be addressed before any vSAN Max UI work; schema drift is the highest-probability silent regression in this codebase.
 
-### Research Flags
-
-Phases likely needing deeper research during planning:
-- **Phase 2 (Storage Module):** Validate Adaptive RAID-5 formula constants against Duncan Epping's January 2024 ESA post and Broadcom KB 405876 before implementation.
-- **Phase 4 (Export):** PDF export implementation strategy (html2canvas + jsPDF vs. `@media print` CSS) needs a spike — do not assume html2canvas works with Tailwind without testing.
-- **Phase 5 (Stretch Cluster):** Witness component count formula from vSAN Stretched Cluster Guide needs implementation reference before coding.
-
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Foundation):** Vue 3 + Pinia + Vite + Tailwind setup is fully documented; versions are verified. Use the install commands from STACK.md directly.
-- **Phase 3 (Output + Charts):** vue-chartjs + `shallowRef` pattern is documented; use `vue-chartjs` wrapper to avoid manual Chart.js proxy issues.
-- **Phase 6 (i18n + Polish):** vue-i18n 11 lazy loading pattern is documented in ARCHITECTURE.md; apply directly.
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified against GitHub releases as of 2026-03-28; version compatibility matrix explicitly checked |
-| Features | HIGH (management domain specs), MEDIUM (GPU/AI workload) | Management domain constants sourced from official Broadcom TechDocs, William Lam lab data, and driftar.ch (Feb 2026); GPU sizing rules are documented but GPU SKUs evolve rapidly |
-| Architecture | HIGH | Vue 3 + Pinia + vue-i18n patterns from official docs; VCF 9.x formula constants from Broadcom TechDocs and VCF blog (verified 2026-03-28) |
-| Pitfalls | HIGH (VCF formulas), MEDIUM (PDF export implementation) | VCF-specific pitfalls sourced from official Broadcom KB and Duncan Epping; PDF export pitfalls from community sources and GitHub issues |
+| Stack | HIGH | Zero new dependencies confirmed; all v1 library versions verified against current codebase |
+| Features | HIGH | Stretch specs, management domain specs, and host minimums all confirmed against Broadcom TechDocs VCF 9.0 and KB 392993 |
+| Architecture | HIGH | All integration decisions derived from direct code inspection; build order derived from dependency analysis of actual engine files |
+| Pitfalls | HIGH | v2.0 pitfalls confirmed against codebase specifics (Zod schema, test file patterns, CALC-02 constraint); all prevention strategies are concrete and actionable |
+| vSAN Max profiles | MEDIUM | XS, SM, LRG, XL capacities and network requirements confirmed; MED NVMe count and LRG/XL NVMe counts not published in blog sources; XS 128 GB RAM minimum is inferred |
+| Standard/Consolidated terminology | MEDIUM | Community evidence confirms VCF 9 retired the terms; no single official TechDocs page explicitly states the retirement |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH for implementation guidance; MEDIUM for specific vSAN Max hardware constants (requires verification at implementation time).
 
 ### Gaps to Address
 
-- **Deduplication ratio variability:** Global Deduplication savings are workload-dependent. Research recommends defaulting to 2x conservative estimate with a visible disclaimer. The actual ratio input range (1x–10x) needs UX review during Phase 5 planning to set appropriate bounds and communicate uncertainty.
-- **PDF export implementation:** ARCHITECTURE.md notes the html2canvas approach but PITFALLS.md documents known failure modes (Tailwind layout collapse, web font loading, file size). A concrete implementation decision (html2canvas + jsPDF vs. `@media print` CSS) cannot be made until a spike in Phase 4.
-- **OSA-specific storage math:** Research covers vSAN ESA (Adaptive RAID-5) in depth. OSA calculations use a different disk group model and different overhead percentages. The OSA path is flagged as a valid selection in the UI but the precise OSA-specific formulas are not fully specified in the research. Needs verification against OSA documentation during Phase 2.
-- **vGPU profile mapping:** AI/GPU workload sizing (Phase P3/v2+) references NVIDIA H100 examples but the full vGPU profile-to-host-RAM mapping requires ongoing maintenance as GPU SKUs change. Defer until v2.
+- **vSAN Max ReadyNode profile constants (MED/LRG/XL NVMe counts):** Verify against `compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance` before hardcoding as constants. Use blog-sourced values as initial estimates with a source comment.
+- **XS profile 128 GB RAM minimum:** Inferred from the Nov 2025 "as little as 16 cores and 128 GB" statement. Confirm the 128 GB is for the XS storage cluster profile specifically, not a general minimum across all profiles.
+- **ManagementArchitecture 4-host minimum source:** Confirmed by Broadcom KB 392993 for management domain with vSAN. The 3-host minimum for Co-located mode is confirmed by multiple community sources but does not have a single authoritative TechDocs page.
+- **vSAN Max profile naming (XS and XL in VCF 9):** Nov 2025 blog describes three profiles (SM, MED, LRG) for new hardware guidance; March 2024 blog includes XS and XL. Verify whether XS and XL are current in VCF 9.0 compatibility guide before including them as options.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Broadcom TechDocs VCF 9.0 — management domain component specs, stretch cluster guide, vSAN space efficiency features
-- William Lam (williamlam.com/2025/06) — VCF 9.0 minimal lab resources; Simple deployment component vCPU/RAM table
-- Broadcom KB 397782 — VCF Operations 9.0 sizing guidelines; appliance size tiers
-- VMware Cloud Foundation Blog — NVMe Memory Tiering Parts 1 and 3 (Nov–Dec 2025); Global Deduplication in vSAN ESA (June 2025); VCF 9.0 Deployment Pathways (July 2025)
-- Duncan Epping / Yellow Bricks — vSAN ESA Adaptive RAID-5 (2022, 2024); minimum host counts
-- GitHub releases — Vue 3.5.31, Vite 8.0.3, Pinia 3.0.4, vue-i18n 11.3.0, Tailwind CSS 4.2.2, Chart.js 4.5.1, vue-chartjs 5.3.3, jsPDF 4.2.1 (all verified 2026-03-28)
-- Pinia official documentation — composing stores, setup stores
-- vue-i18n 11 official documentation — Composition API, number formatting, lazy loading
-- VMware VCF Blog — vSAN ESA capacity overheads (2022)
+
+- Broadcom TechDocs VCF 9.0 — Bandwidth and Latency Requirements (`techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/vsan-deployment-administration-and-monitoring/vsan-network-design/...`) — stretch RTT thresholds, 10 Gbps floor, witness latency, MTU 9000
+- Broadcom KB 392993 — minimum 4 ESXi hosts for management domain with vSAN
+- Direct codebase inspection — all 6 engine files, both stores, `useUrlState.ts` and test file
+- VMware Blog Nov 2025 ("Driving Down Storage Costs") — vSAN Max hardware requirement reductions
+- VMware Blog Mar 2024 ("Greater Flexibility with vSAN Max") — ReadyNode XS/SM/MED/LRG/XL profile structure
 
 ### Secondary (MEDIUM confidence)
-- driftar.ch (Feb 2026) — VCF 9 appliance sizing; community-verified SDDC Manager specs
-- Medium / Lubomir Tobek — stretch cluster ISL bandwidth formula
-- GitHub issue #11619 (Chart.js) — Vue 3 proxy recursion on `reactive()` chart instance
-- @vueuse/core 14.2.1 — version from npm metadata; Vue 3.5+ requirement from official docs
-- lz-string 1.5.0 — stable library; version from npm; minimal recent activity
 
-### Tertiary (LOW confidence / needs validation)
-- OSA-specific vSAN overhead constants — not deeply covered in research; needs verification against OSA documentation during Phase 2 implementation
-- GPU workload host RAM formula (2–3x GPU VRAM) — sourced from VMware Private AI sizing guide v9 references; single source; validate during v2 planning
+- Broadcom Community Forum — VCF 9 retirement of Standard/Consolidated terminology
+- VMware Blog Jun 2024 ("vSAN HCI or Storage Clusters") — vSAN Max vs HCI architectural distinction
+- Lubomir Tobek (Medium, VCF 9.0) — bandwidth sizing for stretched clusters, consistent with TechDocs
+- defaultreasoning.com (Jan 2025) — VCF-VSAN-REQD-CFG-002 design constraint analysis
+
+### Tertiary (reference at implementation time)
+
+- Broadcom Compatibility Guide (`compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance`) — canonical authoritative source for ReadyNode profile specs; must be consulted at implementation time to verify MED/LRG/XL NVMe counts and XS RAM minimum
 
 ---
-*Research completed: 2026-03-28*
+
+*Research completed: 2026-03-29*
+*Scope: VCF Sizer milestone v2.0 — vSAN Max + Dedicated Domains validation + stretch correctness*
 *Ready for roadmap: yes*

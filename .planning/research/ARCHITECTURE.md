@@ -1,707 +1,566 @@
-# Architecture Research
+# Architecture Research — v2.0 Integration
 
-**Domain:** Client-side SPA — VMware VCF 9.x Sizing Calculator
-**Researched:** 2026-03-28
-**Confidence:** HIGH (Vue 3/Pinia/vue-i18n verified via official docs; VCF 9.x sizing data verified via Broadcom TechDocs and VCF blog)
+**Domain:** VCF 9.x Sizing Calculator SPA — v2.0 Feature Integration
+**Researched:** 2026-03-29
+**Confidence:** HIGH for integration patterns (based on direct code inspection); MEDIUM for vSAN Max specs (WebSearch + official blog, not yet in Context7); HIGH for stretch network requirements (Broadcom TechDocs).
+**Replaces:** Prior ARCHITECTURE.md (v1 research, 2026-03-28)
 
 ---
 
-## Standard Architecture
+## Context: What This Document Covers
 
-### System Overview
+This is the v2.0 milestone architecture document. It answers four specific integration questions for the roadmapper:
+
+1. Where does vSAN Max fit — new StorageType or separate engine function?
+2. Where does Standard vs Consolidated fit — new DeploymentMode, a flag, or validation guidance?
+3. Where does the stretch network checklist live?
+4. What is the correct build order for these four features?
+
+All answers are grounded in direct inspection of the existing engine code, not assumptions.
+
+---
+
+## Existing Architecture Summary
+
+The engine follows a clean unidirectional pattern:
+
+```
+inputStore (ref() only)
+    ↓
+calculationStore (computed() only — CALC-02 rule)
+    ↓
+engine/*.ts pure functions (ZERO Vue imports — CALC-01 rule)
+```
+
+Current engine surface:
+- `types.ts` — type definitions, zero logic
+- `management.ts` — `calcManagement(mode: DeploymentMode)`
+- `compute.ts` — `calcCompute(inputs: ComputeInputs)`
+- `storage.ts` — `calcStorage(inputs: StorageInputs)` + `vsanEsaRaidOverhead()`
+- `stretch.ts` — `calcStretch(inputs: StretchInputs)`
+- `validation.ts` — `validateInputs(inputs: ValidationInputs)`
+
+Current type surface:
+- `DeploymentMode`: `'simple' | 'ha' | 'stretch'`
+- `StorageType`: `'vsan-esa' | 'fc' | 'nfs'`
+- `StretchResult`: 5 fields — no network checklist yet
+- `StorageInputs`: no vSAN Max concept yet
+
+---
+
+## Question 1: vSAN Max — New StorageType or Separate Function?
+
+### Verdict: New StorageType value + new dedicated engine function
+
+**Rationale:**
+
+vSAN Max (officially "vSAN Storage Clusters" in VCF 9.0) is architecturally distinct from vSAN ESA HCI in one critical way: **the storage cluster hosts run storage only, and the compute hosts are decoupled**. This means:
+
+- `calcStorage()` with `storageType: 'vsan-esa'` models HCI hosts (compute + storage combined).
+- vSAN Max requires sizing **two separate node pools**: storage cluster nodes (vSAN Max ReadyNodes) and compute cluster nodes (plain vSphere hosts, no vSAN requirements).
+
+Adding `'vsan-max'` as a new value to the existing `StorageType` union type is the correct entry point. However, the logic inside `calcStorage()` for vSAN Max is **entirely different** from the vSAN ESA HCI path — it does not share LFS overhead, metadata overhead, or the RAID threshold logic from the HCI path.
+
+**Recommended split:**
+
+```
+types.ts:
+  StorageType = 'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'   ← add 'vsan-max'
+  VsanMaxInputs { ... }                                    ← new type
+  VsanMaxResult { ... }                                    ← new type
+
+engine/vsanMax.ts:
+  calcVsanMax(inputs: VsanMaxInputs): VsanMaxResult        ← new pure function
+
+storage.ts:
+  calcStorage() gains a guard:
+    if (storageType === 'vsan-max') → delegate to calcVsanMax() or return stub
+  (Option: keep storage.ts as router, vsanMax.ts as implementation)
+```
+
+**Why not extend `calcStorage()` with vSAN Max logic inline?**
+
+`calcStorage()` is already 170 lines; adding a completely different code path for vSAN Max would make it 300+ lines mixing two unrelated models. The existing function's formula stack (rawCapacity, RAID overhead, LFS, metadata, stretch factor) is meaningless for vSAN Max. A dedicated `vsanMax.ts` file is cleaner, independently testable, and consistent with the existing pattern of `stretch.ts` being a separate file.
+
+**What `VsanMaxInputs` needs:**
+
+vSAN Max sizing is based on ReadyNode profiles. The tool should model the storage cluster nodes separately from the compute cluster nodes. Minimum required inputs:
+
+```typescript
+export interface VsanMaxInputs {
+  // Storage cluster (vSAN Max nodes)
+  storageNodeProfile: 'xs' | 'sm' | 'med' | 'lrg' | 'xl'  // maps to ReadyNode profile
+  storageNodeCount: number   // minimum 4
+  // Compute cluster (client hosts — no vSAN requirement)
+  computeNodeCount: number
+  computeNodeRamGB: number
+  computeNodeCoresPerSocket: number
+  computeNodeSocketsPerHost: number
+  // Workload
+  vmCount: number
+  avgStorageGbPerVm: number
+}
+```
+
+**ReadyNode profile constants (sourced from VMware blog, Nov 2025):**
+
+| Profile | Capacity/host | Min Cores | Min RAM | Network |
+|---------|--------------|-----------|---------|---------|
+| vSAN-Max-XS | 20 TB | 24 | — | 10 GbE |
+| vSAN-Max-SM | 50 TB | 32 | 384 GB | 25 GbE |
+| vSAN-Max-MED | 100 TB | 40 | 512 GB | 100 GbE |
+| vSAN-Max-LRG | 150 TB | 48 | 768 GB | 100 GbE |
+| vSAN-Max-XL | 200 TB | 64 | 1 TB | 100 GbE |
+
+These belong as constants inside `vsanMax.ts`, not in the UI.
+
+**What `VsanMaxResult` should return:**
+
+```typescript
+export interface VsanMaxResult {
+  // Storage cluster totals
+  rawStorageCapacityTB: number
+  usableStorageCapacityTB: number   // after RAID-5/6 overhead — same ESA thresholds apply
+  storageNodeMinCount: number        // minimum 4
+  storageNetworkRequired: string     // e.g. '25 GbE' — derived from profile
+  // Compute cluster totals (separate sizing from storage)
+  computeAvailableCores: number
+  computeAvailableRamGB: number
+  computeRecommendedHostCount: number
+  // Combined
+  minStorageNodeCount: number
+}
+```
+
+**Key architectural point:** vSAN Max compute cluster hosts do NOT need to satisfy the VCFA 12-core minimum in `validateInputs()` for vSAN compatibility — they only need to satisfy the VCFA host spec for running VCF management VMs. The RAID overhead math (ESA Adaptive RAID-5 thresholds) still applies to the storage cluster nodes themselves.
+
+**Backward compatibility:** `calcStorage()` callers pass `storageType` from `inputStore.storageType`. Adding `'vsan-max'` to the `StorageType` union requires no changes to existing callers as long as `calcStorage()` routes vSAN Max to the new function. The store will expose a new `vsanMax` computed result alongside existing `storage` computed.
+
+---
+
+## Question 2: Standard vs Consolidated Architecture
+
+### Verdict: Validation guidance + suggested minimum host count — NOT a new DeploymentMode
+
+**Rationale:**
+
+Standard vs Consolidated is no longer an official VCF 9.0 architectural designation. Broadcom community discussions confirm the terminology was retired to reduce confusion, and VCF 9.0 instead describes a spectrum from single-cluster (management + workload co-located) to multi-domain (dedicated management cluster + separate workload domains).
+
+However, the sizing impact is concrete and must be modelled: a **dedicated management cluster requires a minimum of 4 hosts** when running all management appliances in HA mode (3 active + 1 for N+1 tolerance during rolling maintenance). This is not a binary toggle — it is a constraint that emerges from the management domain compute requirements.
+
+**Recommended approach:**
+
+1. Add a `managementArchitecture` field to `ComputeInputs` (optional, defaults to `'shared'`):
+
+   ```typescript
+   export type ManagementArchitecture = 'shared' | 'dedicated'
+   ```
+
+   - `'shared'`: Management VMs co-reside with workload VMs on the same cluster. Tool adds management overhead to workload host count as it does today.
+   - `'dedicated'`: Management VMs run on a separate dedicated management cluster. Tool outputs a second host count recommendation specifically for the management cluster.
+
+2. Add a new validation rule in `validateInputs()`:
+
+   ```
+   DEDICATED_MGMT_MIN_HOSTS: when managementArchitecture === 'dedicated' && hostCount < 4
+   → error: 'validation.dedicatedMgmtMinHosts'
+   ```
+
+3. `calcManagement()` already returns the resource totals. For dedicated mode, the calculationStore exposes a `dedicatedMgmtHostCount` computed:
+
+   ```typescript
+   const dedicatedMgmtHostCount = computed(() => {
+     if (input.managementArchitecture !== 'dedicated') return null
+     return Math.max(4, Math.ceil(management.value.totalCores / (input.coresPerSocket * input.socketsPerHost)))
+   })
+   ```
+
+**Why not a new DeploymentMode?**
+
+`DeploymentMode` (`'simple'|'ha'|'stretch'`) models **HA redundancy behavior**, not cluster topology. Adding `'standard'` or `'consolidated'` as DeploymentMode values would cause these to flow through `calcCompute()`, `calcManagement()`, `calcStretch()`, and `validateInputs()` unchanged or incorrectly. The management architecture concept maps cleanly to validation guidance and a secondary host count output — it does not change the core compute, storage, or stretch formulas.
+
+**New type additions to `types.ts`:**
+
+```typescript
+export type ManagementArchitecture = 'shared' | 'dedicated'
+
+// Add to ComputeInputs (optional — all existing callers unaffected):
+managementArchitecture?: ManagementArchitecture   // default 'shared'
+
+// Add to ValidationInputs:
+managementArchitecture?: ManagementArchitecture   // default 'shared'
+dedicatedMgmtHostCount?: number                  // for min-4 check
+
+// New output field in ComputeResult:
+dedicatedMgmtRecommendedHosts?: number  // null when 'shared'
+```
+
+---
+
+## Question 3: Stretch Network Checklist
+
+### Verdict: Extend `StretchResult` type + surface in the stretch output section — no new component
+
+**Rationale:**
+
+The network checklist (MTU 9000, <5ms RTT, <200ms witness RTT, 10 Gbps floor) is **deterministic derived data** from the stretch configuration. It is not user input. It does not require a new engine function. It belongs in `StretchResult` as additional fields, then displayed in the existing stretch output section.
+
+**Current `StretchResult` gaps:**
+
+The existing `calcStretch()` has a critical bug: `minBandwidthGbps` has no floor. Current formula:
+```
+minBandwidthGbps = totalWorkloadStorageTB × 0.1
+```
+For a small workload (e.g. 20 TB), this returns `2 Gbps` — which is below the VCF 9.0 official minimum of 10 Gbps for stretch inter-site links. The bandwidth floor patch is confirmed by Broadcom TechDocs.
+
+**Extended `StretchResult` fields:**
+
+```typescript
+export interface StretchResult {
+  // Existing fields (unchanged)
+  totalHosts: number
+  witnessCores: number
+  witnessRamGB: number
+  minBandwidthGbps: number         // PATCHED: max(computed, 10.0)
+  effectivePerSiteStorageTB: number
+  storageNote: string
+
+  // New fields (network checklist)
+  bandwidthFloorApplied: boolean   // true when formula result < 10 Gbps
+  networkChecklist: StretchNetworkChecklist  // i18n keys + values
+}
+
+export interface StretchNetworkChecklist {
+  minInterSiteBandwidthGbps: number   // always 10 (Broadcom TechDocs minimum)
+  maxInterSiteLatencyMs: number       // always 5 (RTT)
+  maxWitnessLatencyMs: number         // 200 for ≤10 hosts/site, 100 for 11–15 hosts/site
+  jumboFramesRequired: boolean        // true — MTU 9000 recommended for vSAN traffic
+  witnessMinBandwidthMbps: number     // 2 Mbps per 1000 components; expose raw value
+}
+```
+
+**Why in `StretchResult` and not a separate component?**
+
+The existing `StretchClusterPanel.vue` and the stretch section of the output panel already conditionally render when `deploymentMode === 'stretch'`. Adding network checklist fields to `StretchResult` means the display component can simply iterate the checklist — no new store computed, no new engine function. A dedicated `StretchNetworkChecklist.vue` output component is warranted for the UI (reusable, independently testable) but it reads from `calculationStore.stretch.networkChecklist` — no new store slice needed.
+
+**The 10 Gbps floor patch to `calcStretch()`:**
+
+```typescript
+// BEFORE (current — incorrect for small workloads):
+const minBandwidthGbps = new Decimal(totalWorkloadStorageTB).times(0.1).toNumber()
+
+// AFTER (correct — floor enforced per Broadcom TechDocs):
+const STRETCH_MIN_BANDWIDTH_GBPS = 10  // VCF 9.0 absolute minimum
+const calculatedBandwidthGbps = new Decimal(totalWorkloadStorageTB).times(0.1).toNumber()
+const minBandwidthGbps = Math.max(calculatedBandwidthGbps, STRETCH_MIN_BANDWIDTH_GBPS)
+const bandwidthFloorApplied = calculatedBandwidthGbps < STRETCH_MIN_BANDWIDTH_GBPS
+```
+
+This is a bug fix, not a new feature. It must happen in the same commit as adding the `bandwidthFloorApplied` field to `StretchResult` so the type change and the behavior change are atomic.
+
+---
+
+## Question 4: Build Order
+
+### Verdict: Bandwidth floor → Stretch checklist → Standard/Consolidated → vSAN Max
+
+**Dependency graph:**
+
+```
+Feature A: Bandwidth floor patch (1 function, 1 type change, 1 constant)
+    No dependencies — can go first
+    Risk: LOW (single formula change + new boolean field)
+    Test: calcStretch({ vmCount: 50, avgStorageGbPerVm: 100 }) → minBandwidthGbps === 10
+
+Feature B: Stretch network checklist (extends Feature A's StretchResult)
+    Depends on: Feature A (needs bandwidthFloorApplied + extended StretchResult)
+    Risk: LOW (data derived from inputs already in StretchInputs)
+    Test: calcStretch returns valid StretchNetworkChecklist with all required fields
+
+Feature C: Standard/Consolidated (ManagementArchitecture flag)
+    Depends on: types.ts changes (new type), validation.ts (new rule)
+    No dependency on A or B
+    Risk: LOW (optional field, all existing callers unaffected)
+    Parallel to B after A is done
+
+Feature D: vSAN Max (new StorageType + new engine file)
+    Depends on: types.ts (StorageType union extension, VsanMaxInputs, VsanMaxResult)
+    No dependency on A, B, or C
+    Risk: MEDIUM (new engine file, new store computed, new UI section)
+    Can parallel C after type foundation is laid
+```
+
+**Recommended sequential order:**
+
+```
+Step 1 — types.ts foundation
+  - Add 'vsan-max' to StorageType
+  - Add ManagementArchitecture type
+  - Add VsanMaxInputs, VsanMaxResult interfaces
+  - Extend StretchResult with bandwidthFloorApplied + StretchNetworkChecklist
+  - Extend ComputeInputs + ValidationInputs with optional managementArchitecture
+  All type changes are additive — zero breaking changes to existing callers.
+
+Step 2 — Bandwidth floor patch (smallest, highest safety ratio)
+  - Patch calcStretch() with STRETCH_MIN_BANDWIDTH_GBPS = 10 constant
+  - Add bandwidthFloorApplied to returned StretchResult
+  - Unit test: small workload produces 10 Gbps floor + bandwidthFloorApplied=true
+  Rationale: This is a correctness bug fix. Ship it before any new features.
+
+Step 3 — Stretch network checklist (extends Step 2)
+  - Add StretchNetworkChecklist population to calcStretch()
+  - Derive witness latency threshold from per-site host counts (≤10 hosts → 200ms, 11-15 → 100ms)
+  - Extend calculationStore to expose stretch.networkChecklist
+  - Add StretchNetworkChecklist.vue output component (reads from calculationStore.stretch)
+  - i18n keys for all checklist labels
+
+Step 4 — Standard/Consolidated validation (independent of Steps 2-3)
+  - Add DEDICATED_MGMT_MIN_HOSTS validation rule to validateInputs()
+  - Extend calculationStore with dedicatedMgmtHostCount computed
+  - Add managementArchitecture toggle to DeploymentModePanel or HostSpecPanel
+  - i18n keys for new validation message
+
+Step 5 — vSAN Max engine (independent of Steps 2-4)
+  - Create engine/vsanMax.ts with ReadyNode profile constants + calcVsanMax()
+  - Update calcStorage() to route 'vsan-max' to calcVsanMax()
+  - Extend inputStore with vsanMaxNodeProfile + vsanMaxNodeCount + vsanMaxComputeNodeCount
+  - Extend calculationStore with vsanMax computed
+  - Add VsanMaxPanel.vue input component (visible when storageType === 'vsan-max')
+  - Add VsanMaxResult.vue output component
+  - Validation: vsanMaxNodeCount < 4 → error
+
+Step 6 — Integration + human verification
+  - End-to-end scenario test: stretch cluster with small workload shows 10 Gbps floor
+  - Verify network checklist renders correctly in all 4 locales
+  - Verify dedicated management outputs separate host count recommendation
+  - Verify vSAN Max profile selection changes storage capacity correctly
+```
+
+---
+
+## Component Boundary Map for v2.0
+
+### Modified files (existing, no renames)
+
+| File | Change Type | What Changes |
+|------|------------|--------------|
+| `engine/types.ts` | Additive | 4 new types/interfaces, 2 union extensions, optional fields on existing types |
+| `engine/stretch.ts` | Bug fix + additive | Bandwidth floor constant, `bandwidthFloorApplied`, `networkChecklist` in return |
+| `engine/validation.ts` | Additive | 1 new validation rule (DEDICATED_MGMT_MIN_HOSTS) |
+| `engine/storage.ts` | Additive | Guard clause routing `'vsan-max'` to `calcVsanMax()` |
+| `stores/inputStore.ts` | Additive | New refs: `managementArchitecture`, `vsanMaxNodeProfile`, `vsanMaxNodeCount`, `vsanMaxComputeNodeCount` |
+| `stores/calculationStore.ts` | Additive | New computed: `dedicatedMgmtHostCount`, `vsanMax` |
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `engine/vsanMax.ts` | `calcVsanMax()` pure function, ReadyNode profile constants, `VsanMaxInputs`, `VsanMaxResult` |
+| `components/output/StretchNetworkChecklist.vue` | Network requirements display, reads from `calculationStore.stretch.networkChecklist` |
+| `components/input/VsanMaxPanel.vue` | vSAN Max node profile selector, storage + compute node count inputs |
+| `components/output/VsanMaxResult.vue` | Storage cluster + compute cluster sizing output |
+
+### Files with ZERO changes
+
+| File | Reason |
+|------|--------|
+| `engine/compute.ts` | No change — vSAN Max compute sizing happens in vsanMax.ts |
+| `engine/management.ts` | No change — management constants are stable |
+| `stores/calculationStore.ts` existing computeds | Existing `management`, `compute`, `storage`, `stretch`, `validationErrors` computeds are unchanged |
+
+---
+
+## Data Flow for New Features
+
+### vSAN Max Flow
+
+```
+inputStore.storageType === 'vsan-max'
+  + inputStore.vsanMaxNodeProfile (xs|sm|med|lrg|xl)
+  + inputStore.vsanMaxNodeCount
+  + inputStore.vsanMaxComputeNodeCount
+    ↓ (calculationStore)
+calcVsanMax(vsanMaxInputs)
+    ↓
+calculationStore.vsanMax (computed)
+    ↓
+VsanMaxPanel.vue (input) ← v-model → inputStore
+VsanMaxResult.vue (output) ← reads → calculationStore.vsanMax
+```
+
+### Standard/Consolidated Flow
+
+```
+inputStore.managementArchitecture ('shared'|'dedicated')
+    ↓ (calculationStore)
+management.value.totalCores (existing)
+  + input.coresPerSocket × input.socketsPerHost
+  → Math.max(4, Math.ceil(mgmtCores / coresPerHost))
+    ↓
+calculationStore.dedicatedMgmtHostCount (new computed, null when 'shared')
+    ↓
+SummaryCard or new DedicatedMgmtCard reads it
+```
+
+### Stretch Network Checklist Flow
+
+```
+inputStore.preferredSiteHosts + secondarySiteHosts (existing)
+inputStore.vmCount + avgStorageGbPerVm (existing)
+    ↓ (calcStretch — patched)
+StretchResult.bandwidthFloorApplied (new)
+StretchResult.networkChecklist (new)
+    ↓
+calculationStore.stretch (existing computed — now returns extended result)
+    ↓
+StretchNetworkChecklist.vue reads calculationStore.stretch.networkChecklist
+```
+
+---
+
+## Backward Compatibility Analysis
+
+All four changes are **additive-only** to existing types. No existing call site requires modification:
+
+| Change | Additive? | Breaking? | Mitigation |
+|--------|-----------|-----------|------------|
+| `StorageType` union + `'vsan-max'` | Yes | NO — TypeScript will require exhaustive switch updates only in places that already switch on StorageType | Add `'vsan-max'` branch to all existing switches; `calcStorage()` already handles non-vsan-esa via early return |
+| `ManagementArchitecture` optional field | Yes | NO — optional with `? =` default | All existing callers pass no `managementArchitecture` → default `'shared'` → existing behavior preserved |
+| `StretchResult` new fields | Yes | NO — new fields added to interface | Existing consumers only destructure fields they need; new fields are ignored |
+| `ComputeInputs` optional field | Yes | NO — optional field pattern already established (see `nvmeTieringEnabled?`) | Same pattern used for Phase 3 additions |
+
+---
+
+## Pitfalls Specific to v2.0 Integration
+
+### Pitfall A: vSAN Max RAID overhead reuse confusion
+
+**Risk:** Developer assumes vSAN Max uses the same `vsanEsaRaidOverhead()` function as HCI vSAN ESA. This is partially correct — vSAN Max storage cluster nodes also use ESA Adaptive RAID-5 thresholds — but the input is the **storage node count** not the HCI host count.
+
+**Prevention:** `calcVsanMax()` must call `vsanEsaRaidOverhead(storageNodeCount, ...)`, not the HCI `hostCount`. These are different cluster sizes.
+
+### Pitfall B: Management architecture flag affecting existing stretch logic
+
+**Risk:** If `ManagementArchitecture` is threaded through `calcCompute()` it could accidentally interact with the `stretchMultiplier` (which doubles management overhead for stretch). For dedicated mode, the management cluster is a separate entity and should NOT be doubled.
+
+**Prevention:** `managementArchitecture` must NOT be passed to `calcCompute()` or `calcManagement()`. It only affects `validateInputs()` and the new `dedicatedMgmtHostCount` computed in `calculationStore`. The existing management cost doubling in `calcCompute()` represents the second site's full management stack — this is correct for stretch and must remain unchanged.
+
+### Pitfall C: Bandwidth floor shown as a new feature rather than a bug fix
+
+**Risk:** If the bandwidth floor patch ships in a UI-visible way that suggests the tool previously recommended < 10 Gbps (which it did), it may cause confusion or erode trust in existing shared URLs.
+
+**Prevention:** The patch should be atomic: fix the formula AND add `bandwidthFloorApplied` simultaneously. Display `bandwidthFloorApplied: true` with an info note: "Minimum 10 Gbps floor applied per VCF 9.0 specification." This communicates the correction transparently.
+
+### Pitfall D: StretchNetworkChecklist witness latency thresholds
+
+**Risk:** The witness latency threshold is not constant — it is 200ms for ≤10 hosts/site and 100ms for 11–15 hosts/site. Hardcoding 200ms always is wrong for larger deployments.
+
+**Prevention:** `calcStretch()` must derive `maxWitnessLatencyMs` from `Math.max(preferredSiteHosts, secondarySiteHosts)`:
+- ≤ 10 hosts/site → 200ms
+- 11–15 hosts/site → 100ms
+- > 15 hosts/site → document as "contact VMware" (out of range)
+
+---
+
+## Updated System Diagram
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│                          Browser SPA (No Backend)                   │
-├──────────────────────────────┬─────────────────────────────────────┤
-│         INPUT PANEL          │           OUTPUT PANEL              │
-│   (left pane, scrollable)    │    (right pane, sticky/scrollable)  │
-│  ┌────────────────────────┐  │  ┌────────────┐  ┌──────────────┐  │
-│  │  DeploymentModePanel   │  │  │ SummaryCard│  │  ChartPanel  │  │
-│  │  HostSpecPanel         │  │  │            │  │  (Chart.js)  │  │
-│  │  WorkloadPanel         │  │  │ CoreResult │  │              │  │
-│  │  StoragePanel          │  │  │ RAMResult  │  │ StorageChart │  │
-│  │  StretchClusterPanel   │  │  │ StorResult │  │              │  │
-│  │  AIGPUPanel            │  │  └────────────┘  └──────────────┘  │
-│  └────────────────────────┘  │  ┌──────────────────────────────┐  │
-│                               │  │       ExportToolbar          │  │
-│                               │  │  [PDF] [Markdown] [Share URL]│  │
-│                               │  └──────────────────────────────┘  │
-├──────────────────────────────┴─────────────────────────────────────┤
+│                        Browser SPA (No Backend)                     │
+├───────────────────────────────┬────────────────────────────────────┤
+│         INPUT PANEL           │           OUTPUT PANEL             │
+│  ┌────────────────────────┐   │  ┌─────────────────────────────┐   │
+│  │  DeploymentModePanel   │   │  │ SummaryCard / DedicatedMgmt │   │
+│  │  + MgmtArchToggle (v2) │   │  │ CoreResult / RAMResult      │   │
+│  │  HostSpecPanel         │   │  │ StorageResult / VsanMaxResult│   │
+│  │  WorkloadPanel         │   │  │ StretchNetworkChecklist (v2) │   │
+│  │  StoragePanel          │   │  └─────────────────────────────┘   │
+│  │  + VsanMaxPanel   (v2) │   │  ┌─────────────────────────────┐   │
+│  │  StretchClusterPanel   │   │  │      ChartPanel              │   │
+│  └────────────────────────┘   │  └─────────────────────────────┘   │
+├───────────────────────────────┴────────────────────────────────────┤
 │                        STATE LAYER (Pinia)                          │
-│  ┌─────────────────┐  ┌──────────────────┐  ┌───────────────────┐  │
-│  │  inputStore     │  │  calculationStore│  │  uiStore          │  │
-│  │  (user inputs)  │  │  (computed/pure) │  │  (locale, theme)  │  │
-│  └─────────────────┘  └──────────────────┘  └───────────────────┘  │
+│  ┌──────────────────┐  ┌───────────────────────────────────────┐   │
+│  │  inputStore      │  │  calculationStore                     │   │
+│  │  + mgmtArch (v2) │  │  + dedicatedMgmtHostCount (v2)        │   │
+│  │  + vsanMaxProfile│  │  + vsanMax (v2)                       │   │
+│  │  + vsanMaxNodes  │  │  stretch.networkChecklist (v2)        │   │
+│  └──────────────────┘  └───────────────────────────────────────┘   │
 ├────────────────────────────────────────────────────────────────────┤
 │                     CALCULATION ENGINE (Pure TS)                    │
-│  ┌──────────────┐  ┌─────────────┐  ┌───────────┐  ┌───────────┐  │
-│  │ mgmtDomain   │  │ workload    │  │  storage  │  │  stretch  │  │
-│  │ Calc.ts      │  │ Calc.ts     │  │  Calc.ts  │  │  Calc.ts  │  │
-│  └──────────────┘  └─────────────┘  └───────────┘  └───────────┘  │
-├────────────────────────────────────────────────────────────────────┤
-│                      CROSS-CUTTING SERVICES                         │
-│  ┌───────────┐  ┌──────────────┐  ┌───────────┐  ┌─────────────┐  │
-│  │ i18n      │  │ urlState     │  │ export    │  │ validation  │  │
-│  │ (vue-i18n)│  │ (base64 URL) │  │ (PDF/MD)  │  │ composable  │  │
-│  └───────────┘  └──────────────┘  └───────────┘  └─────────────┘  │
+│  ┌──────────────┐  ┌────────────┐  ┌──────────┐  ┌────────────┐   │
+│  │ management   │  │ compute    │  │ storage  │  │ stretch    │   │
+│  │ (unchanged)  │  │ (unchanged)│  │ (+ route)│  │ (patched)  │   │
+│  └──────────────┘  └────────────┘  └──────────┘  └────────────┘   │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │ vsanMax.ts (NEW v2) — ReadyNode profiles + calcVsanMax()      │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│  ┌──────────────┐                                                   │
+│  │ validation   │  ← +DEDICATED_MGMT_MIN_HOSTS rule (v2)           │
+│  └──────────────┘                                                   │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
+---
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| `DeploymentModePanel` | Simple / HA / Stretch toggle; drives conditional rendering | Vue SFC, `v-model` to `inputStore.deploymentMode` |
-| `HostSpecPanel` | Physical host inputs: cores/socket, sockets, RAM, NVMe | Vue SFC with numeric inputs, validation feedback |
-| `WorkloadPanel` | VM count, average vCPU/vRAM/vStorage, CPU ratio | Vue SFC, slot for AI/GPU sub-section |
-| `StoragePanel` | Principal storage type, vSAN ESA toggle, dedup toggle, FTT/RAID | Conditional rendering based on storage selection |
-| `StretchClusterPanel` | Preferred/secondary site split, witness node config | Visible only when `deploymentMode === 'stretch'` |
-| `AIGPUPanel` | GPU workload count, vGPU memory overhead per profile | Vue SFC, shown/hidden by workload type |
-| `SummaryCard` | Green/amber/red host count recommendation | Reads from `calculationStore.results` (computed) |
-| `ChartPanel` | Chart.js doughnut/bar charts for CPU/RAM/Storage | `vue-chartjs` wrapper; data from computed getters |
-| `ExportToolbar` | PDF/Markdown export buttons, share URL copy | Calls `useExport()` and `useUrlState()` composables |
-| `inputStore` | Single source of truth for all user inputs | Pinia setup store with `ref()` and persistence hook |
-| `calculationStore` | Derived results; no user-owned state | Pinia setup store with `computed()` over inputStore |
-| `uiStore` | Locale, mobile layout state, panel visibility | Pinia setup store; syncs locale to `vue-i18n` |
-| `mgmtDomainCalc.ts` | Management domain resource totals (vCenter, NSX, SDDC Mgr, Ops, Automation) | Pure TypeScript functions, zero Vue dependencies |
-| `workloadCalc.ts` | Workload host count, CPU overcommit, RAM sizing | Pure TypeScript functions |
-| `storageCalc.ts` | Raw vs usable vSAN capacity, dedup/FTT/RAID overhead | Pure TypeScript functions |
-| `stretchCalc.ts` | Cross-site sizing, witness node sizing, PFTT/SFTT | Pure TypeScript functions |
+## Phase Structure Recommendation for Roadmapper
+
+Based on the dependency graph and risk analysis above, the four features should map to two phases:
+
+**Phase v2.0-A: Correctness (low risk, bug fixes + additive types)**
+- types.ts foundation (all additive changes)
+- Bandwidth floor patch in calcStretch() — correctness bug
+- Stretch network checklist in StretchResult + StretchNetworkChecklist.vue
+- Standard/Consolidated: ManagementArchitecture flag + validation rule + dedicatedMgmtHostCount computed
+- i18n keys for new content
+
+**Phase v2.0-B: vSAN Max (medium risk, new engine file + new UI)**
+- engine/vsanMax.ts — new pure function, ReadyNode constants
+- calcStorage() routing guard
+- inputStore new refs, calculationStore new computed
+- VsanMaxPanel.vue + VsanMaxResult.vue
+- Validation: min 4 storage nodes
+- i18n keys
+
+**Rationale for split:** Phase v2.0-A contains only patches and additive type extensions to existing code — it is safe to ship without vSAN Max. Phase v2.0-B introduces a fully new engine subsystem with new UI. Separating them means v2.0-A can be verified and deployed while v2.0-B is still being built without blocking correctness improvements.
 
 ---
 
-## Recommended Project Structure
-
-```
-src/
-├── components/
-│   ├── input/
-│   │   ├── DeploymentModePanel.vue     # Deployment model selector
-│   │   ├── HostSpecPanel.vue           # Physical host specification
-│   │   ├── WorkloadPanel.vue           # VM workload parameters
-│   │   ├── StoragePanel.vue            # Storage type + vSAN config
-│   │   ├── StretchClusterPanel.vue     # Stretch cluster inputs (conditional)
-│   │   └── AIGPUPanel.vue              # AI/GPU workload inputs
-│   ├── output/
-│   │   ├── SummaryCard.vue             # Host count recommendation
-│   │   ├── ResourceResult.vue          # CPU / RAM result row (reusable)
-│   │   ├── StorageResult.vue           # Raw vs usable storage result
-│   │   ├── ChartPanel.vue              # Chart.js container
-│   │   ├── CoreUtilChart.vue           # CPU utilization doughnut
-│   │   ├── MemoryUtilChart.vue         # RAM utilization doughnut
-│   │   └── StorageBreakdownChart.vue   # Storage bar chart
-│   ├── shared/
-│   │   ├── ExportToolbar.vue           # PDF / Markdown / Share URL
-│   │   ├── LanguageSwitcher.vue        # Locale picker
-│   │   ├── WarningBanner.vue           # VCFA min-spec warning
-│   │   └── InfoTooltip.vue             # Context-sensitive help
-│   └── layout/
-│       ├── AppShell.vue                # Top-level flex split layout
-│       ├── InputPane.vue               # Left scrollable column
-│       └── OutputPane.vue              # Right sticky/scrollable column
-├── engine/                             # Pure TypeScript — zero Vue imports
-│   ├── mgmtDomainCalc.ts               # Management domain sizing formulas
-│   ├── workloadCalc.ts                 # Workload CPU/RAM host count
-│   ├── storageCalc.ts                  # vSAN overhead, dedup, FTT/RAID
-│   ├── stretchCalc.ts                  # Stretch cluster + witness sizing
-│   ├── nvmeTieringCalc.ts              # NVMe memory tiering effective RAM
-│   ├── validationRules.ts              # All constraint validators
-│   └── types.ts                        # Shared input/output TypeScript types
-├── stores/
-│   ├── inputStore.ts                   # All user inputs (Pinia setup store)
-│   ├── calculationStore.ts             # Computed results (reads inputStore)
-│   └── uiStore.ts                      # Locale, layout, UI flags
-├── composables/
-│   ├── useUrlState.ts                  # Base64 encode/decode URL state
-│   ├── useExport.ts                    # PDF and Markdown export logic
-│   ├── useValidation.ts                # Reactive validation messages
-│   └── useChartData.ts                 # Transforms results → Chart.js datasets
-├── i18n/
-│   ├── index.ts                        # createI18n instance (legacy: false)
-│   └── locales/
-│       ├── en.json
-│       ├── fr.json
-│       ├── de.json
-│       └── it.json
-├── App.vue                             # Root component (AppShell mount)
-└── main.ts                             # createApp, Pinia, vue-i18n, vue-router
-```
-
-### Structure Rationale
-
-- **`engine/`:** Calculation logic is pure TypeScript with zero Vue imports. This enables isolated unit testing with Vitest, prevents business logic from bleeding into reactive state, and makes formulas auditable independently of the UI.
-- **`stores/`:** Two-store split (input vs calculation) enforces unidirectional data flow. The `calculationStore` only has `computed()` getters — it never holds input state. This prevents circular reactivity and makes debugging deterministic.
-- **`composables/`:** Cross-cutting logic (URL state, export, chart data transformation) lives in composables rather than components, keeping UI components thin.
-- **`components/input/` vs `output/`:** Physical separation enforces that output components never mutate inputs (read-only contract).
-- **`i18n/locales/`:** Flat JSON per locale. All keys defined in `en.json` first; other files are translated copies. Missing keys fall back to EN via `fallbackLocale`.
-
----
-
-## Architectural Patterns
-
-### Pattern 1: Unidirectional Reactive Data Flow
-
-**What:** User inputs flow in one direction — from UI components into `inputStore`, which triggers `calculationStore` computed getters, which feed output components and chart data.
-
-**When to use:** Always — this is the foundational pattern for the entire SPA.
-
-**Trade-offs:** Simple mental model, easy to debug. Slightly verbose for deeply nested inputs (use `storeToRefs` to avoid boilerplate).
-
-**Example:**
-
-```typescript
-// stores/inputStore.ts
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-
-export const useInputStore = defineStore('input', () => {
-  const hostCores = ref(32)
-  const hostRamGB = ref(512)
-  const vmCount = ref(100)
-  const deploymentMode = ref<'simple' | 'ha' | 'stretch'>('ha')
-  const storageType = ref<'vsan-esa' | 'fc' | 'nfs'>('vsan-esa')
-  const dedupEnabled = ref(false)
-  const nvmeTieringEnabled = ref(false)
-  const fttLevel = ref<1 | 2>(1)
-  const raidType = ref<'raid1' | 'raid5' | 'raid6'>('raid1')
-
-  return {
-    hostCores, hostRamGB, vmCount,
-    deploymentMode, storageType, dedupEnabled,
-    nvmeTieringEnabled, fttLevel, raidType
-  }
-})
-
-// stores/calculationStore.ts
-import { defineStore } from 'pinia'
-import { computed } from 'vue'
-import { useInputStore } from './inputStore'
-import { calcMgmtDomain } from '../engine/mgmtDomainCalc'
-import { calcWorkloadHosts } from '../engine/workloadCalc'
-
-export const useCalculationStore = defineStore('calculation', () => {
-  const input = useInputStore()
-
-  const mgmtResources = computed(() => calcMgmtDomain(input.deploymentMode))
-  const workloadResources = computed(() => calcWorkloadHosts(input.$state))
-  const totalCoresRequired = computed(() =>
-    mgmtResources.value.cores + workloadResources.value.cores
-  )
-  const totalRAMRequired = computed(() =>
-    mgmtResources.value.ramGB + workloadResources.value.ramGB
-  )
-  const minHostCount = computed(() =>
-    Math.ceil(totalCoresRequired.value / input.hostCores)
-  )
-
-  return { mgmtResources, workloadResources, totalCoresRequired, totalRAMRequired, minHostCount }
-})
-```
-
-### Pattern 2: Pure Calculation Engine
-
-**What:** All VCF business logic lives in `engine/*.ts` as pure functions that take typed input objects and return typed result objects. No Vue reactivity, no store access.
-
-**When to use:** Every formula — management domain sizing, vSAN overhead, NVMe tiering, stretch cluster witness sizing.
-
-**Trade-offs:** Slightly more boilerplate (must pass inputs explicitly). Gains: independently unit-testable, auditable formulas, reusable outside Vue context.
-
-**Example:**
-
-```typescript
-// engine/types.ts
-export interface MgmtDomainInputs {
-  deploymentMode: 'simple' | 'ha' | 'stretch'
-}
-
-export interface MgmtDomainResult {
-  vcenterCores: number;  vcenterRamGB: number
-  sddc_cores: number;    sddc_ramGB: number
-  nsxCores: number;      nsxRamGB: number
-  opsCores: number;      opsRamGB: number
-  automationCores: number; automationRamGB: number
-  totalCores: number;    totalRamGB: number;  totalDiskGB: number
-  warnings: string[]     // e.g. 'VCFA requires 24 vCPU — host must have >=12 cores/24 threads'
-}
-
-// engine/mgmtDomainCalc.ts
-const HA_MULTIPLIER = 3
-
-const COMPONENT_SPECS = {
-  vcenter:    { cores: 4,  ramGB: 21,  diskGB: 642 },
-  sddc:       { cores: 4,  ramGB: 16,  diskGB: 931 },
-  nsxManager: { cores: 6,  ramGB: 24,  diskGB: 300 },
-  ops:        { cores: 4,  ramGB: 16,  diskGB: 290 },
-  opsFleet:   { cores: 4,  ramGB: 12,  diskGB: 206 },
-  opsCollect: { cores: 4,  ramGB: 16,  diskGB: 280 },
-  automation: { cores: 24, ramGB: 96,  diskGB: 626 },
-}
-
-export function calcMgmtDomain(mode: 'simple' | 'ha' | 'stretch'): MgmtDomainResult {
-  const isHA = mode === 'ha' || mode === 'stretch'
-  const haMulti = isHA ? HA_MULTIPLIER : 1
-
-  const nsx   = COMPONENT_SPECS.nsxManager
-  const ops   = COMPONENT_SPECS.ops
-  const auto  = COMPONENT_SPECS.automation
-  const vctr  = COMPONENT_SPECS.vcenter
-  const sddc  = COMPONENT_SPECS.sddc
-
-  const warnings: string[] = []
-  warnings.push('VCFA (VCF Automation) requires a host with >=12 physical cores / 24 threads')
-
-  const totalCores =
-    vctr.cores + sddc.cores +
-    (nsx.cores * haMulti) +
-    (ops.cores * haMulti) +
-    (COMPONENT_SPECS.opsFleet.cores + COMPONENT_SPECS.opsCollect.cores) +
-    (auto.cores * haMulti)
-
-  const totalRamGB =
-    vctr.ramGB + sddc.ramGB +
-    (nsx.ramGB * haMulti) +
-    (ops.ramGB * haMulti) +
-    (COMPONENT_SPECS.opsFleet.ramGB + COMPONENT_SPECS.opsCollect.ramGB) +
-    (auto.ramGB * haMulti)
-
-  return {
-    vcenterCores: vctr.cores, vcenterRamGB: vctr.ramGB,
-    sddc_cores: sddc.cores,   sddc_ramGB: sddc.ramGB,
-    nsxCores: nsx.cores * haMulti,  nsxRamGB: nsx.ramGB * haMulti,
-    opsCores: (ops.cores + COMPONENT_SPECS.opsFleet.cores + COMPONENT_SPECS.opsCollect.cores) * haMulti,
-    opsRamGB: (ops.ramGB + COMPONENT_SPECS.opsFleet.ramGB + COMPONENT_SPECS.opsCollect.ramGB) * haMulti,
-    automationCores: auto.cores * haMulti,
-    automationRamGB: auto.ramGB * haMulti,
-    totalCores,
-    totalRamGB,
-    totalDiskGB: (vctr.diskGB + sddc.diskGB + nsx.diskGB * haMulti + ops.diskGB * haMulti +
-                  COMPONENT_SPECS.opsFleet.diskGB + COMPONENT_SPECS.opsCollect.diskGB +
-                  auto.diskGB * haMulti),
-    warnings
-  }
-}
-```
-
-### Pattern 3: Base64 URL State Sharing
-
-**What:** Serialise `inputStore.$state` to JSON, compress (optional), base64-encode, write to `?state=` query param. Decode on load to restore inputs.
-
-**When to use:** The "Share URL" feature. No backend, no cookies, no localStorage required.
-
-**Trade-offs:** URL length grows with input complexity (~400 chars typical, within browser limits). Base64 is not compressed — use `lz-string` if URL length becomes a concern.
-
-**Example:**
-
-```typescript
-// composables/useUrlState.ts
-import { useInputStore } from '../stores/inputStore'
-import { useRouter, useRoute } from 'vue-router'
-
-export function useUrlState() {
-  const inputStore = useInputStore()
-  const router = useRouter()
-  const route = useRoute()
-
-  function saveToUrl(): string {
-    const json = JSON.stringify(inputStore.$state)
-    const encoded = btoa(unescape(encodeURIComponent(json)))
-    router.replace({ query: { ...route.query, state: encoded } })
-    return window.location.href
-  }
-
-  function loadFromUrl(): boolean {
-    const encoded = route.query.state as string | undefined
-    if (!encoded) return false
-    try {
-      const json = decodeURIComponent(escape(atob(encoded)))
-      const state = JSON.parse(json)
-      inputStore.$patch(state)
-      return true
-    } catch {
-      return false  // silently ignore corrupt state
-    }
-  }
-
-  return { saveToUrl, loadFromUrl }
-}
-```
-
-### Pattern 4: i18n Composition API Integration
-
-**What:** `vue-i18n` with `legacy: false` for full Composition API support. All translation keys resolved at component level via `useI18n()`. Locale stored in `uiStore` and synced to `i18n.global.locale`.
-
-**When to use:** Every user-visible string, including chart labels and export content.
-
-**Trade-offs:** `legacy: false` is required; mixing with Options API components needs care. Lazy loading locale files reduces initial bundle size.
-
-**Example:**
-
-```typescript
-// i18n/index.ts
-import { createI18n } from 'vue-i18n'
-import en from './locales/en.json'
-
-export const i18n = createI18n({
-  legacy: false,           // REQUIRED for Composition API
-  locale: 'en',
-  fallbackLocale: 'en',
-  messages: { en },        // Only EN loaded eagerly; others lazy-loaded
-})
-
-// Lazy load other locales on demand (uiStore action)
-export async function loadLocale(locale: 'fr' | 'de' | 'it') {
-  const messages = await import(`./locales/${locale}.json`)
-  i18n.global.setLocaleMessage(locale, messages.default)
-  i18n.global.locale.value = locale
-}
-
-// In a component:
-// const { t } = useI18n()
-// t('hostSpec.cores')  →  "Cores per socket" / "Cœurs par socket" / ...
-```
-
----
-
-## Data Flow
-
-### Primary Calculation Flow
-
-```
-User edits input field
-    |
-    v
-InputComponent (v-model)
-    |
-    v
-inputStore.$patch({ field: value })
-    |
-    v (Vue reactivity — automatic)
-calculationStore.computed getters invalidated
-    |
-    v
-engine/*.ts pure functions called with new inputs
-    |
-    v
-calculationStore.results updated
-    |
-    v
-Output components re-render (SummaryCard, ResourceResult, etc.)
-    |
-    v
-ChartPanel re-renders (vue-chartjs watches computed data)
-```
-
-### URL State Flow (on load)
-
-```
-Browser navigates to /?state=<base64>
-    |
-    v
-App.vue onMounted → useUrlState().loadFromUrl()
-    |
-    v
-inputStore.$patch(decoded state)
-    |
-    v (same as primary flow above)
-All outputs render with restored configuration
-```
-
-### Export Flow
-
-```
-User clicks [PDF] or [Markdown]
-    |
-    v
-ExportToolbar → useExport().exportPdf() or .exportMarkdown()
-    |
-    v (PDF path)
-html2pdf.js captures OutputPane DOM → jsPDF renders PDF
-    |
-    v (Markdown path)
-calculationStore results + inputStore state → template string → .md file download
-```
-
-### Locale Switch Flow
-
-```
-User selects language in LanguageSwitcher
-    |
-    v
-uiStore.setLocale('fr')
-    |
-    v
-loadLocale('fr') — lazy import fr.json
-    |
-    v
-i18n.global.locale.value = 'fr'
-    |
-    v
-All t() calls in all components re-evaluate reactively
-    |
-    v (side effect)
-Chart labels also update — useChartData() composable uses t()
-```
-
----
-
-## VCF 9.x Calculation Engine: Formulas
-
-### Management Domain Sizing (Verified: Broadcom TechDocs + williamlam.com lab data)
-
-| Component | Simple (lab) | HA (production) |
-|-----------|-------------|-----------------|
-| vCenter Server | 4 vCPU / 21 GB RAM | 4 vCPU / 21 GB RAM (single) |
-| SDDC Manager | 4 vCPU / 16 GB RAM | 4 vCPU / 16 GB RAM (single) |
-| NSX Manager | 6 vCPU / 24 GB RAM x1 | 6 vCPU / 24 GB RAM x3 |
-| VCF Operations | 4 vCPU / 16 GB RAM x1 | 4 vCPU / 16 GB RAM x3 |
-| VCF Ops Fleet Mgr | 4 vCPU / 12 GB RAM | 4 vCPU / 12 GB RAM |
-| VCF Ops Collector | 4 vCPU / 16 GB RAM | 4 vCPU / 16 GB RAM |
-| VCF Automation | 24 vCPU / 96 GB RAM x1 | 24 vCPU / 96 GB RAM x3 |
-
-**HA Multiplier:** NSX Manager, VCF Operations, and VCF Automation each scale x3 in production/HA mode.
-
-**Critical Warning:** A host with fewer than 12 physical cores (24 threads) cannot schedule the 24 vCPU VCF Automation VM. This is a hard blocker, not a recommendation. The tool must show a blocking error when `hostCores < 12`.
-
-### Workload Domain Host Count
-
-```
-effectiveRamPerHost = hostRamGB
-if (nvmeTieringEnabled && activeMemoryPct <= 0.50):
-    effectiveRamPerHost = hostRamGB * (1 + nvmeDramRatio)
-    # nvmeDramRatio: 1 (default 1:1), 2 (1:2), or 4 (1:4)
-
-totalWorkloadCores = vmCount * avgVcpu / cpuOvercommitRatio
-totalWorkloadRam   = vmCount * avgVramGB
-
-hostsForCPU   = ceil(totalWorkloadCores / hostCores)
-hostsForRAM   = ceil(totalWorkloadRam   / effectiveRamPerHost)
-minWorkloadHosts = max(hostsForCPU, hostsForRAM)
-
-# FTT host minimum for vSAN:
-# RAID-1: minHosts = 2 * FTT + 1
-# RAID-5: minHosts = 4 (FTT=1), requires ESA
-# RAID-6: minHosts = 6 (FTT=2), requires ESA
-minVsanHosts = vsanMinimumHosts(fttLevel, raidType)
-recommendedHosts = max(minWorkloadHosts, minVsanHosts)
-```
-
-### NVMe Memory Tiering (Verified: VMware VCF Blog, Part 3 Sizing)
-
-```
-# Effective RAM per host when tiering enabled:
-effectiveRam = dram + (dram * nvmeDramRatio)
-# where nvmeDramRatio in {1, 2, 4} — default is 1
-
-# Precondition for tiering benefit:
-# activeMemoryGB <= dram * 0.50
-
-# NVMe capacity needed per host:
-nvmeRequired = dram * nvmeDramRatio
-# Max supported NVMe partition per host: 4 TB
-```
-
-### vSAN ESA Storage Sizing (Verified: vSAN FAQs + community data)
-
-```
-# Raw capacity per host: (nvmeDrives * nvmeDriveCapacityGB)
-
-# Space efficiency multipliers:
-storageMultiplier =
-    if RAID-1, FTT=1: 2.0x      (minimum 3 hosts)
-    if RAID-1, FTT=2: 3.0x      (minimum 5 hosts)
-    if RAID-5, FTT=1: 1.33x     (minimum 4 hosts, ESA only)
-    if RAID-6, FTT=2: 1.5x      (minimum 6 hosts, ESA only)
-
-usableCapacityGB = rawCapacityGB / storageMultiplier
-
-# With Global Deduplication (VCF 9 P01+):
-# Conservative estimate: 2x effective dedup ratio (workload-dependent)
-# Tool should use configurable dedup ratio with default 2x and note variability
-effectiveCapacityGB = usableCapacityGB * dedupRatio
-
-# vSAN slack space: reserve 30% for performance
-safeUsableCapacityGB = effectiveCapacityGB * 0.70
-```
-
-### Stretch Cluster Sizing (Verified: Broadcom TechDocs VCF 9.0 Stretching Clusters)
-
-```
-# Host count: equal per site — symmetric required
-hostsPerSite = ceil(totalHosts / 2)
-if (hostsPerSite * 2 < minVsanHosts):
-    hostsPerSite = ceil(minVsanHosts / 2)
-
-# Witness node: separate third site or zone
-# Witness does NOT run customer VMs
-# Witness appliance sizing (based on VM count):
-witnessSize =
-    if vmCount <= 10:   'Tiny'    # <=750 components
-    if vmCount <= 500:  'Medium'  # <=21,833 components
-    else:               'Large'
-
-# Stretch cluster storage: PFTT=1 (site failure tolerance) always
-# SFTT=1 within each site is typical
-# Total space multiplier for stretch = siteMultiplier * siteCopies (2)
-stretchStorageMultiplier = vsanMultiplier(sfttLevel, raidType) * 2
-```
-
----
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Greenfield / static hosting | Pure Vite SPA on GitHub Pages / Vercel / Netlify. No server-side logic needed. Bundle size target <500 KB gzipped. |
-| High traffic (shared URL goes viral) | CDN handles it — no compute cost. Vite code-splitting by route keeps initial load fast. |
-| Localisation growth (more languages) | Already handled by lazy-loading pattern in `i18n/`. Adding a language = adding a JSON file. |
-| More VCF components / formula updates | Pure engine functions in `engine/` — add new `*Calc.ts` file, expose computed in `calculationStore`. Zero UI coupling. |
-
-### Scaling Priorities
-
-1. **First concern (bundle size):** Chart.js is 200 KB. Use dynamic import for the chart panel: `defineAsyncComponent(() => import('./output/ChartPanel.vue'))`. Defer chart code until first render.
-2. **Second concern (calculation complexity):** Calculations are synchronous and O(1) — no performance concern. If future formulas become expensive (e.g., Monte Carlo simulations), Web Workers can be introduced without changing the component API.
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Business Logic in Components
-
-**What people do:** Put vSAN overhead formulas directly in `<script setup>` of `StorageResult.vue` or a Pinia store.
-
-**Why it's wrong:** Makes formulas untestable in isolation, duplicates logic across components when similar results are needed, couples business rules to rendering lifecycle.
-
-**Do this instead:** All formulas live in `engine/*.ts` as pure functions. Components and stores only call them; they never contain arithmetic.
-
-### Anti-Pattern 2: Single Monolithic Store
-
-**What people do:** One giant Pinia store with inputs, outputs, UI state, and locale all in one `appStore.ts`.
-
-**Why it's wrong:** Computed getters that depend on both inputs and UI state get hard to reason about. TypeScript inference degrades. Debugging requires scanning the whole store.
-
-**Do this instead:** Three stores: `inputStore` (mutable user inputs), `calculationStore` (read-only computed results derived from inputs), `uiStore` (locale, panel visibility, mobile state).
-
-### Anti-Pattern 3: Translating Calculation Values in the Engine
-
-**What people do:** Return translated strings like `"158 coeurs requis"` from `mgmtDomainCalc.ts`.
-
-**Why it's wrong:** The engine becomes locale-aware, which prevents unit testing with fixed locale and breaks the separation between logic and presentation.
-
-**Do this instead:** Engine functions return raw numbers and typed enums. The component layer applies `t()` to labels and `Intl.NumberFormat` for locale-aware number formatting.
-
-### Anti-Pattern 4: Encoding URL State with localStorage as Fallback
-
-**What people do:** Try localStorage first, then URL, creating two sources of truth.
-
-**Why it's wrong:** Shared URLs open with one user's inputs overridden by the local user's localStorage — confusing and misleading for a sharing-first tool.
-
-**Do this instead:** URL state is the only persistence mechanism. On load, URL `?state=` takes priority. No localStorage. If no state in URL, start with sensible defaults.
-
-### Anti-Pattern 5: PDF Export via Window.print()
-
-**What people do:** Use `window.print()` and rely on browser print dialogs for PDF export.
-
-**Why it's wrong:** Print dialog styling is browser-controlled, looks inconsistent across browsers, cannot set filename, and has no programmatic control over page breaks.
-
-**Do this instead:** Use `html2pdf.js` (wraps html2canvas + jsPDF) targeting a dedicated export-template DOM element that is styled for print, not for screen. Keep the export template separate from the live output panel to avoid layout constraints.
-
----
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| GitHub Pages / Vercel / Netlify | Static `dist/` deployment via Vite build | `vite.config.ts` `base` setting must match repo path for GitHub Pages |
-| None (intentional) | No API calls; no analytics; no telemetry | VCF customer data is sensitive — zero external calls preserves trust |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `InputComponent` → `inputStore` | `v-model` / `store.$patch()` | Components never read from `calculationStore` directly |
-| `inputStore` → `calculationStore` | Pinia cross-store `computed()` | `calculationStore` imports `useInputStore()` — one-way dependency |
-| `calculationStore` → `ChartPanel` | `useChartData()` composable transforms results to Chart.js datasets | Decouples chart format concerns from store format |
-| `engine/*.ts` → `stores/` | Function call with plain objects | Engine has zero store imports — testable without Pinia |
-| `uiStore` → `vue-i18n` | `uiStore.setLocale()` calls `i18n.global.locale.value =` | Single locale source of truth in `uiStore` |
-| `useUrlState` → `inputStore` | `inputStore.$patch()` on load | Only called once at app mount; idempotent |
-
----
-
-## Build Order (Phase Boundaries)
-
-The following sequence is dictated by hard dependencies:
-
-```
-Phase 1 — Foundation
-    TypeScript types (engine/types.ts)
-    inputStore (no dependencies)
-    Calculation engine pure functions (no Vue dependency)
-    i18n setup + EN locale
-    AppShell + split-pane layout
-    [Can validate all formulas via unit tests before any UI exists]
-
-Phase 2 — Input Panel
-    HostSpecPanel, DeploymentModePanel
-    WorkloadPanel, StoragePanel
-    Warning system (VCFA min-cores check)
-    Requires: inputStore, i18n
-
-Phase 3 — Output Panel
-    calculationStore (requires inputStore + engine)
-    SummaryCard, ResourceResult, StorageResult
-    Requires: calculationStore
-
-Phase 4 — Visualisations
-    ChartPanel + individual charts
-    useChartData() composable
-    Requires: calculationStore
-
-Phase 5 — Advanced Features
-    StretchClusterPanel + stretchCalc.ts
-    AIGPUPanel
-    NVMe Tiering toggle + nvmeTieringCalc.ts
-    Requires: Phase 2-3 complete
-
-Phase 6 — Export + Sharing
-    useExport() — PDF + Markdown
-    useUrlState() — base64 URL encoding
-    ExportToolbar
-    Requires: calculationStore, all input panels
-
-Phase 7 — i18n Completion
-    FR, DE, IT locale files
-    LanguageSwitcher component
-    Lazy locale loading
-    Requires: all UI components (to know all translation keys)
-
-Phase 8 — Polish + Validation
-    Full validation rules (useValidation composable)
-    Responsive/mobile layout testing
-    Accessibility (aria-label, keyboard nav)
-    Requires: all features complete
-```
+## Confidence Assessment
+
+| Topic | Confidence | Source |
+|-------|------------|--------|
+| Integration pattern (additive types) | HIGH | Direct code inspection of all 6 engine files |
+| vSAN Max ReadyNode profiles | MEDIUM | VMware blog post (Nov 2025) + search results; not yet verified in Context7 |
+| vSAN Max minimum 4 hosts | HIGH | Multiple VMware sources agree |
+| 10 Gbps stretch floor | HIGH | Broadcom TechDocs VCF 9.0 bandwidth requirements + independent Medium article |
+| Witness latency thresholds | HIGH | Broadcom TechDocs (200ms ≤10 hosts, 100ms 11-15 hosts) |
+| Standard vs Consolidated retirement in VCF 9 | MEDIUM | Broadcom community forum + search results; no official TechDocs confirmation found |
+| ManagementArchitecture 4-host minimum | MEDIUM | Derived from management overhead math; no explicit "4 dedicated hosts" rule found in VCF 9 official docs |
+| Build order (steps 1-6) | HIGH | Derived from dependency analysis of actual code |
 
 ---
 
 ## Sources
 
-- [Pinia Official Documentation — Introduction](https://pinia.vuejs.org/introduction.html) — HIGH confidence
-- [Pinia — Composing Stores](https://pinia.vuejs.org/cookbook/composing-stores.html) — HIGH confidence
-- [Vue.js Official — Composables](https://vuejs.org/guide/reusability/composables.html) — HIGH confidence
-- [Vue I18n — Composition API Guide](https://vue-i18n.intlify.dev/guide/advanced/composition) — HIGH confidence
-- [vue-chartjs — Getting Started](https://vue-chartjs.org/guide/) — HIGH confidence
-- [Broadcom TechDocs — VCF 9.0 Stretching Clusters](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/building-your-private-cloud-infrastructure/stretching-clusters.html) — HIGH confidence
-- [William Lam — Minimal Resources for VCF 9.0 Lab](https://williamlam.com/2025/06/minimal-resources-for-deploying-vcf-9-0-in-a-lab.html) — HIGH confidence (verified against TechDocs)
-- [VMware VCF Blog — NVMe Memory Tiering Part 3: Sizing for Success](https://blogs.vmware.com/cloud-foundation/2025/12/02/nvme-memory-tiering-design-and-sizing-on-vmware-cloud-foundation-9-part-3/) — HIGH confidence
-- [VMware VCF Blog — Global Deduplication in vSAN ESA for VCF 9.0](https://blogs.vmware.com/cloud-foundation/2025/06/19/global-deduplication-in-vsan-esa-for-vmware-cloud-foundation-9-0/) — HIGH confidence
-- [Broadcom TechDocs — vSAN Space Efficiency Features](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/vsan-deployment-administration-and-monitoring/administering-vmware-vsan/increasing-space-efficiency-in-a-vsan-cluster/vsan-space-efficiency-features.html) — HIGH confidence
-- [splitpanes — Vue 3 Split Panel Library](https://github.com/antoniandre/splitpanes) — MEDIUM confidence (library exists, API needs Context7 verification before use)
-- [html2pdf.js — Client-side HTML-to-PDF](https://ekoopmans.github.io/html2pdf.js/) — MEDIUM confidence (actively maintained; vue3-html2pdf wrapper available)
+- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/types.ts`
+- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/stretch.ts`
+- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/storage.ts`
+- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/compute.ts`
+- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/validation.ts`
+- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/management.ts`
+- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/stores/calculationStore.ts`
+- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/stores/inputStore.ts`
+- [Broadcom TechDocs — Bandwidth and Latency Requirements, VCF 9.0](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/vsan-deployment-administration-and-monitoring/vsan-network-design/understanding-vsan-networking/network-requirements-for-vsan/bandwidth-and-latency-requirements.html) — HIGH confidence
+- [vSAN HCI or Storage Clusters — VMware Cloud Foundation Blog (2024)](https://blogs.vmware.com/cloud-foundation/2024/01/22/vsan-hci-or-storage-clusters-which-deployment-option-is-right-for-you/) — HIGH confidence
+- [Greater Flexibility with vSAN Max through Lower Hardware and Cluster Requirements — VMware Blog (2024)](https://blogs.vmware.com/cloud-foundation/2024/03/13/greater-flexibility-with-vsan-max-through-lower-hardware-and-cluster-requirements/) — MEDIUM confidence (pre-VCF-9.0 article; specs confirmed consistent with Nov 2025 search results)
+- [ReadyNode Profiles Certified for vSAN Max — VMware Blog (2023)](https://blogs.vmware.com/cloud-foundation/2023/10/02/readynode-profiles-certified-for-vsan-max/) — MEDIUM confidence
+- [Driving Down Storage Costs with Lower Hardware Requirements for vSAN — VMware Blog (Nov 2025)](https://blogs.vmware.com/cloud-foundation/2025/11/14/driving-down-storage-costs-with-lower-hardware-requirements-for-vsan/) — HIGH confidence (current)
+- [Strategic Bandwidth Sizing for vSAN Stretched Clusters in VCF 9.0 — Medium (Lubomir Tobek)](https://medium.com/@lubomir-tobek/strategic-bandwidth-sizing-for-vsan-stretched-clusters-in-vcf-9-0-a-roadmap-to-resilience-ce55545b96a2) — MEDIUM confidence (community, consistent with TechDocs)
+- [VCF Consolidated/Standard Architecture discussion — Broadcom Community](https://community.broadcom.com/vmware-cloud-foundation/discussion/vcf-consolidatedstandard-architecure) — MEDIUM confidence (community forum, VCF 4.x framing)
 
 ---
 
-*Architecture research for: VCF 9.x Sizing Calculator SPA (client-side Vue 3)*
-*Researched: 2026-03-28*
+*Architecture research for: VCF Sizer v2.0 — vSAN Max + Standard/Consolidated + Stretch Fixes*
+*Researched: 2026-03-29*
+*Scope: Integration architecture for milestone v2.0 — subsequent milestone on existing codebase*

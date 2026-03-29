@@ -1,12 +1,432 @@
 # Pitfalls Research
 
 **Domain:** VCF 9.x Client-Side Sizing Calculator SPA (Vue 3 / React, multi-language, browser-only)
-**Researched:** 2026-03-28
-**Confidence:** HIGH (VCF-specific figures from official Broadcom/VMware docs; SPA patterns from verified community sources)
+**Researched:** 2026-03-29 (updated for v2.0 milestone)
+**Confidence:** HIGH for v1 pitfalls (unchanged); MEDIUM for v2.0 additions (based on official docs + community, verified against codebase)
+
+---
+
+## v2.0 Milestone Additions
+
+The following pitfalls are specific to adding vSAN Max, Standard/Consolidated architecture distinction,
+stretch bandwidth floor, and stretch network checklist to the existing Phase 1 codebase. They address the
+four categories the milestone research requested.
 
 ---
 
 ## Critical Pitfalls
+
+### Pitfall 11: Adding `vsan-max` to the `storageType` Enum Breaks All Exhaustiveness Guards
+
+**What goes wrong:**
+The current `StorageType` union in `engine/types.ts` is `'vsan-esa' | 'fc' | 'nfs'`. The Zod schema in
+`useUrlState.ts` uses `z.enum(['vsan-esa', 'fc', 'nfs'])`. The `calcStorage` function in `storage.ts`
+branches on `storageType` with an `if/else` tree.
+
+When `'vsan-max'` is added to the union, TypeScript's exhaustiveness checker will silently not fire on
+the `if/else` tree in `calcStorage` (only a `switch` with a `never` bottom case catches missed variants).
+Additionally, the Zod enum in `useUrlState.ts` will need to be updated or the field will fail validation
+and silently revert to the default, appearing to work while actually discarding the user's choice.
+
+The URL schema test file (`useUrlState.test.ts`) replicates the schema in-test and will also silently
+remain inconsistent — it tests the old enum, not the real schema — producing false green tests.
+
+**Why it happens:**
+The schema definition is duplicated between `useUrlState.ts` (the real schema) and
+`useUrlState.test.ts` (the test replica). The comment in `useUrlState.test.ts` says
+"Replicated schema (must stay in sync with useUrlState.ts)" — this is a manual maintenance
+contract that will be violated on the first schema change if not caught by review.
+
+**Consequences:**
+- A user selects "vSAN Max" in the UI; sharing the URL drops them back to "vSAN ESA" silently
+- `calcStorage` receives an unhandled `storageType` value; the function falls through to the
+  `fc`/`nfs` pass-through branch if no guard exists, returning raw capacity with zero overhead
+  (massively over-optimistic result)
+- Existing stretch/dedup validation tests may pass despite incorrect behavior because they
+  test `storageType` combinations via `validateInputs`, not via `calcStorage`
+
+**Prevention:**
+1. Add a `storageType` enum to `engine/types.ts` and import from there (single source of truth)
+2. Convert the `if/else` tree in `calcStorage` to `switch` with an exhaustive `never` case
+3. Export the Zod enum variant list from `useUrlState.ts`; import it into the test file —
+   do not replicate the schema definition
+4. Add a Zod schema test: `storageType: 'vsan-max'` must parse successfully after the change
+5. Write the vSAN Max engine function (`calcVsanMaxStorage`) as a separate pure function;
+   the main `calcStorage` dispatcher calls it — mirrors how `calcStretch` is separate from
+   `calcStorage`
+
+**Detection:**
+- URL round-trip test: set `storageType: 'vsan-max'`, serialize, deserialize — verify it is
+  not silently coerced to default
+- TypeScript build: `tsc --noEmit` must produce zero errors after schema change
+
+**Phase to address:** First task of the vSAN Max phase — update types and schema before writing any
+engine logic.
+
+---
+
+### Pitfall 12: URL State Schema Migration Silently Discards New Fields for Existing Shared URLs
+
+**What goes wrong:**
+Existing shared URLs (generated before v2.0) contain compressed JSON with the v1 field set.
+The Zod schema uses `.strip()` which drops unknown keys but also applies defaults for missing keys.
+This is the correct direction — old URLs deserialize safely.
+
+The dangerous direction is new URLs opened in old deployments (edge case: user bookmarks a v2.0
+URL and opens it in a cached old build). More practically: the Zod schema test in
+`useUrlState.test.ts` tests a hardcoded field list. Adding new fields like `architectureModel` or
+`vsanMaxProfile` to `inputStore.ts` but failing to add them to the Zod schema means
+`generateShareUrl` serializes them but `hydrateFromUrl` discards them (`.strip()` removes unknown
+keys). The store fields remain at their default values after hydration — no error thrown, no
+warning logged.
+
+**Why it happens:**
+There are three places that must all stay synchronized:
+1. `src/stores/inputStore.ts` — the ref declarations
+2. `src/composables/useUrlState.ts` — the Zod schema AND the hydration assignment block
+3. `src/composables/useUrlState.test.ts` — the test schema replica AND `defaultState`
+
+The hydration assignment block in `hydrateFromUrl` explicitly assigns every field by name
+(lines 72–88 of the current file). Adding a field to the store but forgetting to add it to the
+assignment block means it is validated but never written to the store.
+
+**Consequences:**
+- Shared URLs for vSAN Max configs look valid but silently restore as vSAN ESA
+- `architectureModel: 'standard'` → URL → `architectureModel: 'consolidated'` (the default)
+- Regression is invisible until a user reports "my shared link gives the wrong answer"
+
+**Prevention:**
+1. Create a shared constant `URL_STATE_FIELDS: (keyof InputState)[]` and use it in both
+   `generateShareUrl` and `hydrateFromUrl` — eliminates the parallel assignment lists
+2. Write a test that uses the Zod schema to verify every key in `inputStore` state appears in
+   the schema: `Object.keys(store.$state).forEach(k => expect(InputStateSchema.shape).toHaveProperty(k))`
+3. For each new v2.0 field, add it to the schema WITH a default that matches the store default —
+   this ensures old URLs hydrate correctly (missing field → default value, not validation error)
+4. Use `z.enum(['standard', 'consolidated']).default('standard')` for architecture model; Zod's
+   `.default()` handles the old-URL missing-field case automatically
+
+**Detection:**
+- Old URL (no `architectureModel` key) + new Zod schema: must parse successfully and default to `'standard'`
+- New URL + assertion that all inputStore keys appear in the deserialized state
+
+**Phase to address:** Before writing any UI for new inputs — schema must be updated atomically with store.
+
+---
+
+### Pitfall 13: vSAN Max Is a Fundamentally Different Sizing Model, Not a Storage Overhead Variant
+
+**What goes wrong:**
+The existing `calcStorage` function models "how much usable capacity does a cluster of N hosts provide
+given vSAN overhead?" vSAN Max (disaggregated) separates storage from compute. The compute cluster
+hosts have no local storage (or minimal boot-only storage). The storage cluster hosts have
+specialized profiles (vSAN-SC-SM, vSAN-SC-MED, vSAN-SC-LRG — three profiles as of Nov 2025, with
+specific reduced CPU/RAM requirements since hosts handle storage processing only).
+
+If the tool reuses `calcStorage` with `storageType: 'vsan-max'` but keeps the same
+`hostCount × hostStorageTB` formula, it will produce incorrect results because:
+- The compute cluster host count is independent of the storage cluster host count
+- The storage cluster requires its own RAID overhead calculation (same ESA Adaptive RAID-5 rules apply)
+- The compute cluster hosts do NOT need the storage capacity fields (`hostStorageTB`, `dedupRatio`, etc.)
+- Mixing compute and storage host specs in a single `hostCount × hostStorageTB` formula
+  conflates two distinct cluster types
+
+**Why it happens:**
+vSAN Max reuses the same underlying vSAN ESA RAID engine. Developers assume it is a variant of
+`storageType: 'vsan-esa'` and add a flag, rather than modeling the two-cluster topology.
+
+**Consequences:**
+- The recommended storage capacity is wrong (compute host storage specs applied to storage cluster math)
+- The recommended host count is ambiguous (compute count? storage count? total?)
+- The UI has no way to express "I have 8 compute hosts and 4 vSAN Max storage hosts"
+
+**Prevention:**
+1. Model vSAN Max with two separate input groups: `vsanMaxComputeHosts` and `vsanMaxStorageHosts`
+2. Add a new `VsanMaxInputs` interface to `engine/types.ts` separate from `StorageInputs`
+3. The storage cluster sizing still uses `vsanEsaRaidOverhead()` — the RAID math is shared
+4. The compute cluster sizing uses the existing `calcCompute()` path unchanged
+5. Add 5 ReadyNode profile constants for the storage cluster (as of 2025 docs, 3 official
+   profiles exist: XS, SM, MED, LRG; a 5th profile is referenced in earlier docs — verify
+   against current Broadcom ReadyNode compatibility guide before hard-coding)
+6. Wire `vsanMaxProfile` selection to `vsanMaxStorageHosts` minimum constraint (XS: min 4 hosts,
+   MED/LRG: min 4 hosts per Nov 2025 docs)
+
+**Detection:**
+- Test: vSAN Max with 8 compute hosts and 4 storage hosts should NOT multiply `8 × hostStorageTB`
+- Test: the compute host count recommendation must use `VsanMaxInputs.computeHostCount` not
+  `vsanMaxStorageHosts`
+
+**Phase to address:** Design the `VsanMaxInputs` type BEFORE writing any UI — the data model
+difference must be explicit.
+
+---
+
+### Pitfall 14: Standard vs Consolidated Architecture Model Is a Naming Trap in VCF 9
+
+**What goes wrong:**
+In VCF 5.x, "Standard" meant dedicated management domain + separate workload domains, and
+"Consolidated" meant management and workload VMs collocated in a single cluster. VCF 9 dropped
+these term names (confirmed by community evidence: "Consolidated Architecture isn't being used in
+VCF 9 as it created confusion"). VCF 9 now describes the same concepts as two deployment modes:
+(a) separate management domain + VI workload domain, or (b) combined management+workload domain.
+
+A sizing tool that uses "Standard" vs "Consolidated" labels in the UI will confuse VCF 9 users
+who have read current documentation. The important constraint to model is: when management and
+workload are separated, the management cluster requires a minimum of 4 dedicated hosts (vSAN or
+external storage). When combined, the minimum is still 4 hosts (Broadcom design requirement
+VCF-VSAN-REQD-CFG-002) but the host count is shared.
+
+**Why it happens:**
+The milestone brief uses "Standard vs Consolidated" (based on VCF 5.x docs). The VCF 9
+documentation uses different language. If UI labels copy the v5 terms verbatim, they will
+misalign with VCF 9 admin expectations.
+
+**Consequences:**
+- User confusion: "Standard" in v5 means one thing, but the current Broadcom docs use
+  different framing
+- Validation rule "management cluster requires 4 hosts" must fire in both models
+- The resource pool isolation note (in the combined model) cannot be labeled "Consolidated"
+  without potential misinterpretation
+
+**Prevention:**
+1. Use VCF 9 terminology in UI labels: "Separate Management Domain" vs
+   "Combined Management + Workload Domain" (or similar)
+2. In the engine, the internal enum key can still be `'standard' | 'consolidated'` for
+   brevity, but i18n keys must use current official language
+3. The 4-host minimum validation rule must apply in BOTH modes — do not gate it only on
+   "standard" architecture
+4. Add a tooltip in the UI explaining the combined model uses vSphere resource pools for
+   isolation, not a separate vCenter
+
+**Detection:**
+- Review every i18n key containing "standard" or "consolidated" before release
+- Test: in "combined" mode, a 3-host config must still trigger the 4-host minimum warning
+
+**Phase to address:** UI design phase, BEFORE i18n keys are committed — labels set i18n key names,
+which are hard to rename later without hunting all 4 locale files.
+
+---
+
+## Moderate Pitfalls
+
+### Pitfall 15: Stretch Bandwidth Floor Test Regression When Floor Is Added
+
+**What goes wrong:**
+The current `calcStretch` function returns `minBandwidthGbps` as a raw computed value:
+`totalWorkloadStorageTB × 0.1`. The existing test pins this formula:
+
+```typescript
+// stretch.test.ts line 38
+expect(result.minBandwidthGbps).toBeCloseTo(expectedStorageTB * 0.1, 5)
+```
+
+When the 10 Gbps floor is added (`Math.max(10, computedValue)`), any configuration where
+`totalWorkloadStorageTB × 0.1 < 10` will produce `10` — and the existing test will fail
+because it asserts the pre-floor formula result.
+
+The test case uses 100 VMs × 100 GB = ~0.977 Gbps, which is well below the 10 Gbps floor.
+This is therefore a guaranteed test failure on the first run after the floor is added.
+
+**Why it happens:**
+The existing test was written to validate the formula, not the policy. A floor is a policy
+change that the test does not anticipate.
+
+**Consequences:**
+- CI turns red on a correct implementation
+- Developer reverts the floor or adjusts the test to match the old (wrong) behavior
+
+**Prevention:**
+1. Write the new test case first (TDD): `expect(result.minBandwidthGbps).toBeGreaterThanOrEqual(10)`
+2. Update the existing test to assert the floor behavior:
+   `expect(result.minBandwidthGbps).toBe(10)` for the 100-VM case
+3. Add a test case that exercises above-floor: `vmCount: 200000, avgStorageGbPerVm: 1000`
+   should produce `minBandwidthGbps > 10`
+4. The constant `STRETCH_MIN_BANDWIDTH_GBPS = 10` should live in `stretch.ts` next to the
+   other stretch constants — not inline in the formula
+
+**Detection:**
+- Run existing tests before making the change to confirm the test currently passes with `~0.097`
+- Then add the floor and confirm the test fails in the expected place — then fix the test
+- This is the intended TDD flow; the test failure is not a bug, it is the signal
+
+**Phase to address:** First sub-task of the bandwidth floor work.
+
+---
+
+### Pitfall 16: Stretch Network Checklist i18n Keys Added to Only One Locale
+
+**What goes wrong:**
+The stretch network checklist (MTU 9000, <5ms RTT between data sites, <200ms witness RTT for
+clusters up to 10 hosts per site, <100ms witness RTT for 11-15 hosts per site) is display-only.
+No engine computation is involved. The implementation risk is entirely in i18n completeness.
+
+The pattern of adding a new display block to the results panel typically happens in a single
+component file. Developers add the i18n key to `en.json` (the working language), verify visually
+in the browser, and move on. The other three locale files (`fr.json`, `de.json`, `it.json`) are
+not updated in the same commit.
+
+Vue-i18n's fallback behavior: when `missingWarn` is not explicitly set to `false`, a missing
+key logs a console warning and falls back to the key name (e.g., `"deployment.stretch.mtuNote"`
+is rendered as literal text). This is visually obvious in German or Italian but silent in the
+test suite if tests only run in the `en` locale.
+
+**Why it happens:**
+i18n key additions are not enforced by TypeScript — there is no compile-time check that all four
+locale files have the same key set. The pattern is a human process discipline problem.
+
+**Consequences:**
+- German and Italian UIs show raw i18n key strings in the stretch network section
+- The `en` locale looks correct; CI passes if tests only render in English
+- Discovered by the first French or German speaker who opens the results panel
+
+**Prevention:**
+1. Add a test that compares the key set of all four locale files:
+   `expect(Object.keys(flattenKeys(de))).toEqual(Object.keys(flattenKeys(en)))` — this
+   catches structural divergence across all locales
+2. When adding checklist keys, edit all four locale files in the same commit — treat it as
+   an atomic operation with a checklist in the PR template
+3. For the stretch checklist specifically, the keys needed are:
+   - `deployment.stretch.networkChecklist.title`
+   - `deployment.stretch.networkChecklist.mtu` (value: MTU 9000 required on inter-site links)
+   - `deployment.stretch.networkChecklist.rttDataSites` (value: <5ms RTT between data sites)
+   - `deployment.stretch.networkChecklist.rttWitnessSmall` (value: <200ms for ≤10 hosts/site)
+   - `deployment.stretch.networkChecklist.rttWitnessLarge` (value: <100ms for 11-15 hosts/site)
+4. The checklist content is display-only — these keys do NOT need engine input, only the
+   `deploymentMode === 'stretch'` guard to show/hide the section
+
+**Detection:**
+- Switch locale to `de` or `it` in a browser after adding the checklist — scan for raw key strings
+- Add locale key-set equality test to CI before the feature is merged
+
+**Phase to address:** Same commit as the checklist UI component — never as a follow-up.
+
+---
+
+### Pitfall 17: `calculationStore` Computed Chain Must Not Be Extended with `ref()` for Architecture Mode
+
+**What goes wrong:**
+The codebase enforces a strict constraint: `calculationStore.ts` returns only `computed()` values
+(enforced by the comment `// All returned values are computed — ZERO ref() in this store (CALC-02)`).
+When adding Standard vs Consolidated architecture selection, the instinct is to add the
+`architectureModel` ref to `calculationStore` since it affects the management domain calculation.
+
+Adding `ref()` to `calculationStore` violates the established constraint and creates a split-brain
+state: `architectureModel` lives in the calc store, but all other inputs live in `inputStore`.
+URL state hydration only writes to `inputStore` — the new ref would not be restored from URL.
+
+**Why it happens:**
+Architecture mode visually "belongs" with the calculation output (it changes management resource
+totals), so developers add it to `calculationStore`.
+
+**Consequences:**
+- URL state for `architectureModel` is never persisted (the field is not in `inputStore` or the
+  Zod schema)
+- The constraint comment `CALC-02` is violated, creating precedent for future ref() pollution
+- `calcManagement()` receives `deploymentMode` from `inputStore` — if `architectureModel` is
+  sourced from a different store, the data flow becomes inconsistent
+
+**Prevention:**
+1. `architectureModel` (and `vsanMaxProfile`, `vsanMaxComputeHosts`, `vsanMaxStorageHosts`) go
+   in `inputStore.ts` as `ref()` values
+2. `calculationStore.ts` reads these from `inputStore` via `computed()` — same pattern as all
+   other fields
+3. The Zod schema in `useUrlState.ts` must include these fields
+4. Update `calcManagement` signature to accept `architectureModel` as an input parameter
+   (not read from a store directly) — the engine must remain a pure function
+
+**Detection:**
+- TypeScript: `calculationStore.ts` must export zero `ref()` symbols — add a linting rule or
+  comment-enforced review check
+- Test: `hydrateFromUrl` round-trip must restore `architectureModel` to the correct value
+
+**Phase to address:** inputStore design before any engine or UI work.
+
+---
+
+## Minor Pitfalls
+
+### Pitfall 18: vSAN Max ReadyNode Profile Specs Are Actively Changing
+
+**What goes wrong:**
+The vSAN Max ReadyNode profiles were updated in November 2025 — minimums were reduced
+significantly (XS minimum went from 75TB to 20TB; SM RAM minimum reduced from 512GB to 384GB).
+If the sizing tool hard-codes profile minimums from the 2023 profile introduction blog, it will
+display unnecessarily high minimums, making vSAN Max look more expensive than it is.
+
+**Why it happens:**
+The profiles are documented in a Broadcom compatibility guide (`compatibilityguide.broadcom.com`)
+and a blog post — not a stable versioned spec. Profile minimums can change between VCF releases.
+
+**Prevention:**
+1. Source the ReadyNode profile constants from the most recent official source at implementation
+   time — check both the Nov 2025 blog post and the current vSAN ESA ReadyNode Hardware Guidance
+2. Add a comment to the constants file: `// Source: [URL], verified [date]` with the source
+   URL and verification date
+3. Mark the profile constants as needing review before each major VCF version bump
+4. As of Nov 2025 docs (MEDIUM confidence — blog post, not versioned spec):
+   - XS: min 4 hosts, 20 TB/host, 24 cores, 2 NVMe devices
+   - SM: min 4 hosts, 50 TB/host, 32 cores, 384 GB RAM
+   - MED: min 4 hosts, 100 TB/host, 40 cores, 512 GB RAM
+   - LRG: min 4 hosts, 150 TB/host, 48 cores, 768 GB RAM
+   - XL: min 4 hosts (specs not publicly confirmed in reviewed sources)
+
+**Detection:**
+- Before shipping, cross-check constants against `compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance`
+
+**Phase to address:** vSAN Max engine phase — flag constants for verification before merge.
+
+---
+
+### Pitfall 19: Existing Tests for `calcStretch` Will Need to Account for the New `networkChecklist` Field
+
+**What goes wrong:**
+The `StretchResult` interface currently has 6 fields. When `networkChecklist` data is added
+(even if display-only, it may be added to the return type for completeness), all existing
+snapshot tests against `StretchResult` will fail if they assert strict object equality.
+
+The existing tests in `stretch.test.ts` use `toBe()` on specific fields — they do NOT use
+`toMatchObject()` (which would pass with extra fields). Adding a new field to `StretchResult`
+without updating tests produces test failures in an otherwise correct implementation.
+
+**Why it happens:**
+Tests written against the current structure silently become strict object equality checks
+when a field is added, depending on how the assertion is written.
+
+**Prevention:**
+1. If `networkChecklist` is added to `StretchResult`, update all existing tests to use
+   `toMatchObject({ field: value })` rather than `expect(result).toEqual({...all fields})`
+2. Prefer not adding the checklist to `StretchResult` — keep it as static display data
+   in the component, keyed only on `deploymentMode === 'stretch'`. This avoids changing
+   the engine interface entirely.
+3. If checklist thresholds must be returned from the engine (e.g., to compute witness RTT
+   tier based on hosts/site), add a dedicated `stretchNetworkReqs()` pure function rather
+   than extending `StretchResult`
+
+**Detection:**
+- Run the full test suite after adding any field to `StretchResult`; all affected tests
+  will fail immediately
+
+**Phase to address:** Stretch network checklist phase.
+
+---
+
+## Phase-Specific Warnings (v2.0 Additions)
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| vSAN Max type addition | StorageType enum not updated in Zod schema | Update types.ts, useUrlState.ts, and test schema in one atomic commit |
+| vSAN Max engine | Reusing calcStorage for fundamentally different 2-cluster topology | New VsanMaxInputs interface; compute and storage clusters sized separately |
+| vSAN Max ReadyNode profiles | Hard-coding outdated minimums from 2023 | Verify against Nov 2025 blog + Broadcom compatibility guide at implementation time |
+| Standard vs Consolidated | Using VCF 5.x terminology in VCF 9 UI | Use VCF 9 language: "Separate Management Domain" vs "Combined Domain" |
+| Standard vs Consolidated | Adding architectureModel to calculationStore as ref() | architectureModel belongs in inputStore only |
+| Stretch bandwidth floor | Existing test asserts pre-floor formula result | Update existing test first; assert floor behavior before adding Decimal.js max() |
+| Stretch network checklist | Adding keys to en.json only | Add to all 4 locales in the same commit; add locale key-set equality test |
+| Stretch network checklist | Adding network fields to StretchResult type | Keep checklist as static display data in component; do not extend StretchResult |
+| URL schema migration | New fields serialized but not in Zod schema | Zod schema and inputStore must be updated atomically; hydration assignment block must be updated |
+| URL schema migration | Test schema replica in useUrlState.test.ts diverges | Export schema fields list; import in tests rather than replicating |
+
+---
+
+## v1.0 Pitfalls (Retained from Original Research)
 
 ### Pitfall 1: Floating-Point Arithmetic Errors in Sizing Calculations
 
@@ -283,6 +703,9 @@ Display the calculated component count alongside the recommended witness tier so
 | `html2canvas` default settings for PDF | Quick to implement | Blank fonts, collapsed Tailwind layouts, 10 MB PDFs | Prototype only — spike real implementation |
 | Assuming deduplication ratio = 2x always | Simpler storage math | Undersized or oversized raw disk estimates depending on workload | Never — make dedupe ratio a user input with 2x default |
 | Single `numberFormats` entry for `fr` covering all Swiss locales | Fewer config lines | German and Italian Swiss locales show European thousand/decimal separators | Never — all four Swiss locales must be explicit |
+| Adding `vsan-max` to StorageType without updating Zod schema | Passes TypeScript | URL state silently reverts vSAN Max to default on share/restore | Never — schema must be updated atomically with types |
+| Duplicating Zod schema in test file | Convenient | Test schema diverges from real schema silently | Never — export fields list and import in tests |
+| Extending `StretchResult` with checklist fields | All in one struct | Breaks existing stretch tests; couples display data to engine contract | Never — keep checklist as static display-only data |
 
 ---
 
@@ -296,6 +719,10 @@ Display the calculated component count alongside the recommended witness tier so
 | html2canvas + Tailwind | Assume CSS is captured during clone | Inline critical styles; pre-render canvas elements; use `@media print` as primary export path |
 | Decimal.js + Vue reactive | Wrap Decimal instances in `reactive()` — Proxy breaks Decimal internals | Extract primitive value before storing in reactive state: `computed(() => myDecimal.toNumber())` |
 | vSAN formula constants | Copy from OSA documentation | Always source from ESA-specific docs; OSA and ESA use different overhead percentages |
+| StorageType enum + Zod | Add enum variant to TypeScript but not to Zod schema | Single source enum in types.ts; Zod enum constructed from the same constant |
+| inputStore + calculationStore | Add new input field ref() to calculationStore (CALC-02 violation) | All ref() live in inputStore; calculationStore is computed()-only |
+| i18n key additions | Add new key to en.json only | Add atomically to all 4 locale files; add locale key-set equality test |
+| URL schema test | Replicate full schema in test file | Export schema shape list; import in test — do not replicate |
 
 ---
 
@@ -332,6 +759,7 @@ Display the calculated component count alongside the recommended witness tier so
 | Displaying the sizing result without a confidence indicator | Users treat approximate deduplication estimates as guarantees | Show a banner: "Deduplication savings are workload-dependent; 2x is a conservative baseline" |
 | Language-switching causing in-progress calculations to reset | User switches to German mid-session; number fields reset to defaults | Store all computation state in Pinia (language-independent); only apply locale to display layer |
 | Sharing a URL that is too long for email | Link appears broken in Outlook | Show URL length indicator in the share dialog with a warning if above 1,800 characters |
+| Labeling combined-domain mode as "Consolidated" (VCF 5.x term) | VCF 9 admins unfamiliar with the v5 term are confused | Use VCF 9 terminology in all UI labels and tooltips |
 
 ---
 
@@ -347,6 +775,11 @@ Display the calculated component count alongside the recommended witness tier so
 - [ ] **Witness component count:** Confirm stretch cluster mode outputs a witness size recommendation based on calculated component count, not a hardcoded default.
 - [ ] **PDF font rendering:** Open the exported PDF in a PDF viewer (not browser PDF preview) and confirm the project typeface is present and bar charts are visible.
 - [ ] **URL length under load:** Generate a URL for a configuration with 3 deployment profiles and 5 workload types; verify URL length is below 1,800 characters.
+- [ ] **vSAN Max URL round-trip:** Set storageType to vsan-max, serialize URL, deserialize — confirm storageType is not silently reverted to vsan-esa.
+- [ ] **vSAN Max two-cluster inputs:** Confirm compute host count and storage host count are independent inputs, not the same field.
+- [ ] **Bandwidth floor:** Confirm minBandwidthGbps is never below 10 for any stretch config; test with minimal workload (100 VMs, 1 GB/VM).
+- [ ] **Locale key completeness:** Switch to de-CH and it-CH after adding stretch checklist — confirm no raw i18n key strings are visible.
+- [ ] **Architecture mode URL persistence:** Set architectureModel to 'combined', generate URL, restore — confirm architectureModel is 'combined' not the default.
 
 ---
 
@@ -361,6 +794,10 @@ Display the calculated component count alongside the recommended witness tier so
 | URL state breaks in email due to standard Base64 | LOW | Add Base64URL normalization step; old shared URLs can be migrated with a one-time redirect handler |
 | Chart.js reactivity crash (Proxy recursion) | MEDIUM | Convert chart instance storage to `shallowRef`; audit all `reactive()` usages in chart-adjacent code |
 | Witness tier always "Tiny" bug | MEDIUM | Implement component count formula; requires stretch cluster module regression testing |
+| `vsan-max` storageType not in Zod schema | MEDIUM | Add to schema with default; all existing URLs parse as before (missing field → default vsan-esa); no data loss |
+| Locale key missing in 3 languages | LOW | Add keys to missing locale files; key-set equality test prevents recurrence |
+| architectureModel ref() added to calculationStore | MEDIUM | Move to inputStore; update Zod schema; update URL hydration block; URL state was never persisted so no backward compat needed |
+| Bandwidth floor not applied | LOW | Add `Decimal.max(10, computedBandwidth)` to calcStretch; update test expectations |
 
 ---
 
@@ -378,6 +815,12 @@ Display the calculated component count alongside the recommended witness tier so
 | Chart.js reactivity crash | Phase 3 (Visualization) | Integration test: rapid input changes do not trigger "Maximum update depth exceeded" |
 | PDF export blank or wrong output | Phase 5 (Export) | Playwright PDF test: confirm text layer and canvas elements are non-empty |
 | Witness size not calculated | Phase 2 (Stretch Cluster) | Test: 200-VM stretch cluster recommends Medium or Large witness, not Tiny |
+| StorageType enum + Zod schema gap | v2.0 vSAN Max (first task) | Round-trip test: `storageType: 'vsan-max'` survives URL serialization |
+| vSAN Max two-cluster topology | v2.0 vSAN Max (type design) | Test: storage result does not use compute host count as storage cluster host count |
+| Architecture model CALC-02 violation | v2.0 architecture model (store design) | TypeScript: calculationStore exports no ref() — check with static analysis |
+| Bandwidth floor regression | v2.0 stretch bandwidth floor (TDD) | Test: minBandwidthGbps >= 10 for any stretch config; existing test updated to assert floor |
+| Locale key incompleteness | v2.0 stretch checklist (same commit) | Locale key-set equality test across all 4 locale files; visual check in de-CH |
+| URL schema missing new fields | v2.0 any new input field | Zod parse test for old URL (missing field) and new URL; hydration round-trip test |
 
 ---
 
@@ -391,7 +834,17 @@ Display the calculated component count alongside the recommended witness tier so
 - [VCF Operations 9.0 Sizing Guidelines — Broadcom KB 397782](https://knowledge.broadcom.com/external/article/397782/vcf-operations-90-sizing-guidelines.html)
 - [Minimal resources for deploying VCF 9.0 in a Lab — William Lam (2025)](https://williamlam.com/2025/06/minimal-resources-for-deploying-vcf-9-0-in-a-lab.html)
 - [vSAN Stretched Cluster Bandwidth Sizing — VMware official docs](https://www.vmware.com/docs/vmw-vsan-stretched-cluster-bandwidth-sizing)
+- [Strategic Bandwidth Sizing for vSAN Stretched Clusters in VCF 9.0 — Lubomir Tobek (Medium, 2025)](https://medium.com/@lubomir-tobek/strategic-bandwidth-sizing-for-vsan-stretched-clusters-in-vcf-9-0-a-roadmap-to-resilience-ce55545b96a2)
+- [vSAN Max ReadyNode Profiles Certified — VMware Cloud Foundation Blog (2023)](https://blogs.vmware.com/cloud-foundation/2023/10/02/readynode-profiles-certified-for-vsan-max/)
+- [Driving Down Storage Costs with Lower Hardware Requirements for vSAN — VMware Cloud Foundation Blog (Nov 2025)](https://blogs.vmware.com/cloud-foundation/2025/11/14/driving-down-storage-costs-with-lower-hardware-requirements-for-vsan/)
+- [Design and Operational Guidance for vSAN Storage Clusters — VMware official docs](https://www.vmware.com/docs/vmw-vsan-storage-clusters-design-and-operations)
+- [VCF 9 Deployment Pathways — VMware Cloud Foundation Blog (2025)](https://blogs.vmware.com/cloud-foundation/2025/07/03/vcf-9-0-deployment-pathways/)
+- [Why VCF Management Domain Needs 4 Hosts — Default Reasoning (2025)](https://defaultreasoning.com/2025/01/23/why-management-domain-needs-4-hosts-vcf/)
+- [VCF9 management domain minimum number of hosts — Broadcom Community](https://community.broadcom.com/vmware-cloud-foundation/discussion/vcf9-management-domain-minimum-number-of-hosts)
+- [Network Traffic Separation in vSAN Storage Clusters for VCF 9.0 — VMware Cloud Foundation Blog (2025)](https://blogs.vmware.com/cloud-foundation/2025/06/19/network-traffic-separation-in-vsan-storage-clusters-for-vcf-9-0/)
+- [Stretched Topologies using vSAN Storage Clusters in VCF 9.0 — VMware Cloud Foundation Blog (2025)](https://blogs.vmware.com/cloud-foundation/2025/06/19/stretched-topologies-using-vsan-storage-clusters-in-vcf-9-0/)
 - [vue-i18n Number Formatting — official docs](https://vue-i18n.intlify.dev/guide/essentials/number)
+- [vue-i18n Fallback Localization — official docs](https://vue-i18n.intlify.dev/guide/essentials/fallback)
 - [vue-i18n issue #2053: Use different locale for number and date formatting](https://github.com/intlify/vue-i18n/issues/2053)
 - [Wrong number format for Switzerland CH — Intl.js issue #269](https://github.com/andyearnshaw/Intl.js/issues/269)
 - [Chart.js issue #11619: update() fails with recursion error in Vue 3](https://github.com/chartjs/Chart.js/issues/11619)
@@ -399,9 +852,9 @@ Display the calculated component count alongside the recommended witness tier so
 - [Base64URL standard — base64.guru](https://base64.guru/standards/base64url)
 - [Decimal.js vs BigNumber.js — DEV Community comparison](https://dev.to/fvictorio/a-comparison-of-bignumber-libraries-in-javascript-2gc5)
 - [html2canvas + jsPDF pitfalls — DEV Community](https://dev.to/jringeisen/using-jspdf-html2canvas-and-vue-to-generate-pdfs-1f8l)
-- [Tailwind CSS dynamic class purging — official Tailwind v3 docs](https://v3.tailwindcss.com/docs/optimizing-for-production)
 - [RAID-5 objects not immediately converted from 2+1 to 4+1 after node count change — Broadcom KB 405876](https://knowledge.broadcom.com/external/article/405876/raid5-objects-not-immediately-converted.html)
 
 ---
 *Pitfalls research for: VCF 9.x Sizing Calculator SPA*
-*Researched: 2026-03-28*
+*Originally researched: 2026-03-28*
+*Updated for v2.0 milestone: 2026-03-29*
