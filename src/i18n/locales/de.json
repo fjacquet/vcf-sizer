@@ -22,7 +22,23 @@
       "witnessRam": "RAM",
       "bandwidthLabel": "Min. standortübergreifende Bandbreite",
       "storageNote": "Nutzbarer Speicher pro Standort = Gesamt / 2 Standorte",
-      "storageNoteLabel": "Speicherhinweis je Standort"
+      "storageNoteLabel": "Speicherhinweis je Standort",
+      "bandwidthFloorIndicator": "10-Gbps-Mindestgrenze angewandt (VCF 9.0 Minimum -- Formelergebnis lag unter dem Schwellenwert)",
+      "networkChecklist": {
+        "title": "Stretch-Netzwerkanforderungen",
+        "minBandwidth": "Min. Bandbreite zwischen Standorten",
+        "maxLatency": "Max. RTT zwischen Standorten",
+        "maxWitnessLatency": "Max. Witness-RTT",
+        "jumboFrames": "Jumbo-Frames (MTU 9000)",
+        "required": "Erforderlich",
+        "witnessBandwidth": "Min. Witness-Bandbreite",
+        "highHostNote": "Weitere Informationen zu Konfigurationen mit mehr als 15 Hosts/Standort finden Sie in den Broadcom TechDocs."
+      }
+    },
+    "architecture": {
+      "label": "Management-Architektur",
+      "shared": "Zusammengefasst",
+      "dedicated": "Dedizierte Domanen"
     }
   },
   "host": {
@@ -78,7 +94,9 @@
     "stretchDedup": "Globale Deduplizierung ist im Stretch-Cluster-Modus deaktiviert."
   },
   "validation": {
-    "stretchMinHosts": "Der Stretch-Cluster benötigt mindestens 3 Hosts pro Standort."
+    "stretchMinHosts": "Der Stretch-Cluster benötigt mindestens 3 Hosts pro Standort.",
+    "dedicatedMgmtMinHosts": "Dedizierter Management-Cluster erfordert mindestens 4 Hosts (Broadcom KB 392993).",
+    "colocatedMinHosts": "Zusammengefasster Modus: Mindestens {min} Hosts fuer diesen Speichertyp erforderlich."
   },
   "results": {
     "toolbar": {

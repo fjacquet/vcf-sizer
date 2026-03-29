@@ -22,7 +22,23 @@
       "witnessRam": "RAM",
       "bandwidthLabel": "Banda minima cross-site",
       "storageNote": "Storage utilizzabile per sito = totale / 2 siti",
-      "storageNoteLabel": "Nota storage per sito"
+      "storageNoteLabel": "Nota storage per sito",
+      "bandwidthFloorIndicator": "Soglia minima di 10 Gbps applicata (minimo VCF 9.0 -- il risultato della formula era inferiore alla soglia)",
+      "networkChecklist": {
+        "title": "Requisiti di rete del cluster esteso",
+        "minBandwidth": "Larghezza di banda min. tra siti",
+        "maxLatency": "RTT max tra siti",
+        "maxWitnessLatency": "RTT max testimone",
+        "jumboFrames": "Jumbo frame (MTU 9000)",
+        "required": "Richiesto",
+        "witnessBandwidth": "Larghezza di banda min. testimone",
+        "highHostNote": "Consultare i TechDocs Broadcom per configurazioni con piu di 15 host/sito."
+      }
+    },
+    "architecture": {
+      "label": "Architettura di gestione",
+      "shared": "Co-locata",
+      "dedicated": "Domini dedicati"
     }
   },
   "host": {
@@ -78,7 +94,9 @@
     "stretchDedup": "La deduplicazione globale è disabilitata in modalità Stretch Cluster."
   },
   "validation": {
-    "stretchMinHosts": "Lo Stretch Cluster richiede un minimo di 3 host per sito."
+    "stretchMinHosts": "Lo Stretch Cluster richiede un minimo di 3 host per sito.",
+    "dedicatedMgmtMinHosts": "Il cluster di gestione dedicato richiede almeno 4 host (Broadcom KB 392993).",
+    "colocatedMinHosts": "Modalita co-locata: minimo {min} host richiesti per questo tipo di storage."
   },
   "results": {
     "toolbar": {

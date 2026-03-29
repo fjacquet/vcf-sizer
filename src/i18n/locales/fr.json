@@ -22,7 +22,23 @@
       "witnessRam": "RAM",
       "bandwidthLabel": "Bande passante inter-site min.",
       "storageNote": "Stockage utilisable par site = total / 2 sites",
-      "storageNoteLabel": "Note stockage par site"
+      "storageNoteLabel": "Note stockage par site",
+      "bandwidthFloorIndicator": "Seuil de 10 Gbps applique (minimum VCF 9.0 -- le resultat de la formule etait inferieur au seuil)",
+      "networkChecklist": {
+        "title": "Exigences reseau du cluster etendu",
+        "minBandwidth": "Bande passante inter-site min.",
+        "maxLatency": "RTT max site a site",
+        "maxWitnessLatency": "RTT max temoin",
+        "jumboFrames": "Trames jumbo (MTU 9000)",
+        "required": "Requis",
+        "witnessBandwidth": "Bande passante min. temoin",
+        "highHostNote": "Consultez les TechDocs Broadcom pour les configurations de plus de 15 hotes/site."
+      }
+    },
+    "architecture": {
+      "label": "Architecture de gestion",
+      "shared": "Co-localise",
+      "dedicated": "Domaines dedies"
     }
   },
   "host": {
@@ -78,7 +94,9 @@
     "stretchDedup": "La déduplication globale est désactivée en mode Cluster étendu."
   },
   "validation": {
-    "stretchMinHosts": "Le Cluster étendu nécessite au minimum 3 hôtes par site."
+    "stretchMinHosts": "Le Cluster étendu nécessite au minimum 3 hôtes par site.",
+    "dedicatedMgmtMinHosts": "Le cluster de gestion dedie necessite au moins 4 hotes (Broadcom KB 392993).",
+    "colocatedMinHosts": "Mode co-localise : minimum {min} hotes requis pour ce type de stockage."
   },
   "results": {
     "toolbar": {
