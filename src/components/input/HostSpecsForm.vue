@@ -12,7 +12,7 @@ const input = useInputStore()
 const calc = useCalculationStore()
 const {
   coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB, hostCount,
-  nvmeTieringEnabled, activeMemoryPct,
+  nvmeTieringEnabled, activeMemoryPct, networkSpeedGbE, storageType,
 } = storeToRefs(input)
 const { validationErrors } = storeToRefs(calc)
 
@@ -73,6 +73,27 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
         :max="30.72"
         :step="0.96"
       />
+      <!-- Network speed selector (STOR-05, STRCH-05) -->
+      <div class="space-y-1 sm:col-span-2">
+        <label class="text-sm font-normal text-gray-700 dark:text-gray-300">
+          {{ t('host.networkSpeed') }}
+        </label>
+        <div class="flex gap-2">
+          <button
+            v-for="speed in [10, 25, 100]"
+            :key="speed"
+            :class="[
+              'px-3 py-1.5 text-sm rounded border font-normal transition-colors',
+              networkSpeedGbE === speed
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+            ]"
+            @click="networkSpeedGbE = speed"
+          >
+            {{ speed }} GbE
+          </button>
+        </div>
+      </div>
       <NumberSliderInput
         v-model="hostCount"
         :label="t('host.hostCount')"
@@ -80,6 +101,12 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
         :max="64"
         :step="1"
       />
+      <div
+        v-if="storageType === 'vsan-max'"
+        class="text-xs text-blue-700 dark:text-blue-400 italic sm:col-span-2"
+      >
+        {{ t('host.vsanMaxComputeNote') }}
+      </div>
     </div>
 
     <!-- NVMe Memory Tiering (NVME-01/02/03/04) -->

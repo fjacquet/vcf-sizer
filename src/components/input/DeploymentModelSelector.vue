@@ -10,7 +10,7 @@ import WarningBanner from '@/components/shared/WarningBanner.vue'
 const { t } = useI18n()
 const input = useInputStore()
 const calc = useCalculationStore()
-const { deploymentMode, preferredSiteHosts, secondarySiteHosts, managementArchitecture } = storeToRefs(input)
+const { deploymentMode, preferredSiteHosts, secondarySiteHosts, managementArchitecture, networkSpeedGbE } = storeToRefs(input)
 const { management, stretch, validationErrors, dedicatedMgmtHostCount } = storeToRefs(calc)
 
 const modes = [
@@ -22,6 +22,15 @@ const modes = [
 const architectureErrors = computed(() =>
   validationErrors.value.filter(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS' || e.code === 'COLLOCATED_MIN_HOSTS')
 )
+
+const effectiveBandwidthGbps = computed(() => {
+  if (!stretch.value) return 0
+  return Math.min(stretch.value.minBandwidthGbps, networkSpeedGbE.value)
+})
+const bandwidthCappedByLineRate = computed(() => {
+  if (!stretch.value) return false
+  return stretch.value.minBandwidthGbps > networkSpeedGbE.value
+})
 </script>
 
 <template>
@@ -82,9 +91,12 @@ const architectureErrors = computed(() =>
         <!-- Cross-site bandwidth recommendation (STRCH-05/STRCH-06/07) -->
         <div class="text-xs text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded px-2 py-1">
           {{ t('deployment.stretchSites.bandwidthLabel') }}:
-          <span class="font-mono font-semibold">{{ stretch.minBandwidthGbps.toFixed(2) }} Gb/s</span>
+          <span class="font-mono font-semibold">{{ effectiveBandwidthGbps.toFixed(2) }} Gb/s</span>
           <span v-if="stretch.bandwidthFloorApplied" class="block mt-1 text-amber-600 dark:text-amber-400 text-xs italic">
             {{ t('deployment.stretchSites.bandwidthFloorIndicator') }}
+          </span>
+          <span v-if="bandwidthCappedByLineRate" class="block mt-1 text-amber-600 dark:text-amber-400 text-xs italic">
+            {{ t('deployment.stretchSites.bandwidthLineRateCap') }}
           </span>
         </div>
 

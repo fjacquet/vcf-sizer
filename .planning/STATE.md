@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-03-29T16:00:00.000Z"
+last_updated: "2026-03-29T16:12:33.096Z"
 last_activity: "2026-03-29 — Phase 05 Plan 05-02 UI layer complete"
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 11
   completed_plans: 11
 ---
@@ -39,6 +39,7 @@ v2.0 progress: [█████████░] 89% (8/9 plans)
 | 04 | 01 | 8min | 2 | 9 |
 | Phase 04 P02 | 10min | 3 tasks | 7 files |
 | Phase 05 P01 | 9min | 2 tasks | 10 files |
+| Phase 05 P02 | 12min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ v2.0 decisions:
 - [Phase 05]: [05-01]: calcVsanMax() reuses vsanEsaRaidOverhead() + exported storage constants — no formula duplication
 - [Phase 05]: [05-01]: calcStorage() converted to exhaustive switch with never case — future StorageType additions are compile-time errors
 - [Phase 05]: [05-01]: vsanMaxStorageNodes Zod min(4) enforces floor in URL state, matching VSAN_MAX_MIN_STORAGE_NODES validation constant
+- [Phase 05]: DEDUP_NETWORK_SPEED warning placed inside vSAN ESA dedup section per UI-SPEC (not HostSpecsForm)
+- [Phase 05]: effectiveBandwidthGbps = Math.min(stretch.minBandwidthGbps, networkSpeedGbE) caps stretch bandwidth display in DeploymentModelSelector
+- [Phase 05]: i18n keys use flat naming (storage.vsanMaxProfile) per PLAN.md spec, consistent with existing project conventions
 
 ### Pending Todos
 

@@ -24,6 +24,7 @@
       "storageNote": "Storage utilizzabile per sito = totale / 2 siti",
       "storageNoteLabel": "Nota storage per sito",
       "bandwidthFloorIndicator": "Soglia minima di 10 Gbps applicata (minimo VCF 9.0 -- il risultato della formula era inferiore alla soglia)",
+      "bandwidthLineRateCap": "Limitato dalla velocita della linea di rete",
       "networkChecklist": {
         "title": "Requisiti di rete del cluster esteso",
         "minBandwidth": "Larghezza di banda min. tra siti",
@@ -49,6 +50,8 @@
     "ramGB": "RAM per host (GB)",
     "storageTB": "Storage grezzo per host (TB)",
     "hostCount": "Numero di host",
+    "networkSpeed": "Velocita di rete",
+    "vsanMaxComputeNote": "Il numero di host = dimensione del cluster di calcolo quando vSAN Max e selezionato",
     "nvme": {
       "label": "Tiering memoria NVMe",
       "activeMemoryPct": "Memoria attiva %",
@@ -75,6 +78,9 @@
     "vsanEsa": "vSAN ESA",
     "fc": "Fibre Channel (FC)",
     "nfs": "NFS",
+    "vsanMax": "vSAN Max",
+    "vsanMaxProfile": "Profilo ReadyNode",
+    "vsanMaxStorageNodes": "Nodi di archiviazione",
     "fttLevel": "Livello di tolleranza ai guasti (FTT)",
     "raidType": "Politica RAID",
     "raid1": "RAID-1 (Mirroring)",
@@ -96,7 +102,9 @@
   "validation": {
     "stretchMinHosts": "Lo Stretch Cluster richiede un minimo di 3 host per sito.",
     "dedicatedMgmtMinHosts": "Il cluster di gestione dedicato richiede almeno 4 host (Broadcom KB 392993).",
-    "colocatedMinHosts": "Modalita co-locata: minimo {min} host richiesti per questo tipo di storage."
+    "colocatedMinHosts": "Modalita co-locata: minimo {min} host richiesti per questo tipo di storage.",
+    "vsanMaxMinNodes": "Minimo 4 nodi di archiviazione richiesti per un cluster vSAN Max.",
+    "dedupNetworkSpeed": "La deduplica globale richiede una velocita di rete di 25 GbE o superiore (STOR-05)."
   },
   "results": {
     "toolbar": {
@@ -111,6 +119,12 @@
       "minForCpu": "Min per CPU",
       "minForRam": "Min per RAM"
     },
+    "vsanMaxTitle": "Cluster di archiviazione vSAN Max",
+    "vsanMaxStorageNodes": "Nodi di archiviazione",
+    "vsanMaxProfile": "Profilo",
+    "vsanMaxRawCapacity": "Capacita grezza",
+    "vsanMaxUsableCapacity": "Capacita utilizzabile",
+    "vsanMaxRaidScheme": "Schema RAID",
     "charts": {
       "required": "Richiesto",
       "available": "Disponibile",
