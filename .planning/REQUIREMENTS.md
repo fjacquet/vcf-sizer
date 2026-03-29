@@ -117,14 +117,14 @@
 
 ### Stretch Cluster Correctness
 
-- [ ] **STRCH-06**: Tool enforces a minimum 10 Gbps inter-site bandwidth recommendation (floor on `minBandwidthGbps`), regardless of computed workload bandwidth
-- [ ] **STRCH-07**: Tool surfaces a `bandwidthFloorApplied` indicator when the workload formula produces a value below the 10 Gbps floor, so users understand why the recommendation is higher than the formula result
-- [ ] **STRCH-08**: Stretch network checklist displayed when stretch mode is active: MTU 9000, site-to-site RTT < 5ms, witness RTT threshold derived from per-site host count (< 200ms for ≤10 hosts/site, < 100ms for 11–15 hosts/site)
+- [x] **STRCH-06**: Tool enforces a minimum 10 Gbps inter-site bandwidth recommendation (floor on `minBandwidthGbps`), regardless of computed workload bandwidth
+- [x] **STRCH-07**: Tool surfaces a `bandwidthFloorApplied` indicator when the workload formula produces a value below the 10 Gbps floor, so users understand why the recommendation is higher than the formula result
+- [x] **STRCH-08**: Stretch network checklist displayed when stretch mode is active: MTU 9000, site-to-site RTT < 5ms, witness RTT threshold derived from per-site host count (< 200ms for ≤10 hosts/site, < 100ms for 11–15 hosts/site)
 
 ### Architecture Model (Dedicated Domains vs Co-located)
 
-- [ ] **ARCH-01**: User can toggle "Dedicated management cluster" in HA and Stretch modes; when enabled, tool validates that a minimum of 4 management-domain hosts are provisioned (Broadcom KB 392993 — vSAN management domain minimum)
-- [ ] **ARCH-02**: Tool surfaces an informational note when co-located mode is selected with fewer than 3 hosts (vSAN) or fewer than 2 hosts (FC/NFS), pointing to the minimum for a converged VCF deployment
+- [x] **ARCH-01**: User can toggle "Dedicated management cluster" in HA and Stretch modes; when enabled, tool validates that a minimum of 4 management-domain hosts are provisioned (Broadcom KB 392993 — vSAN management domain minimum)
+- [x] **ARCH-02**: Tool surfaces an informational note when co-located mode is selected with fewer than 3 hosts (vSAN) or fewer than 2 hosts (FC/NFS), pointing to the minimum for a converged VCF deployment
 
 ### vSAN Max / Storage Clusters
 

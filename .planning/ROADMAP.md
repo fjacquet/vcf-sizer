@@ -93,7 +93,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Engine + stores: extend types.ts (ManagementArchitecture, StretchNetworkChecklist, StretchResult fields), TDD bandwidth floor + checklist in stretch.ts, validation rules (ARCH-01/02), inputStore + calculationStore + useUrlState sync
+- [x] 04-01-PLAN.md — Engine + stores: extend types.ts (ManagementArchitecture, StretchNetworkChecklist, StretchResult fields), TDD bandwidth floor + checklist in stretch.ts, validation rules (ARCH-01/02), inputStore + calculationStore + useUrlState sync
 - [ ] 04-02-PLAN.md — UI: DeploymentModelSelector (architecture toggle + bandwidth floor indicator), StretchNetworkChecklist.vue output card, ResultsPanel wiring, all 4 locale files + human verify
 
 **Key constraints:**
