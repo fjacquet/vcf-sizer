@@ -76,7 +76,8 @@
       "storage": "Stockage (To)",
       "storageUsable": "Utilisable sécurisé",
       "storageLfs": "Surcharge LFS",
-      "storageMetadata": "Surcharge métadonnées"
+      "storageMetadata": "Surcharge métadonnées",
+      "storageRaid": "Surcharge RAID"
     }
   },
   "management": {

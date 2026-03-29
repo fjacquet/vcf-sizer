@@ -76,7 +76,8 @@
       "storage": "Storage (TB)",
       "storageUsable": "Safe Usable",
       "storageLfs": "LFS Overhead",
-      "storageMetadata": "Metadata Overhead"
+      "storageMetadata": "Metadata Overhead",
+      "storageRaid": "RAID Overhead"
     }
   },
   "management": {

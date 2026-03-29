@@ -76,7 +76,8 @@
       "storage": "Archiviazione (TB)",
       "storageUsable": "Utilizzabile sicuro",
       "storageLfs": "Overhead LFS",
-      "storageMetadata": "Overhead metadati"
+      "storageMetadata": "Overhead metadati",
+      "storageRaid": "Overhead RAID"
     }
   },
   "management": {

@@ -39,6 +39,11 @@ const chartData = computed((): ChartData<'bar'> => ({
       data: [storage.value.metadataOverheadTB],
       backgroundColor: 'rgba(148,163,184,0.75)',
     },
+    {
+      label: t('results.charts.storageRaid'),
+      data: [storage.value.rawCapacityTB - storage.value.usableAfterRaidTB],
+      backgroundColor: 'rgba(239,68,68,0.75)',
+    },
   ],
 }))
 
