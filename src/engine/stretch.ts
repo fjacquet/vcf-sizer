@@ -3,7 +3,7 @@
 // All arithmetic uses Decimal.js (PITFALLS #1)
 
 import Decimal from 'decimal.js'
-import type { StretchInputs, StretchResult } from './types'
+import type { StretchInputs, StretchResult, StretchNetworkChecklist } from './types'
 
 // ESA witness minimum profile: M = 4 vCPU / 16 GB
 // OSA Tiny (2 vCPU / 8 GB) does NOT exist in vSAN ESA — minimum is M profile
@@ -12,6 +12,9 @@ const ESA_WITNESS_RAM_GB = 16
 
 // Minimum hosts per site for stretch cluster (3 data hosts per site minimum)
 export const STRETCH_MIN_HOSTS_PER_SITE = 3
+
+// Minimum inter-site bandwidth floor per VCF 9.0 TechDocs (STRCH-06)
+export const STRETCH_MIN_BANDWIDTH_GBPS = 10
 
 export function calcStretch(inputs: StretchInputs): StretchResult {
   const { preferredSiteHosts, secondarySiteHosts, vmCount, avgStorageGbPerVm } = inputs
@@ -25,10 +28,26 @@ export function calcStretch(inputs: StretchInputs): StretchResult {
     .toNumber()
 
   // Cross-site bandwidth recommendation: 10% of total workload storage as daily change rate heuristic
-  const minBandwidthGbps = new Decimal(totalWorkloadStorageTB).times(0.1).toNumber()
+  // Apply 10 Gbps floor per VCF 9.0 TechDocs minimum requirement (STRCH-06)
+  const calculatedBandwidthGbps = new Decimal(totalWorkloadStorageTB).times(0.1).toNumber()
+  const minBandwidthGbps = Math.max(calculatedBandwidthGbps, STRETCH_MIN_BANDWIDTH_GBPS)
+  const bandwidthFloorApplied = calculatedBandwidthGbps < STRETCH_MIN_BANDWIDTH_GBPS
 
   // Each site holds a full independent copy — effective per-site storage = total / 2
   const effectivePerSiteStorageTB = new Decimal(totalWorkloadStorageTB).dividedBy(2).toNumber()
+
+  // Witness RTT threshold derived from per-site host count (STRCH-08)
+  // <=10 hosts/site: 200ms; 11+ hosts/site: 100ms (conservative fallback)
+  const maxSiteHosts = Math.max(preferredSiteHosts, secondarySiteHosts)
+  const maxWitnessLatencyMs = maxSiteHosts <= 10 ? 200 : 100
+
+  const networkChecklist: StretchNetworkChecklist = {
+    minInterSiteBandwidthGbps: STRETCH_MIN_BANDWIDTH_GBPS,
+    maxInterSiteLatencyMs: 5,
+    maxWitnessLatencyMs,
+    jumboFramesRequired: true,
+    witnessMinBandwidthMbps: 2,
+  }
 
   return {
     totalHosts,
@@ -37,5 +56,7 @@ export function calcStretch(inputs: StretchInputs): StretchResult {
     minBandwidthGbps,
     effectivePerSiteStorageTB,
     storageNote: 'deployment.stretch.storageNote',
+    bandwidthFloorApplied,
+    networkChecklist,
   }
 }

@@ -5,6 +5,7 @@ export type DeploymentMode = 'simple' | 'ha' | 'stretch'
 export type StorageType = 'vsan-esa' | 'fc' | 'nfs'
 export type RaidType = 'raid1' | 'raid5' | 'raid6'
 export type FttLevel = 1 | 2
+export type ManagementArchitecture = 'shared' | 'dedicated'
 
 export interface ValidationWarning {
   code: string
@@ -55,13 +56,23 @@ export interface StretchInputs {
   avgStorageGbPerVm: number
 }
 
+export interface StretchNetworkChecklist {
+  minInterSiteBandwidthGbps: number
+  maxInterSiteLatencyMs: number
+  maxWitnessLatencyMs: number
+  jumboFramesRequired: boolean
+  witnessMinBandwidthMbps: number
+}
+
 export interface StretchResult {
   totalHosts: number
   witnessCores: number       // 4 (ESA M profile — ESA does not support Tiny/2vCPU)
   witnessRamGB: number       // 16 (ESA M profile)
-  minBandwidthGbps: number   // totalWorkloadStorageTB × 0.1
+  minBandwidthGbps: number   // max(totalWorkloadStorageTB × 0.1, STRETCH_MIN_BANDWIDTH_GBPS)
   effectivePerSiteStorageTB: number
   storageNote: string        // i18n key: 'deployment.stretch.storageNote'
+  bandwidthFloorApplied: boolean
+  networkChecklist: StretchNetworkChecklist
 }
 
 export interface ComputeResult {
@@ -109,4 +120,5 @@ export interface ValidationInputs {
   storageType: StorageType
   preferredSiteHosts?: number   // default 3
   secondarySiteHosts?: number   // default 3
+  managementArchitecture?: ManagementArchitecture  // default 'shared'
 }
