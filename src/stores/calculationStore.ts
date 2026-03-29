@@ -18,6 +18,14 @@ export const useCalculationStore = defineStore('calculation', () => {
   // Management domain overhead (depends only on deploymentMode)
   const management = computed(() => calcManagement(input.deploymentMode))
 
+  // When stretch is active, total hosts = preferred + secondary (STRCH-01)
+  // For simple/ha, total hosts = hostCount slider
+  const effectiveHostCount = computed(() =>
+    input.deploymentMode === 'stretch'
+      ? input.preferredSiteHosts + input.secondarySiteHosts
+      : input.hostCount
+  )
+
   // Compute sizing (workload + management totals)
   const compute = computed(() =>
     calcCompute({
@@ -25,7 +33,7 @@ export const useCalculationStore = defineStore('calculation', () => {
       coresPerSocket: input.coresPerSocket,
       socketsPerHost: input.socketsPerHost,
       hostRamGB: input.hostRamGB,
-      hostCount: input.hostCount,
+      hostCount: effectiveHostCount.value,
       vmCount: input.vmCount,
       avgVcpuPerVm: input.avgVcpuPerVm,
       avgVramGbPerVm: input.avgVramGbPerVm,
@@ -44,7 +52,7 @@ export const useCalculationStore = defineStore('calculation', () => {
   const storage = computed(() =>
     calcStorage({
       storageType: input.storageType,
-      hostCount: input.hostCount,
+      hostCount: effectiveHostCount.value,
       hostStorageTB: input.hostStorageTB,
       fttLevel: input.fttLevel,
       raidType: input.raidType,
