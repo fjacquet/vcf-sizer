@@ -20,6 +20,9 @@ export const useInputStore = defineStore('input', () => {
   const preferredSiteHosts = ref(3)
   const secondarySiteHosts = ref(3)
 
+  // Management architecture: shared (co-located) or dedicated (ARCH-01, ARCH-02)
+  const managementArchitecture = ref<'shared' | 'dedicated'>('shared')
+
   // Workload profile (per WKLD-01/02/03/04/05/06)
   const vmCount = ref(100)
   const avgVcpuPerVm = ref(4)
@@ -44,6 +47,7 @@ export const useInputStore = defineStore('input', () => {
     coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB, hostCount,
     nvmeTieringEnabled, activeMemoryPct,
     preferredSiteHosts, secondarySiteHosts,
+    managementArchitecture,
     vmCount, avgVcpuPerVm, avgVramGbPerVm, avgStorageGbPerVm,
     cpuOvercommitRatio, ramOvercommitRatio,
     gpuVmCount, vgpuMemoryGB,

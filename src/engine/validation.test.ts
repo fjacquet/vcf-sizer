@@ -120,3 +120,111 @@ describe('validateInputs — Stretch Cluster minimum hosts (STRCH-01)', () => {
     expect(errors.filter(e => e.code === 'STRETCH_MIN_HOSTS').length).toBe(0)
   })
 })
+
+describe('validateInputs -- Dedicated management min hosts (ARCH-01)', () => {
+  it('dedicated + hostCount=3 -> DEDICATED_MGMT_MIN_HOSTS error', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'ha',
+      hostCount: 3,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+    })
+    expect(errors.some(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS' && e.severity === 'error')).toBe(true)
+  })
+
+  it('dedicated + hostCount=4 -> no DEDICATED_MGMT_MIN_HOSTS error', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'ha',
+      hostCount: 4,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+    })
+    expect(errors.filter(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS').length).toBe(0)
+  })
+
+  it('shared + hostCount=2 -> no DEDICATED_MGMT_MIN_HOSTS (only fires for dedicated)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'shared',
+      deploymentMode: 'ha',
+      hostCount: 2,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+    })
+    expect(errors.filter(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS').length).toBe(0)
+  })
+})
+
+describe('validateInputs -- Co-located min hosts (ARCH-02)', () => {
+  it('shared + vsan-esa + hostCount=2 -> COLLOCATED_MIN_HOSTS warning', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'shared',
+      deploymentMode: 'ha',
+      hostCount: 2,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+    })
+    expect(errors.some(e => e.code === 'COLLOCATED_MIN_HOSTS' && e.severity === 'warning')).toBe(true)
+  })
+
+  it('shared + fc + hostCount=1 -> COLLOCATED_MIN_HOSTS warning', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'shared',
+      deploymentMode: 'ha',
+      hostCount: 1,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'fc',
+    })
+    expect(errors.some(e => e.code === 'COLLOCATED_MIN_HOSTS' && e.severity === 'warning')).toBe(true)
+  })
+
+  it('shared + vsan-esa + hostCount=3 -> no COLLOCATED_MIN_HOSTS', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'shared',
+      deploymentMode: 'ha',
+      hostCount: 3,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+    })
+    expect(errors.filter(e => e.code === 'COLLOCATED_MIN_HOSTS').length).toBe(0)
+  })
+
+  it('shared + fc + hostCount=2 -> no COLLOCATED_MIN_HOSTS', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'shared',
+      deploymentMode: 'ha',
+      hostCount: 2,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'fc',
+    })
+    expect(errors.filter(e => e.code === 'COLLOCATED_MIN_HOSTS').length).toBe(0)
+  })
+
+  it('dedicated + hostCount=1 -> no COLLOCATED_MIN_HOSTS (only fires for non-dedicated)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'ha',
+      hostCount: 1,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+    })
+    expect(errors.filter(e => e.code === 'COLLOCATED_MIN_HOSTS').length).toBe(0)
+  })
+})

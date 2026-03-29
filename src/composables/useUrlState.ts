@@ -29,6 +29,7 @@ const InputStateSchema = z
     raidType: z.enum(['raid1', 'raid5', 'raid6']).default('raid5'),
     dedupEnabled: z.boolean().default(false),
     dedupRatio: z.number().min(1).max(10).default(2),
+    managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
   })
   .strip()
 
@@ -86,6 +87,7 @@ export function hydrateFromUrl(): void {
   store.raidType = state.raidType
   store.dedupEnabled = state.dedupEnabled
   store.dedupRatio = state.dedupRatio
+  store.managementArchitecture = state.managementArchitecture
 }
 
 /**
@@ -112,6 +114,7 @@ export function generateShareUrl(): string {
     raidType: store.raidType,
     dedupEnabled: store.dedupEnabled,
     dedupRatio: store.dedupRatio,
+    managementArchitecture: store.managementArchitecture,
   }
   const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(state))
   const url = new URL(window.location.href)

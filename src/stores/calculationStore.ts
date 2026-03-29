@@ -73,6 +73,13 @@ export const useCalculationStore = defineStore('calculation', () => {
     })
   )
 
+  // Dedicated management host count recommendation (only meaningful when managementArchitecture === 'dedicated')
+  const dedicatedMgmtHostCount = computed<number | null>(() => {
+    if (input.managementArchitecture !== 'dedicated') return null
+    const coresPerHost = input.coresPerSocket * input.socketsPerHost
+    return Math.max(4, Math.ceil(management.value.totalCores / coresPerHost))
+  })
+
   // Validation warnings and errors
   const validationErrors = computed(() =>
     validateInputs({
@@ -84,9 +91,10 @@ export const useCalculationStore = defineStore('calculation', () => {
       storageType: input.storageType,
       preferredSiteHosts: input.preferredSiteHosts,
       secondarySiteHosts: input.secondarySiteHosts,
+      managementArchitecture: input.managementArchitecture,
     })
   )
 
   // All returned values are computed — ZERO ref() in this store (CALC-02)
-  return { management, compute, storage, validationErrors, stretch }
+  return { management, compute, storage, validationErrors, stretch, dedicatedMgmtHostCount }
 })

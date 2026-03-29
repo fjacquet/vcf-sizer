@@ -26,6 +26,7 @@ const InputStateSchema = z
     raidType: z.enum(['raid1', 'raid5', 'raid6']).default('raid5'),
     dedupEnabled: z.boolean().default(false),
     dedupRatio: z.number().min(1).max(10).default(2),
+    managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
   })
   .strip()
 
@@ -47,6 +48,7 @@ const defaultState = {
   raidType: 'raid5' as const,
   dedupEnabled: false,
   dedupRatio: 2,
+  managementArchitecture: 'shared' as const,
 }
 
 describe('useUrlState — lz-string round-trip (EXPORT-01, EXPORT-02)', () => {
@@ -113,6 +115,18 @@ describe('useUrlState — lz-string round-trip (EXPORT-01, EXPORT-02)', () => {
     expect(restored.hostStorageTB).toBe(7.68)
     expect(restored.vmCount).toBe(500)
   })
+
+  it('round-trip preserves managementArchitecture=dedicated', () => {
+    const original = { ...defaultState, managementArchitecture: 'dedicated' as const }
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(original))
+    const decompressed = LZString.decompressFromEncodedURIComponent(compressed)
+    const restored = JSON.parse(decompressed!)
+    const result = InputStateSchema.safeParse(restored)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.managementArchitecture).toBe('dedicated')
+    }
+  })
 })
 
 describe('useUrlState — Zod schema validation (EXPORT-01 safe parse)', () => {
@@ -167,5 +181,15 @@ describe('useUrlState — Zod schema validation (EXPORT-01 safe parse)', () => {
   it('rejects negative vmCount', () => {
     const result = InputStateSchema.safeParse({ ...defaultState, vmCount: -1 })
     expect(result.success).toBe(false)
+  })
+
+  it('defaults managementArchitecture to shared when field missing', () => {
+    const stateWithoutMgmt = { ...defaultState }
+    delete (stateWithoutMgmt as Record<string, unknown>)['managementArchitecture']
+    const result = InputStateSchema.safeParse(stateWithoutMgmt)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.managementArchitecture).toBe('shared')
+    }
   })
 })

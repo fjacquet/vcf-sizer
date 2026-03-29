@@ -11,6 +11,13 @@ const VCFA_MIN_CORES_PER_HOST = 12
 // Stretch Cluster requires minimum 3 data hosts per site (STRCH-01)
 const STRETCH_MIN_HOSTS_PER_SITE = 3
 
+// Dedicated management cluster requires minimum 4 hosts (Broadcom KB 392993 — ARCH-01)
+const DEDICATED_MGMT_MIN_HOSTS = 4
+
+// Co-located management minimum hosts by storage type (ARCH-02)
+const COLLOCATED_MIN_HOSTS_VSAN = 3
+const COLLOCATED_MIN_HOSTS_FC_NFS = 2
+
 // ─── validateInputs ────────────────────────────────────────────────────────
 
 /**
@@ -26,10 +33,12 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
     deploymentMode,
     coresPerSocket,
     socketsPerHost,
+    hostCount,
     dedupEnabled,
     storageType,
     preferredSiteHosts = 3,
     secondarySiteHosts = 3,
+    managementArchitecture = 'shared',
   } = inputs
   const errors: ValidationWarning[] = []
 
@@ -72,6 +81,29 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
         code: 'STRETCH_MIN_HOSTS',
         severity: 'error',
         messageKey: 'validation.stretchMinHosts',
+      })
+    }
+  }
+
+  // Rule 4: DEDICATED_MGMT_MIN_HOSTS — ARCH-01
+  // Dedicated management cluster requires at least 4 hosts (Broadcom KB 392993)
+  if (managementArchitecture === 'dedicated' && hostCount < DEDICATED_MGMT_MIN_HOSTS) {
+    errors.push({
+      code: 'DEDICATED_MGMT_MIN_HOSTS',
+      severity: 'error',
+      messageKey: 'validation.dedicatedMgmtMinHosts',
+    })
+  }
+
+  // Rule 5: COLLOCATED_MIN_HOSTS — ARCH-02
+  // Co-located management requires minimum hosts depending on storage type
+  if (managementArchitecture !== 'dedicated') {
+    const minHosts = storageType === 'vsan-esa' ? COLLOCATED_MIN_HOSTS_VSAN : COLLOCATED_MIN_HOSTS_FC_NFS
+    if (hostCount < minHosts) {
+      errors.push({
+        code: 'COLLOCATED_MIN_HOSTS',
+        severity: 'warning',
+        messageKey: 'validation.colocatedMinHosts',
       })
     }
   }
