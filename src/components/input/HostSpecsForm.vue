@@ -88,7 +88,7 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
             ]"
-            @click="networkSpeedGbE = speed"
+            @click="networkSpeedGbE = speed as 10 | 25 | 100"
           >
             {{ speed }} GbE
           </button>

@@ -10,7 +10,7 @@ import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
 const { t } = useI18n()
 const input = useInputStore()
 const calc = useCalculationStore()
-const { storageType, fttLevel, raidType, dedupEnabled, dedupRatio, deploymentMode, vsanMaxProfile, vsanMaxStorageNodes, networkSpeedGbE } = storeToRefs(input)
+const { storageType, fttLevel, raidType, dedupEnabled, dedupRatio, deploymentMode, vsanMaxProfile, vsanMaxStorageNodes } = storeToRefs(input)
 const { validationErrors, storage, vsanMax } = storeToRefs(calc)
 
 const dedupExclusionError = computed(() =>
