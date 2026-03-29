@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: milestone
-status: executing
-last_updated: "2026-03-29T16:27:20.322Z"
+milestone: v2.1
+milestone_name: Export Quality
+status: defining-requirements
+last_updated: "2026-03-29T00:00:00.000Z"
 last_activity: 2026-03-29
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 11
-  completed_plans: 11
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -23,14 +23,10 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Status: Executing Phase 05
-Last activity: 2026-03-29
-
-```
-v2.0 progress: [█████████░] 89% (8/9 plans)
-```
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-29 — Milestone v2.1 started
 
 ## Performance Metrics
 

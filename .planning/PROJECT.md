@@ -42,9 +42,20 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ vSAN Max minimum 4-node validation — v2.0
 - ✓ Network speed selector (10/25/100 GbE) affecting dedup eligibility and stretch bandwidth cap — v2.0
 
+## Current Milestone: v2.1 Export Quality
+
+**Goal:** Replace minimal exports with professional, information-rich outputs across Markdown, PDF, and PowerPoint.
+
+**Target features:**
+- Markdown enrichment — complete all missing sections (workload, AI/GPU, NVMe, stretch, vSAN Max, warnings)
+- Print/PDF overhaul — proper print layout with page breaks, header/footer, charts
+- PPTX export — browser-side PowerPoint generation with professional VCF-branded slide deck
+
 ### Active
 
-(None — all v2.0 requirements shipped)
+- Markdown export completeness (all configuration sections)
+- Print/PDF layout quality
+- PPTX export (PptxGenJS, client-side only)
 
 ### Out of Scope
 
@@ -99,4 +110,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-29 — v2.0 milestone complete*
+*Last updated: 2026-03-29 — v2.1 milestone started*
