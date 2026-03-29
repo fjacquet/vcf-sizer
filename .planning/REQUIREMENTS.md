@@ -196,6 +196,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VMAX-01 to VMAX-03 | Phase 5 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 55 total
 - v2.0 requirements: 8 total
 - Mapped to phases: 63
