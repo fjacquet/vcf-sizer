@@ -162,6 +162,88 @@ describe('validateInputs -- Dedicated management min hosts (ARCH-01)', () => {
   })
 })
 
+describe('validateInputs — vSAN Max min nodes (VMAX-03)', () => {
+  it('vsan-max + vsanMaxStorageNodes=3 -> VSAN_MAX_MIN_NODES error', () => {
+    const errors = validateInputs({
+      deploymentMode: 'ha',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 8,
+      dedupEnabled: false,
+      storageType: 'vsan-max',
+      vsanMaxStorageNodes: 3,
+    })
+    expect(errors.some(e => e.code === 'VSAN_MAX_MIN_NODES' && e.severity === 'error')).toBe(true)
+  })
+
+  it('vsan-max + vsanMaxStorageNodes=4 -> no VSAN_MAX_MIN_NODES error', () => {
+    const errors = validateInputs({
+      deploymentMode: 'ha',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 8,
+      dedupEnabled: false,
+      storageType: 'vsan-max',
+      vsanMaxStorageNodes: 4,
+    })
+    expect(errors.filter(e => e.code === 'VSAN_MAX_MIN_NODES').length).toBe(0)
+  })
+
+  it('vsan-esa + vsanMaxStorageNodes=2 -> no VSAN_MAX_MIN_NODES (only fires for vsan-max)', () => {
+    const errors = validateInputs({
+      deploymentMode: 'ha',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 4,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      vsanMaxStorageNodes: 2,
+    })
+    expect(errors.filter(e => e.code === 'VSAN_MAX_MIN_NODES').length).toBe(0)
+  })
+})
+
+describe('validateInputs — Dedup network speed (STOR-05)', () => {
+  it('dedupEnabled + networkSpeedGbE=10 -> DEDUP_NETWORK_SPEED warning', () => {
+    const errors = validateInputs({
+      deploymentMode: 'ha',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 4,
+      dedupEnabled: true,
+      storageType: 'vsan-esa',
+      networkSpeedGbE: 10,
+    })
+    expect(errors.some(e => e.code === 'DEDUP_NETWORK_SPEED' && e.severity === 'warning')).toBe(true)
+  })
+
+  it('dedupEnabled + networkSpeedGbE=25 -> no DEDUP_NETWORK_SPEED', () => {
+    const errors = validateInputs({
+      deploymentMode: 'ha',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 4,
+      dedupEnabled: true,
+      storageType: 'vsan-esa',
+      networkSpeedGbE: 25,
+    })
+    expect(errors.filter(e => e.code === 'DEDUP_NETWORK_SPEED').length).toBe(0)
+  })
+
+  it('dedupEnabled=false + networkSpeedGbE=10 -> no DEDUP_NETWORK_SPEED', () => {
+    const errors = validateInputs({
+      deploymentMode: 'ha',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 4,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      networkSpeedGbE: 10,
+    })
+    expect(errors.filter(e => e.code === 'DEDUP_NETWORK_SPEED').length).toBe(0)
+  })
+})
+
 describe('validateInputs -- Co-located min hosts (ARCH-02)', () => {
   it('shared + vsan-esa + hostCount=2 -> COLLOCATED_MIN_HOSTS warning', () => {
     const errors = validateInputs({

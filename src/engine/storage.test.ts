@@ -102,6 +102,23 @@ describe('calcStorage — NFS pass-through (STOR-07)', () => {
   })
 })
 
+describe('calcStorage — vsan-max pass-through', () => {
+  it('vsan-max storageType returns pass-through (compute nodes have no vSAN storage)', () => {
+    const result = calcStorage({
+      storageType: 'vsan-max',
+      hostCount: 8,
+      hostStorageTB: 3.84,
+      fttLevel: 1,
+      raidType: 'raid5',
+      dedupEnabled: false,
+      dedupRatio: 2,
+    })
+    expect(result.raidMultiplier).toBe(1)
+    expect(result.lfsOverheadTB).toBe(0)
+    expect(result.raidScheme).toBe('Pass-through (vSAN Max compute)')
+  })
+})
+
 describe('calcStorage — stretch PFTT=1 site mirroring (STRCH-03)', () => {
   const baseInputs = {
     storageType: 'vsan-esa' as const,

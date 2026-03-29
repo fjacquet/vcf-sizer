@@ -12,9 +12,9 @@ import type { StorageInputs, StorageResult, FttLevel, RaidType } from './types'
 // 3–5 hosts: 2+1 scheme (1.5× overhead)
 // 6+ hosts:  4+1 scheme (1.25× overhead)
 
-const VSAN_LFS_OVERHEAD = 0.13 // LFS ~13% of usable data written (STOR-03)
-const VSAN_METADATA_PCT = 0.10 // Global metadata pool ~10% of raw cluster capacity
-const VSAN_SAFE_SLACK = 0.70 // Reserve 30% slack for performance; keep 70% net usable
+export const VSAN_LFS_OVERHEAD = 0.13 // LFS ~13% of usable data written (STOR-03)
+export const VSAN_METADATA_PCT = 0.10 // Global metadata pool ~10% of raw cluster capacity
+export const VSAN_SAFE_SLACK = 0.70 // Reserve 30% slack for performance; keep 70% net usable
 
 // ─── vsanEsaRaidOverhead ───────────────────────────────────────────────────
 
@@ -96,76 +96,101 @@ export function calcStorage(inputs: StorageInputs): StorageResult {
 
   const rawCapacityTB = new Decimal(hostCount).times(hostStorageTB).toNumber()
 
-  // FC and NFS: pass-through (no vSAN overhead)
-  if (storageType === 'fc' || storageType === 'nfs') {
-    return {
-      rawCapacityTB,
-      raidMultiplier: 1,
-      usableAfterRaidTB: rawCapacityTB,
-      lfsOverheadTB: 0,
-      metadataOverheadTB: 0,
-      usableBeforeDedupTB: rawCapacityTB,
-      effectiveCapacityTB: rawCapacityTB,
-      safeUsableCapacityTB: rawCapacityTB,
-      raidScheme: 'Pass-through',
-      minHostsRequired: 0,
+  switch (storageType) {
+    case 'fc':
+    case 'nfs':
+      // FC and NFS: pass-through (no vSAN overhead)
+      return {
+        rawCapacityTB,
+        raidMultiplier: 1,
+        usableAfterRaidTB: rawCapacityTB,
+        lfsOverheadTB: 0,
+        metadataOverheadTB: 0,
+        usableBeforeDedupTB: rawCapacityTB,
+        effectiveCapacityTB: rawCapacityTB,
+        safeUsableCapacityTB: rawCapacityTB,
+        raidScheme: 'Pass-through',
+        minHostsRequired: 0,
+      }
+
+    case 'vsan-max':
+      // vSAN Max: compute nodes have no vSAN storage — pass-through
+      // Storage cluster sizing is handled separately by calcVsanMax()
+      return {
+        rawCapacityTB,
+        raidMultiplier: 1,
+        usableAfterRaidTB: rawCapacityTB,
+        lfsOverheadTB: 0,
+        metadataOverheadTB: 0,
+        usableBeforeDedupTB: rawCapacityTB,
+        effectiveCapacityTB: rawCapacityTB,
+        safeUsableCapacityTB: rawCapacityTB,
+        raidScheme: 'Pass-through (vSAN Max compute)',
+        minHostsRequired: 0,
+      }
+
+    case 'vsan-esa': {
+      // vSAN ESA path
+      const raidInfo = vsanEsaRaidOverhead(hostCount, fttLevel, raidType)
+      const { multiplier: raidMultiplier, scheme: raidScheme, minHostsRequired } = raidInfo
+
+      const rawDecimal = new Decimal(rawCapacityTB)
+
+      // Step 1: Apply dedup to input data before RAID overhead calculation
+      const rawForRaid = dedupEnabled ? rawDecimal.times(dedupRatio) : rawDecimal
+
+      // Step 2: Apply RAID overhead
+      const usableAfterRaidTB = rawForRaid.dividedBy(raidMultiplier).toNumber()
+
+      // Step 3: Apply LFS overhead (~13%)
+      const usableAfterLfsTB = new Decimal(usableAfterRaidTB).times(1 - VSAN_LFS_OVERHEAD)
+      const lfsOverheadTB = new Decimal(usableAfterRaidTB)
+        .times(VSAN_LFS_OVERHEAD)
+        .toNumber()
+
+      // Step 4: Global metadata pool (~10% of raw cluster capacity)
+      const metadataOverheadTB = rawDecimal.times(VSAN_METADATA_PCT).toNumber()
+
+      // Step 5: Net usable
+      const netUsableTB = usableAfterLfsTB.minus(metadataOverheadTB)
+
+      // Stretch PFTT=1: site mirroring means all data exists on both sites.
+      // Only per-site capacity is "net usable" — the other copy is redundancy overhead.
+      // Halve effective/safe usable to reflect this. Raw and RAID numbers remain full-cluster.
+      const stretchMirroringFactor = deploymentMode === 'stretch' ? 0.5 : 1.0
+
+      // The usableBeforeDedupTB represents usable before dedup benefit is applied to effective result
+      const usableBeforeDedupTB = usableAfterLfsTB
+        .minus(metadataOverheadTB)
+        .times(stretchMirroringFactor)
+        .toNumber()
+
+      // Effective capacity (same as netUsable when no separate dedup boost)
+      const effectiveCapacityTB = netUsableTB.times(stretchMirroringFactor).toNumber()
+
+      // Step 6: Safe usable (keep 70%, reserve 30% slack)
+      const safeUsableCapacityTB = netUsableTB
+        .times(VSAN_SAFE_SLACK)
+        .times(stretchMirroringFactor)
+        .toNumber()
+
+      return {
+        rawCapacityTB,
+        raidMultiplier,
+        usableAfterRaidTB,
+        lfsOverheadTB,
+        metadataOverheadTB,
+        usableBeforeDedupTB,
+        effectiveCapacityTB,
+        safeUsableCapacityTB,
+        raidScheme,
+        minHostsRequired,
+      }
     }
-  }
 
-  // vSAN ESA path
-  const raidInfo = vsanEsaRaidOverhead(hostCount, fttLevel, raidType)
-  const { multiplier: raidMultiplier, scheme: raidScheme, minHostsRequired } = raidInfo
-
-  const rawDecimal = new Decimal(rawCapacityTB)
-
-  // Step 1: Apply dedup to input data before RAID overhead calculation
-  const rawForRaid = dedupEnabled ? rawDecimal.times(dedupRatio) : rawDecimal
-
-  // Step 2: Apply RAID overhead
-  const usableAfterRaidTB = rawForRaid.dividedBy(raidMultiplier).toNumber()
-
-  // Step 3: Apply LFS overhead (~13%)
-  const usableAfterLfsTB = new Decimal(usableAfterRaidTB).times(1 - VSAN_LFS_OVERHEAD)
-  const lfsOverheadTB = new Decimal(usableAfterRaidTB)
-    .times(VSAN_LFS_OVERHEAD)
-    .toNumber()
-
-  // Step 4: Global metadata pool (~10% of raw cluster capacity)
-  const metadataOverheadTB = rawDecimal.times(VSAN_METADATA_PCT).toNumber()
-
-  // Step 5: Net usable
-  const netUsableTB = usableAfterLfsTB.minus(metadataOverheadTB)
-
-  // Stretch PFTT=1: site mirroring means all data exists on both sites.
-  // Only per-site capacity is "net usable" — the other copy is redundancy overhead.
-  // Halve effective/safe usable to reflect this. Raw and RAID numbers remain full-cluster.
-  const stretchMirroringFactor = deploymentMode === 'stretch' ? 0.5 : 1.0
-
-  // The usableBeforeDedupTB represents usable before dedup benefit is applied to effective result
-  const usableBeforeDedupTB = usableAfterLfsTB
-    .minus(metadataOverheadTB)
-    .times(stretchMirroringFactor)
-    .toNumber()
-
-  // Effective capacity (same as netUsable when no separate dedup boost)
-  const effectiveCapacityTB = netUsableTB.times(stretchMirroringFactor).toNumber()
-
-  // Step 6: Safe usable (keep 70%, reserve 30% slack)
-  const safeUsableCapacityTB = netUsableTB
-    .times(VSAN_SAFE_SLACK)
-    .times(stretchMirroringFactor)
-    .toNumber()
-
-  return {
-    rawCapacityTB,
-    raidMultiplier,
-    usableAfterRaidTB,
-    lfsOverheadTB,
-    metadataOverheadTB,
-    usableBeforeDedupTB,
-    effectiveCapacityTB,
-    safeUsableCapacityTB,
-    raidScheme,
-    minHostsRequired,
+    default: {
+      const _exhaustive: never = storageType
+      throw new Error(`Unhandled storageType: ${_exhaustive}`)
+    }
   }
 }
