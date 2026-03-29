@@ -98,13 +98,13 @@
 
 ### Visualizations
 
-- [ ] **VIZ-01**: Split-screen layout: input panel (left), results panel (right), responsive on mobile
-- [ ] **VIZ-02**: Bar or gauge chart: Total Cores Required vs. Available
-- [ ] **VIZ-03**: Bar or gauge chart: Total RAM Required vs. Available
-- [ ] **VIZ-04**: Storage chart: Raw Capacity vs. Usable Capacity with overhead breakdown
-- [ ] **VIZ-05**: Host count summary card prominently displayed
-- [ ] **VIZ-06**: Charts update in real-time as inputs change (no submit button)
-- [ ] **VIZ-07**: Chart.js + vue-chartjs using `computed()` returning new object references bound to `:data` prop — no `shallowRef` needed with declarative vue-chartjs (verified in Phase 2 research)
+- [x] **VIZ-01**: Split-screen layout: input panel (left), results panel (right), responsive on mobile
+- [x] **VIZ-02**: Bar or gauge chart: Total Cores Required vs. Available
+- [x] **VIZ-03**: Bar or gauge chart: Total RAM Required vs. Available
+- [x] **VIZ-04**: Storage chart: Raw Capacity vs. Usable Capacity with overhead breakdown
+- [x] **VIZ-05**: Host count summary card prominently displayed
+- [x] **VIZ-06**: Charts update in real-time as inputs change (no submit button)
+- [x] **VIZ-07**: Chart.js + vue-chartjs using `computed()` returning new object references bound to `:data` prop — no `shallowRef` needed with declarative vue-chartjs (verified in Phase 2 research)
 
 ### Export & Sharing
 

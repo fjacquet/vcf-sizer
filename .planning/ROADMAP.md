@@ -52,10 +52,10 @@ Plans:
   4. User can copy a shareable URL that, when opened in a new browser tab, restores all input state exactly
   5. User can export a formatted Markdown sizing report and can print to PDF via browser print without installing any additional dependency
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 02-01-PLAN.md — Install deps + split-screen layout + HostCountCard + CoresChart + RamChart + StorageChart
+- [x] 02-01-PLAN.md — Install deps + split-screen layout + HostCountCard + CoresChart + RamChart + StorageChart
 - [ ] 02-02-PLAN.md — URL state composable (lz-string + Zod) + main.ts hydration + ExportToolbar (Share URL, Markdown, PDF print)
 
 ### Phase 3: Advanced Features and Polish
@@ -79,5 +79,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation, Engine and Inputs | 3/3 | Complete   | 2026-03-28 |
-| 2. Outputs, Charts and Export | 0/2 | Not started | - |
+| 2. Outputs, Charts and Export | 1/2 | In Progress|  |
 | 3. Advanced Features and Polish | 0/TBD | Not started | - |
