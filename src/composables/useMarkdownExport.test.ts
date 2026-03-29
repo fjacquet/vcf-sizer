@@ -19,7 +19,6 @@ function buildTestMarkdownReport(): string {
   const vmCount = 100
   const avgVcpuPerVm = 4
   const avgVramGbPerVm = 8
-  const avgStorageGbPerVm = 100
   const cpuOvercommitRatio = 4
   const ramOvercommitRatio = 1
   const storageType = 'vsan-esa' as const
