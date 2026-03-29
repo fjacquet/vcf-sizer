@@ -71,5 +71,32 @@ Tool should be deployable to GitHub Pages, Vercel, or Netlify as a static site.
 | FR/EN/DE/IT localization | Switzerland has 4 official languages | — Pending |
 | VCF 9.x only scope | VCF 9 introduces breaking architectural changes | — Pending |
 
+## Current Milestone: v2.0 Architecture Correctness & vSAN Max
+
+**Goal:** Remediate all gaps found in the VCF 9.0 architecture review — enforce spec-correct constraints, model Standard vs Consolidated architectures, surface stretch network requirements, and add vSAN Max support.
+
+**Target features:**
+- Bandwidth floor: enforce 10 Gbps minimum for stretch inter-site bandwidth
+- Standard vs Consolidated architecture model (4 dedicated management hosts rule)
+- Stretch network checklist: MTU 9000, <5ms RTT, <200ms witness RTT surfaced to user
+- vSAN Max disaggregated storage cluster sizing (5 ReadyNode profiles)
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-28 after initialization*
+*Last updated: 2026-03-29 — Milestone v2.0 started*

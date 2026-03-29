@@ -1,98 +1,61 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: human-checkpoint
-stopped_at: Completed 03-advanced-features-and-polish-02-PLAN.md — awaiting browser verification
-last_updated: "2026-03-28T08:21:00.000Z"
-last_activity: 2026-03-28
+milestone: v2.0
+milestone_name: Architecture Correctness & vSAN Max
+status: defining-requirements
+stopped_at: Milestone v2.0 started — defining requirements
+last_updated: "2026-03-29T10:00:00.000Z"
+last_activity: 2026-03-29
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-28)
+See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 1 — Foundation, Engine and Inputs
+**Current focus:** Milestone v2.0 — Architecture Correctness & vSAN Max
 
 ## Current Position
 
-Phase: 1 of 3 (Foundation, Engine and Inputs)
-Plan: 3 of 3 in current phase
-Status: Phase complete — ready for verification
-Last activity: 2026-03-29
-
-Progress: [█░░░░░░░░░] 11%
-
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 1
-- Average duration: 35 min
-- Total execution time: ~0.6 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| Phase 1 | 1 | 35 min | 35 min |
-
-**Recent Trend:**
-
-- Last 5 plans: 35 min
-- Trend: Baseline established
-
-*Updated after each plan completion*
-| Phase 01-foundation-engine-and-inputs P02 | 4m | 3 tasks | 10 files |
-| Phase 01-foundation-engine-and-inputs P03 | 9 | 2 tasks | 11 files |
-| Phase 02-outputs-charts-and-export P01 | 6 | 3 tasks | 13 files |
-| Phase 02-outputs-charts-and-export P02 | 8 | 3 tasks | 11 files |
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-29 — Milestone v2.0 started
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
 
-- [Roadmap]: Coarse granularity collapses 6 research phases into 3 — Phase 1 holds all engine and input work, Phase 2 holds all output/export work, Phase 3 holds advanced features and polish
-- [Roadmap]: Storage engine (STOR-02, STOR-03) is a PORT from raidy project, not greenfield — de-risks Adaptive RAID-5 and LFS+metadata overhead math
-- [Roadmap]: Stretch Cluster + Global Deduplication mutual exclusion (STRCH-04) is enforced in Phase 3; UI must prevent the combination
-- [Roadmap]: PDF export strategy (html2canvas vs. print CSS) requires a spike at the start of Phase 2 before committing to an approach
-- [01-01]: @intlify/unplugin-vue-i18n include pattern breaks rolldown — locale files handled natively by Vite 8; plugin kept without include for SFC i18n blocks
-- [01-01]: vue-i18n Swiss locales use full BCP47 codes (fr-CH, de-CH, it-CH) in numberFormats, not short codes, to prevent European separator inheritance
-- [01-01]: Engine test files excluded from tsconfig.app.json — vitest globals (describe/it/expect) provided by vitest config, not TypeScript declarations
-- [Phase 01-foundation-engine-and-inputs]: Fleet Manager and Collector are ×1 ALWAYS singletons (MGMT-04) — not scaled with HA multiplier
-- [Phase 01-foundation-engine-and-inputs]: Adaptive RAID-5 uses host-count gate (≥6 hosts = 4+1 scheme), not raidy drive-count gate
-- [Phase 01-foundation-engine-and-inputs]: calculationStore exposes only computed() — zero ref() — ensuring read-only contract (CALC-02)
-- [Phase 01-foundation-engine-and-inputs]: NumberSliderInput treats number input as primary, slider as secondary sensitivity helper
-- [Phase 01-foundation-engine-and-inputs]: VCFA blocker warning driven by calculationStore.validationErrors.VCFA_MIN_CORES — not local computed
-- [Phase 02-outputs-charts-and-export]: Used computed() + vue-chartjs declarative :data prop pattern (not shallowRef+triggerRef) for chart reactivity
-- [Phase 02-outputs-charts-and-export]: HostCountCard green threshold: recommendedHostCount <= both minHostsForCpu AND minHostsForRam
-- [Phase 02-outputs-charts-and-export]: lz-string default import for URL compression + Zod .strip() for untrusted URL state validation
-- [Phase 02-outputs-charts-and-export]: hydrateFromUrl() called in main.ts after app.use(pinia) but before app.mount() to prevent flash of default state
-- [Phase 02-outputs-charts-and-export]: PDF export = window.print() only with print: Tailwind variants — no html2canvas or jsPDF
+Carried from v1.0:
+- [Roadmap]: Storage engine (STOR-02, STOR-03) is a PORT from raidy project
+- [Phase 01]: @intlify/unplugin-vue-i18n include pattern breaks rolldown — locale files handled natively by Vite 8
+- [Phase 01]: vue-i18n Swiss locales use full BCP47 codes (fr-CH, de-CH, it-CH) in numberFormats
+- [Phase 01]: Fleet Manager and Collector are ×1 ALWAYS singletons (MGMT-04)
+- [Phase 01]: Adaptive RAID-5 uses host-count gate (≥6 hosts = 4+1 scheme)
+- [Phase 01]: calculationStore exposes only computed() — zero ref() — CALC-02
+- [Phase 02]: Used computed() + vue-chartjs declarative :data prop for chart reactivity
+- [Phase 02]: lz-string default import + Zod .strip() for URL state validation
+- [Phase 02]: PDF export = window.print() only with Tailwind print: variants
+- [Phase 03]: Stretch cluster resource duplication: stretchMultiplier=2 applied to full total (workload + management)
+- [Phase 03]: Storage stretch: stretchMirroringFactor=0.5 halves effective/safe usable for PFTT=1
+
+v2.0 new decisions: (none yet)
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- Phase 2 (Export): PDF export implementation strategy unresolved — spike html2canvas vs. @media print before Phase 2 plan is locked
-- Phase 3 (Stretch): Witness component count formula needs validation against Broadcom vSAN Stretched Cluster Guide before Phase 3 plan is locked
-
-## Session Continuity
-
-Last session: 2026-03-29T05:30:28.573Z
-Stopped at: Completed 02-outputs-charts-and-export-02-PLAN.md
-Resume file: None
+- vSAN Max ReadyNode profiles: confirm 5 profiles (XS/SM/MED/LRG/XL) specs match latest Broadcom TechDocs before implementation
+- Standard vs Consolidated: clarify how the UI should surface this — separate deployment mode option or validation guidance?
