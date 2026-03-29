@@ -20,7 +20,7 @@ Surface the calculation engine results through a split-screen UI with real-time 
 
 ### Charts
 - **Chart.js 4.x + vue-chartjs 5.x** — Bar charts for cores and RAM, Doughnut or stacked bar for storage breakdown
-- **CRITICAL**: All Chart.js component instances must use `shallowRef` — NOT `ref` — to prevent Vue 3 reactivity recursion (documented Vue issue in PITFALLS.md). Pattern: `const chartData = shallowRef({ ... }); watch(source, () => { chartData.value = {...}; triggerRef(chartData) })`
+- **Reactivity pattern**: Use `computed()` returning a **new object reference** bound to `:data` prop — vue-chartjs 5 has a built-in watcher that detects new object references and calls `chart.update()` automatically. `shallowRef + triggerRef` is only needed when holding an imperative Chart.js instance in a reactive ref, which the declarative vue-chartjs component approach avoids entirely.
 - Three charts: CoresChart, RamChart, StorageChart
 - Charts update on every input change — driven by `computed()` data from calculationStore
 - Color scheme: use-over-capacity = red, safe capacity = green/teal, overhead = amber
