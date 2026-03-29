@@ -24,6 +24,7 @@
       "storageNote": "Storage utilizzabile per sito = totale / 2 siti",
       "storageNoteLabel": "Nota storage per sito",
       "bandwidthFloorIndicator": "Soglia minima di 10 Gbps applicata (minimo VCF 9.0 -- il risultato della formula era inferiore alla soglia)",
+      "bandwidthLineRateCap": "Limitato dalla velocita della linea di rete",
       "networkChecklist": {
         "title": "Requisiti di rete del cluster esteso",
         "minBandwidth": "Larghezza di banda min. tra siti",
@@ -118,6 +119,12 @@
       "minForCpu": "Min per CPU",
       "minForRam": "Min per RAM"
     },
+    "vsanMaxTitle": "Cluster di archiviazione vSAN Max",
+    "vsanMaxStorageNodes": "Nodi di archiviazione",
+    "vsanMaxProfile": "Profilo",
+    "vsanMaxRawCapacity": "Capacita grezza",
+    "vsanMaxUsableCapacity": "Capacita utilizzabile",
+    "vsanMaxRaidScheme": "Schema RAID",
     "charts": {
       "required": "Richiesto",
       "available": "Disponibile",

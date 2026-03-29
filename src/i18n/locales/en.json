@@ -24,6 +24,7 @@
       "storageNote": "Usable storage per site = total / 2 sites",
       "storageNoteLabel": "Per-site storage note",
       "bandwidthFloorIndicator": "10 Gbps floor applied (VCF 9.0 minimum -- formula result was below threshold)",
+      "bandwidthLineRateCap": "Capped by network line rate",
       "networkChecklist": {
         "title": "Stretch Network Requirements",
         "minBandwidth": "Min inter-site bandwidth",
@@ -118,6 +119,12 @@
       "minForCpu": "Min for CPU",
       "minForRam": "Min for RAM"
     },
+    "vsanMaxTitle": "vSAN Max Storage Cluster",
+    "vsanMaxStorageNodes": "Storage Nodes",
+    "vsanMaxProfile": "Profile",
+    "vsanMaxRawCapacity": "Raw capacity",
+    "vsanMaxUsableCapacity": "Usable capacity",
+    "vsanMaxRaidScheme": "RAID scheme",
     "charts": {
       "required": "Required",
       "available": "Available",
