@@ -2,7 +2,7 @@
 
 ## Overview
 
-The project builds a zero-backend browser SPA that computes VCF 9.x hardware requirements before hardware is ordered. Phase 1 lays the engine and all inputs — every formula is tested before any UI is built. Phase 2 surfaces results to the user via charts, a split-screen UI, and export/sharing capability. Phase 3 completes the differentiating features (Stretch Cluster, NVMe Tiering, Global Deduplication) and polishes the four-language Swiss experience.
+The project builds a zero-backend browser SPA that computes VCF 9.x hardware requirements before hardware is ordered. Phase 1 lays the engine and all inputs — every formula is tested before any UI is built. Phase 2 surfaces results to the user via charts, a split-screen UI, and export/sharing capability. Phase 3 completes the differentiating features (Stretch Cluster, NVMe Tiering, Global Deduplication) and polishes the four-language Swiss experience. Phase 4 (v2.0-A) remediates live correctness gaps — bandwidth floor bug, stretch network checklist, and management architecture validation. Phase 5 (v2.0-B) adds the vSAN Max disaggregated storage cluster as a new engine subsystem with its own UI.
 
 ## Phases
 
@@ -16,6 +16,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation, Engine and Inputs** - Scaffold the project, port the storage engine from raidy, implement all calculation logic as pure TypeScript, and build all input panels (completed 2026-03-28)
 - [x] **Phase 2: Outputs, Charts and Export** - Surface all computed results through a split-screen UI, real-time charts, shareable URL, and document export (completed 2026-03-29)
 - [ ] **Phase 3: Advanced Features and Polish** - Add Stretch Cluster, NVMe Memory Tiering, AI/GPU workloads, Global Deduplication, and complete all four Swiss locales
+- [ ] **Phase 4: Correctness and Architecture Validation** - Enforce the 10 Gbps stretch bandwidth floor, surface the stretch network requirements checklist, and add management architecture host-minimum validation
+- [ ] **Phase 5: vSAN Max Storage Cluster** - Add vSAN Max as a new disaggregated storage type with 5 ReadyNode profiles, separate storage and compute cluster sizing, and minimum node validation
 
 ## Phase Details
 
@@ -76,13 +78,56 @@ Plans:
 - [ ] 03-01-PLAN.md — Engine + stores: extend types.ts, compute.ts (NVMe+GPU TDD), new stretch.ts (TDD), extend validation.ts (STRETCH_MIN_HOSTS), extend inputStore + calculationStore
 - [ ] 03-02-PLAN.md — UI: HostSpecsForm (NVMe section), DeploymentModelSelector (stretch site inputs + witness), WorkloadProfileForm (GPU section), StorageConfigForm (dedup disable), all 4 locale files + human verify
 
+### Phase 4: Correctness and Architecture Validation
+
+**Goal**: Architects using stretch cluster and management architecture configurations receive spec-correct bandwidth recommendations, a network requirements checklist, and host-minimum validation aligned with Broadcom KB 392993
+**Depends on**: Phase 3
+**Requirements**: STRCH-06, STRCH-07, STRCH-08, ARCH-01, ARCH-02
+**Success Criteria** (what must be TRUE):
+
+  1. User sees a minimum 10 Gbps bandwidth recommendation for any stretch cluster configuration regardless of workload size, with a visible indicator when the floor has been applied rather than the formula result
+  2. User sees a stretch network checklist (MTU 9000, site-to-site RTT < 5ms, witness RTT threshold derived from per-site host count) when stretch mode is active, displayed in all four Swiss locales
+  3. User can toggle "Dedicated management cluster" in HA or Stretch mode and sees an error when fewer than 4 management hosts are provisioned
+  4. User working in co-located mode with below-minimum hosts sees an informational note pointing to the minimum required host count for vSAN vs FC/NFS configurations
+
+**Plans**: TBD
+
+**Key constraints:**
+- `engine/types.ts` additive changes (new union members, new interfaces, new optional fields) must land before any other file in this phase
+- Bandwidth floor patch must update the existing stretch test first (TDD: write the failing test before adding the floor constant)
+- All new i18n keys must appear in all 4 locale files (en, fr, de, it) in the same commit as the UI component that uses them
+- Use "Dedicated Domains" / "Co-located" terminology in all UI strings; engine enum values (`'shared' | 'dedicated'`) may remain abbreviated
+
+### Phase 5: vSAN Max Storage Cluster
+
+**Goal**: Architects sizing a disaggregated vSAN Max deployment can select a ReadyNode profile, specify separate storage and compute cluster host counts, and receive independently sized storage cluster and compute cluster outputs with minimum node validation
+**Depends on**: Phase 4
+**Requirements**: VMAX-01, VMAX-02, VMAX-03
+**Success Criteria** (what must be TRUE):
+
+  1. User can select "vSAN Max (Storage Cluster)" as a storage type and choose one of 5 ReadyNode profiles (XS / SM / MED / LRG / XL); tool displays the node count required, raw capacity, and usable capacity for the storage cluster
+  2. User sees two distinct host count outputs — storage cluster nodes and compute cluster nodes — with the compute cluster sized using the standard HCI engine (no vSAN overhead applied to compute hosts)
+  3. User sees a validation error when the storage node count is below 4, preventing under-provisioning of the minimum vSAN-SC cluster size
+  4. A shared URL containing a vSAN Max configuration restores the storage type, selected profile, storage node count, and compute node count exactly on reload
+
+**Plans**: TBD
+
+**Key constraints:**
+- Zod URL schema must be updated atomically with any new `inputStore` field; add a `URL_STATE_FIELDS` constant and a schema completeness test before writing UI
+- `calcStorage()` must be converted to an exhaustive `switch` with a `never` case before `'vsan-max'` is added to the `StorageType` union
+- `calcVsanMax()` must live in `engine/vsanMax.ts` and receive a `VsanMaxInputs` argument with distinct `storageNodeCount` and `computeNodeCount` — never reuse the HCI `hostCount`
+- Verify ReadyNode profile constants (especially MED/LRG/XL NVMe counts and XS RAM minimum) against `compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance` before hardcoding
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Engine and Inputs | 3/3 | Complete   | 2026-03-28 |
-| 2. Outputs, Charts and Export | 2/2 | Complete   | 2026-03-29 |
+| 1. Foundation, Engine and Inputs | 3/3 | Complete | 2026-03-28 |
+| 2. Outputs, Charts and Export | 2/2 | Complete | 2026-03-29 |
 | 3. Advanced Features and Polish | 0/2 | Not started | - |
+| 4. Correctness and Architecture Validation | 0/? | Not started | - |
+| 5. vSAN Max Storage Cluster | 0/? | Not started | - |

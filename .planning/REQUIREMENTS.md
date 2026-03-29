@@ -178,16 +178,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 to FOUND-06 | Phase 1 | Pending |
-| I18N-01 to I18N-05 | Phase 1 | Pending |
-| DEPLOY-01 to DEPLOY-03 | Phase 1 | Pending |
-| MGMT-01 to MGMT-07 | Phase 1 | Pending |
-| HOST-01 to HOST-06 | Phase 1 | Pending |
-| WKLD-01 to WKLD-06 | Phase 1 | Pending |
-| STOR-01 to STOR-08 | Phase 1 | Pending |
-| CALC-01 to CALC-05 | Phase 1 | Pending |
-| VIZ-01 to VIZ-07 | Phase 2 | Pending |
-| EXPORT-01 to EXPORT-04 | Phase 2 | Pending |
+| FOUND-01 to FOUND-06 | Phase 1 | Complete |
+| I18N-01 to I18N-05 | Phase 1 | Complete |
+| DEPLOY-01 to DEPLOY-03 | Phase 1 | Complete |
+| MGMT-01 to MGMT-07 | Phase 1 | Complete |
+| HOST-01 to HOST-06 | Phase 1 | Complete |
+| WKLD-01 to WKLD-06 | Phase 1 | Complete |
+| STOR-01 to STOR-08 | Phase 1 | Complete |
+| CALC-01 to CALC-05 | Phase 1 | Complete |
+| VIZ-01 to VIZ-07 | Phase 2 | Complete |
+| EXPORT-01 to EXPORT-04 | Phase 2 | Complete |
 | NVME-01 to NVME-04 | Phase 3 | Pending |
 | STRCH-01 to STRCH-05 | Phase 3 | Pending |
 | GPU-01 to GPU-03 | Phase 3 | Pending |
@@ -203,4 +203,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-28*
-*Last updated: 2026-03-29 — v2.0 requirements added (STRCH-06/07/08, ARCH-01/02, VMAX-01/02/03)*
+*Last updated: 2026-03-29 — v2.0 requirements added (STRCH-06/07/08, ARCH-01/02, VMAX-01/02/03); traceability updated for Phase 4 and Phase 5*
