@@ -101,3 +101,39 @@ describe('calcStorage — NFS pass-through (STOR-07)', () => {
     expect(result.safeUsableCapacityTB).toBe(40)
   })
 })
+
+describe('calcStorage — stretch PFTT=1 site mirroring (STRCH-03)', () => {
+  const baseInputs = {
+    storageType: 'vsan-esa' as const,
+    hostCount: 6,
+    hostStorageTB: 10,
+    fttLevel: 1 as const,
+    raidType: 'raid5' as const,
+    dedupEnabled: false,
+    dedupRatio: 1,
+  }
+
+  it('stretch: safeUsableCapacityTB is half of simple mode (PFTT=1 site mirroring)', () => {
+    const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
+    const stretch = calcStorage({ ...baseInputs, deploymentMode: 'stretch' })
+    expect(stretch.safeUsableCapacityTB).toBeCloseTo(simple.safeUsableCapacityTB / 2, 6)
+  })
+
+  it('stretch: effectiveCapacityTB is half of simple mode', () => {
+    const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
+    const stretch = calcStorage({ ...baseInputs, deploymentMode: 'stretch' })
+    expect(stretch.effectiveCapacityTB).toBeCloseTo(simple.effectiveCapacityTB / 2, 6)
+  })
+
+  it('stretch: rawCapacityTB unchanged (full-cluster physical capacity)', () => {
+    const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
+    const stretch = calcStorage({ ...baseInputs, deploymentMode: 'stretch' })
+    expect(stretch.rawCapacityTB).toBe(simple.rawCapacityTB)
+  })
+
+  it('simple/ha: no mirroring factor (backward compat)', () => {
+    const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
+    const noMode = calcStorage(baseInputs)
+    expect(noMode.safeUsableCapacityTB).toBeCloseTo(simple.safeUsableCapacityTB, 6)
+  })
+})

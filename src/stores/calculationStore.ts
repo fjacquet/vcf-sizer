@@ -58,6 +58,7 @@ export const useCalculationStore = defineStore('calculation', () => {
       raidType: input.raidType,
       dedupEnabled: input.dedupEnabled,
       dedupRatio: input.dedupRatio,
+      deploymentMode: input.deploymentMode,
     })
   )
 

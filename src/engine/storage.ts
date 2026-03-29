@@ -83,8 +83,16 @@ export function vsanEsaRaidOverhead(
  * FC/NFS: raw capacity pass-through — no RAID/LFS/metadata overhead (STOR-07)
  */
 export function calcStorage(inputs: StorageInputs): StorageResult {
-  const { storageType, hostCount, hostStorageTB, fttLevel, raidType, dedupEnabled, dedupRatio } =
-    inputs
+  const {
+    storageType,
+    hostCount,
+    hostStorageTB,
+    fttLevel,
+    raidType,
+    dedupEnabled,
+    dedupRatio,
+    deploymentMode = 'simple',
+  } = inputs
 
   const rawCapacityTB = new Decimal(hostCount).times(hostStorageTB).toNumber()
 
@@ -128,14 +136,25 @@ export function calcStorage(inputs: StorageInputs): StorageResult {
   // Step 5: Net usable
   const netUsableTB = usableAfterLfsTB.minus(metadataOverheadTB)
 
+  // Stretch PFTT=1: site mirroring means all data exists on both sites.
+  // Only per-site capacity is "net usable" — the other copy is redundancy overhead.
+  // Halve effective/safe usable to reflect this. Raw and RAID numbers remain full-cluster.
+  const stretchMirroringFactor = deploymentMode === 'stretch' ? 0.5 : 1.0
+
   // The usableBeforeDedupTB represents usable before dedup benefit is applied to effective result
-  const usableBeforeDedupTB = usableAfterLfsTB.minus(metadataOverheadTB).toNumber()
+  const usableBeforeDedupTB = usableAfterLfsTB
+    .minus(metadataOverheadTB)
+    .times(stretchMirroringFactor)
+    .toNumber()
 
   // Effective capacity (same as netUsable when no separate dedup boost)
-  const effectiveCapacityTB = netUsableTB.toNumber()
+  const effectiveCapacityTB = netUsableTB.times(stretchMirroringFactor).toNumber()
 
   // Step 6: Safe usable (keep 70%, reserve 30% slack)
-  const safeUsableCapacityTB = netUsableTB.times(VSAN_SAFE_SLACK).toNumber()
+  const safeUsableCapacityTB = netUsableTB
+    .times(VSAN_SAFE_SLACK)
+    .times(stretchMirroringFactor)
+    .toNumber()
 
   return {
     rawCapacityTB,

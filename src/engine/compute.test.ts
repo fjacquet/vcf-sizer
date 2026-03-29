@@ -111,6 +111,45 @@ describe('calcCompute — NVMe tiering boundary (NVME-01/02/03)', () => {
   })
 })
 
+describe('calcCompute — stretch cluster resource duplication (STRCH-02)', () => {
+  const baseInputs = {
+    coresPerSocket: 16,
+    socketsPerHost: 2,
+    hostRamGB: 512,
+    hostCount: 8,
+    vmCount: 100,
+    avgVcpuPerVm: 4,
+    avgVramGbPerVm: 8,
+    cpuOvercommitRatio: 4,
+    ramOvercommitRatio: 1,
+    managementCores: 50,
+    managementRamGB: 200,
+  }
+
+  it('stretch: totalCoresRequired = (workload + management) × 2', () => {
+    // workloadCores = 100×4/4 = 100; + 50 mgmt = 150; × 2 stretch = 300
+    const result = calcCompute({ ...baseInputs, deploymentMode: 'stretch' })
+    expect(result.totalCoresRequired).toBe(300)
+  })
+
+  it('stretch: totalRamRequiredGB = (workload + management) × 2', () => {
+    // workloadRam = 100×8/1 = 800; + 200 mgmt = 1000; × 2 stretch = 2000
+    const result = calcCompute({ ...baseInputs, deploymentMode: 'stretch' })
+    expect(result.totalRamRequiredGB).toBe(2000)
+  })
+
+  it('simple: totalCoresRequired = workload + management (no doubling)', () => {
+    // workloadCores = 100; + 50 mgmt = 150
+    const result = calcCompute({ ...baseInputs, deploymentMode: 'simple' })
+    expect(result.totalCoresRequired).toBe(150)
+  })
+
+  it('ha: totalCoresRequired = workload + management (no doubling)', () => {
+    const result = calcCompute({ ...baseInputs, deploymentMode: 'ha' })
+    expect(result.totalCoresRequired).toBe(150)
+  })
+})
+
 describe('calcCompute — GPU RAM overhead (GPU-01/02/03)', () => {
   const baseInputs = {
     deploymentMode: 'simple' as const,

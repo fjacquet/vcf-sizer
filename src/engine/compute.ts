@@ -12,9 +12,11 @@ import type { ComputeInputs, ComputeResult } from './types'
  *
  * Formula:
  *   workloadCores = vmCount × avgVcpuPerVm / cpuOvercommitRatio
- *   totalCoresRequired = workloadCores + managementCores
  *   workloadRam = vmCount × avgVramGbPerVm / ramOvercommitRatio
- *   totalRamRequiredGB = workloadRam + managementRamGB
+ *   stretchMultiplier = 2 when deploymentMode='stretch', else 1
+ *   totalCoresRequired = (workloadCores + managementCores) × stretchMultiplier
+ *   totalRamRequiredGB = (workloadRam + managementRamGB) × stretchMultiplier
+ *   (stretch: each site runs full workload + full management stack — PFTT=1 HA contract)
  *   availableCores = hostCount × coresPerSocket × socketsPerHost
  *   availableRamGB = hostCount × hostRamGB
  *   minHostsForCpu = ceil(totalCoresRequired / coresPerSocket / socketsPerHost)
@@ -65,11 +67,20 @@ export function calcCompute(inputs: ComputeInputs): ComputeResult {
   // gpuVmCount=0 → zero overhead, no change to existing behavior (per GPU-03)
   const gpuRamOverheadGB = new Decimal(gpuVmCount).times(vgpuMemoryGB).times(2).toNumber()
 
-  // Total requirements (workload + management overhead + GPU overhead)
-  const totalCoresRequired = new Decimal(workloadCoresRequired).plus(managementCores).toNumber()
+  // Stretch cluster: each site must independently handle ALL workloads AND management (PFTT=1).
+  // Both sites run a full management stack (vCenter, NSX, etc.) for independent operation.
+  // Double the entire compute requirement (workload + management + GPU).
+  const stretchMultiplier = inputs.deploymentMode === 'stretch' ? 2 : 1
+
+  // Total requirements × stretch multiplier
+  const totalCoresRequired = new Decimal(workloadCoresRequired)
+    .plus(managementCores)
+    .times(stretchMultiplier)
+    .toNumber()
   const totalRamRequiredGB = new Decimal(workloadRamRequiredGB)
     .plus(managementRamGB)
     .plus(gpuRamOverheadGB)
+    .times(stretchMultiplier)
     .toNumber()
 
   // Available capacity from current host configuration

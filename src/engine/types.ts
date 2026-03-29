@@ -84,6 +84,7 @@ export interface StorageInputs {
   raidType: RaidType
   dedupEnabled: boolean
   dedupRatio: number
+  deploymentMode?: DeploymentMode  // default 'simple'; 'stretch' halves effective usable (PFTT=1)
 }
 
 export interface StorageResult {
