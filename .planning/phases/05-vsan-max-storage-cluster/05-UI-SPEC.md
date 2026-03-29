@@ -1,10 +1,11 @@
 ---
 phase: 5
 slug: vsan-max-storage-cluster
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-03-29
+reviewed_at: 2026-03-29T00:00:00Z
 ---
 
 # Phase 5 — UI Design Contract
@@ -55,16 +56,17 @@ Source: codebase scan of existing components.
 ## Typography
 
 Pre-populated entirely from codebase scan. All existing components use the same 4-role scale.
+**Weight rule: exactly 2 weights — `font-semibold` (600) for all emphasis roles, `font-normal` (400) for all default roles.**
 
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Section heading | 16px (`text-base`) | 600 (`font-semibold`) | 1.5 | `<h2>` in form sections and result cards |
 | Card sub-heading | 14px (`text-sm`) | 600 (`font-semibold`) | 1.5 | Column headers in data grids (`text-sm font-semibold text-gray-500`) |
-| Body / label | 14px (`text-sm`) | 500 (`font-medium`) | 1.5 | Form labels, button group labels, informational notes |
-| Data / mono | 12px (`text-xs`) | 400 (`font-normal`) + 600 for values | 1.5 | Data grid cells (`font-mono text-right`), capacity values |
+| Body / label | 14px (`text-sm`) | 400 (`font-normal`) | 1.5 | Form labels, button group labels, informational notes |
+| Data / mono | 12px (`text-xs`) | 400 (`font-normal`) + 600 (`font-semibold`) for values | 1.5 | Data grid cells (`font-mono text-right`), capacity values |
 
 **New in Phase 5 — VsanMaxClusterCard large display number:**
-- Storage node count: 48px (`text-5xl`), weight 700 (`font-bold`), line-height none (`leading-none`) — mirrors HostCountCard's `recommendedHostCount` display exactly.
+- Storage node count: 48px (`text-5xl`), weight 600 (`font-semibold`), line-height none (`leading-none`) — mirrors HostCountCard's `recommendedHostCount` display. The 48px size provides sufficient visual distinction without needing `font-bold`.
 
 Source: codebase scan — HostCountCard.vue, StretchNetworkChecklist.vue, StorageConfigForm.vue.
 
@@ -110,7 +112,7 @@ Add a fourth entry to the `storageTypes` array:
 ```
 Button styling: identical to existing type buttons.
 ```
-'px-3 py-1.5 text-sm rounded border font-medium transition-colors'
+'px-3 py-1.5 text-sm rounded border font-normal transition-colors'
 active:   'bg-blue-600 text-white border-blue-600'
 inactive: 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
 ```
@@ -133,7 +135,7 @@ Structural layout:
 **Profile dropdown:**
 ```html
 <div class="space-y-1">
-  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+  <label class="text-sm font-normal text-gray-700 dark:text-gray-300">
     {{ t('storage.vsanMax.profile') }}
   </label>
   <select
@@ -186,7 +188,7 @@ Insert after the `hostStorageTB` NumberSliderInput, before `hostCount` NumberSli
 ```html
 <!-- Network speed selector — scoped to Phase 5 (STOR-05, STRCH-05) -->
 <div class="space-y-1 sm:col-span-2">
-  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+  <label class="text-sm font-normal text-gray-700 dark:text-gray-300">
     {{ t('host.networkSpeed') }}
   </label>
   <div class="flex gap-2">
@@ -194,7 +196,7 @@ Insert after the `hostStorageTB` NumberSliderInput, before `hostCount` NumberSli
       v-for="speed in [10, 25, 100]"
       :key="speed"
       :class="[
-        'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
+        'px-3 py-1.5 text-sm rounded border font-normal transition-colors',
         networkSpeedGbE === speed
           ? 'bg-blue-600 text-white border-blue-600'
           : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
@@ -274,7 +276,7 @@ Matches HostCountCard heading style exactly.
 ```html
 <div class="flex items-center gap-6 mb-3">
   <div class="flex flex-col">
-    <span class="text-5xl font-bold leading-none"
+    <span class="text-5xl font-semibold leading-none"
           :class="vsanMax.belowMinNodes ? 'text-red-600' : 'text-emerald-600'">
       {{ vsanMax.storageNodeCount }}
     </span>
@@ -283,7 +285,7 @@ Matches HostCountCard heading style exactly.
     </span>
   </div>
   <div class="text-sm text-gray-600 dark:text-gray-400">
-    <span class="font-medium">{{ t('results.vsanMax.profile') }}:</span>
+    <span class="font-normal">{{ t('results.vsanMax.profile') }}:</span>
     {{ profileLabel }}
     <!-- e.g. "MED (100 TB/node)" -->
   </div>
