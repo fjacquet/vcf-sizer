@@ -69,7 +69,12 @@ Plans:
   2. User can enable NVMe Memory Tiering, enter active memory percentage, and see required physical DRAM halved when active memory is at or below 50%
   3. User can enter GPU-accelerated VM count and vGPU profile and see additional host RAM required for vGPU overhead added to totals
   4. User can switch the UI to FR, DE, or IT and see all text, numbers, and currency formatted correctly for Swiss locales (apostrophe for de-CH, space for fr-CH) with no hardcoded English strings remaining
-**Plans**: TBD
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Engine + stores: extend types.ts, compute.ts (NVMe+GPU TDD), new stretch.ts (TDD), extend validation.ts (STRETCH_MIN_HOSTS), extend inputStore + calculationStore
+- [ ] 03-02-PLAN.md — UI: HostSpecsForm (NVMe section), DeploymentModelSelector (stretch site inputs + witness), WorkloadProfileForm (GPU section), StorageConfigForm (dedup disable), all 4 locale files + human verify
 
 ## Progress
 
@@ -80,4 +85,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Foundation, Engine and Inputs | 3/3 | Complete   | 2026-03-28 |
 | 2. Outputs, Charts and Export | 2/2 | Complete   | 2026-03-29 |
-| 3. Advanced Features and Polish | 0/TBD | Not started | - |
+| 3. Advanced Features and Polish | 0/2 | Not started | - |
