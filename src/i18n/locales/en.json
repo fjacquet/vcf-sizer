@@ -13,7 +13,17 @@
     "label": "Deployment Model",
     "simple": "Simple (Lab / POC)",
     "ha": "High Availability (Production)",
-    "stretch": "Stretch Cluster (2-Site)"
+    "stretch": "Stretch Cluster (2-Site)",
+    "stretchSites": {
+      "preferredSiteHosts": "Preferred Site Hosts",
+      "secondarySiteHosts": "Secondary Site Hosts",
+      "witnessLabel": "Witness Node (ESA M profile)",
+      "witnessCpu": "vCPU",
+      "witnessRam": "RAM",
+      "bandwidthLabel": "Min. Cross-Site Bandwidth",
+      "storageNote": "Usable storage per site = total / 2 sites",
+      "storageNoteLabel": "Per-site storage note"
+    }
   },
   "host": {
     "label": "Host Specifications",
@@ -22,7 +32,13 @@
     "totalCores": "Total Cores per Host",
     "ramGB": "RAM per Host (GB)",
     "storageTB": "Raw Storage per Host (TB)",
-    "hostCount": "Number of Hosts"
+    "hostCount": "Number of Hosts",
+    "nvme": {
+      "label": "NVMe Memory Tiering",
+      "activeMemoryPct": "Active Memory %",
+      "activeIndicator": "NVMe tiering active — DRAM halved",
+      "prerequisite": "Requires Class D+ NVMe at 3+ DWPD"
+    }
   },
   "workload": {
     "label": "Workload Profile",
@@ -31,7 +47,12 @@
     "avgVram": "Average vRAM per VM (GB)",
     "avgStorage": "Average Storage per VM (GB)",
     "cpuOvercommit": "vCPU Over-Commit Ratio",
-    "ramOvercommit": "RAM Over-Commit Ratio"
+    "ramOvercommit": "RAM Over-Commit Ratio",
+    "gpu": {
+      "label": "AI / GPU Workloads",
+      "vmCount": "GPU-Accelerated VMs",
+      "memoryGB": "vGPU Profile Memory (GB)"
+    }
   },
   "storage": {
     "label": "Principal Storage",
@@ -53,7 +74,11 @@
   },
   "warnings": {
     "vcfaMinCores": "WARNING: VCF Automation (VCFA) requires a host with at least 12 physical cores (24 threads). Deployment will be blocked with the current host specification.",
-    "dedupStretchExclusion": "Global Deduplication cannot be enabled with Stretch Cluster."
+    "dedupStretchExclusion": "Global Deduplication cannot be enabled with Stretch Cluster.",
+    "stretchDedup": "Global Deduplication is disabled in Stretch Cluster mode."
+  },
+  "validation": {
+    "stretchMinHosts": "Stretch Cluster requires a minimum of 3 hosts per site."
   },
   "results": {
     "toolbar": {

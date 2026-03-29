@@ -12,6 +12,14 @@ export const useInputStore = defineStore('input', () => {
   const hostStorageTB = ref(3.84)
   const hostCount = ref(4)
 
+  // NVMe Memory Tiering (per NVME-01/02)
+  const nvmeTieringEnabled = ref(false)
+  const activeMemoryPct = ref(50)
+
+  // Stretch Cluster per-site host counts (per STRCH-01)
+  const preferredSiteHosts = ref(3)
+  const secondarySiteHosts = ref(3)
+
   // Workload profile (per WKLD-01/02/03/04/05/06)
   const vmCount = ref(100)
   const avgVcpuPerVm = ref(4)
@@ -19,6 +27,10 @@ export const useInputStore = defineStore('input', () => {
   const avgStorageGbPerVm = ref(100)
   const cpuOvercommitRatio = ref(4)
   const ramOvercommitRatio = ref(1)
+
+  // AI/GPU Workloads (per GPU-01/02)
+  const gpuVmCount = ref(0)
+  const vgpuMemoryGB = ref(16)
 
   // Storage configuration (per STOR-01/02/03/04/05/06)
   const storageType = ref<'vsan-esa' | 'fc' | 'nfs'>('vsan-esa')
@@ -30,8 +42,11 @@ export const useInputStore = defineStore('input', () => {
   return {
     deploymentMode,
     coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB, hostCount,
+    nvmeTieringEnabled, activeMemoryPct,
+    preferredSiteHosts, secondarySiteHosts,
     vmCount, avgVcpuPerVm, avgVramGbPerVm, avgStorageGbPerVm,
     cpuOvercommitRatio, ramOvercommitRatio,
+    gpuVmCount, vgpuMemoryGB,
     storageType, fttLevel, raidType, dedupEnabled, dedupRatio,
   }
 })

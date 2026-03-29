@@ -10,13 +10,17 @@ import WarningBanner from '@/components/shared/WarningBanner.vue'
 const { t } = useI18n()
 const input = useInputStore()
 const calc = useCalculationStore()
-const { coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB, hostCount } = storeToRefs(input)
+const {
+  coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB, hostCount,
+  nvmeTieringEnabled, activeMemoryPct,
+} = storeToRefs(input)
 const { validationErrors } = storeToRefs(calc)
 
 const vcfaBlockerError = computed(() =>
   validationErrors.value.find(e => e.code === 'VCFA_MIN_CORES' && e.severity === 'error')
 )
 const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.value)
+const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemoryPct.value <= 50)
 </script>
 
 <template>
@@ -76,6 +80,39 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
         :max="64"
         :step="1"
       />
+    </div>
+
+    <!-- NVMe Memory Tiering (NVME-01/02/03/04) -->
+    <div class="space-y-3 pt-2 border-t border-gray-100">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          v-model="nvmeTieringEnabled"
+          class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <span class="text-sm font-medium text-gray-700">{{ t('host.nvme.label') }}</span>
+      </label>
+      <template v-if="nvmeTieringEnabled">
+        <NumberSliderInput
+          v-model="activeMemoryPct"
+          :label="t('host.nvme.activeMemoryPct')"
+          unit="%"
+          :min="0"
+          :max="100"
+          :step="5"
+        />
+        <!-- Green indicator when tiering is active (activeMemoryPct <= 50) (NVME-03) -->
+        <div
+          v-if="nvmeTieringActive"
+          class="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1"
+        >
+          {{ t('host.nvme.activeIndicator') }}
+        </div>
+        <!-- Prerequisite notice always shown when toggle is on (NVME-04) -->
+        <div class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+          {{ t('host.nvme.prerequisite') }}
+        </div>
+      </template>
     </div>
   </section>
 </template>

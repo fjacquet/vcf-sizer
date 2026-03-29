@@ -8,6 +8,9 @@ import type { ValidationWarning, ValidationInputs } from './types'
 // VCFA requires minimum 12 physical cores per host (HOST-06, MGMT-07)
 const VCFA_MIN_CORES_PER_HOST = 12
 
+// Stretch Cluster requires minimum 3 data hosts per site (STRCH-01)
+const STRETCH_MIN_HOSTS_PER_SITE = 3
+
 // ─── validateInputs ────────────────────────────────────────────────────────
 
 /**
@@ -19,7 +22,15 @@ const VCFA_MIN_CORES_PER_HOST = 12
  * 2. DEDUP_STRETCH_EXCLUSION: dedupEnabled && deploymentMode === 'stretch' → error
  */
 export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
-  const { deploymentMode, coresPerSocket, socketsPerHost, dedupEnabled, storageType } = inputs
+  const {
+    deploymentMode,
+    coresPerSocket,
+    socketsPerHost,
+    dedupEnabled,
+    storageType,
+    preferredSiteHosts = 3,
+    secondarySiteHosts = 3,
+  } = inputs
   const errors: ValidationWarning[] = []
 
   // Rule 1: VCFA minimum cores blocker
@@ -52,6 +63,17 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
       severity: 'warning',
       messageKey: 'validation.dedupNotApplicable',
     })
+  }
+
+  // Rule 3: Stretch Cluster requires minimum 3 hosts per site (STRCH-01)
+  if (deploymentMode === 'stretch') {
+    if (preferredSiteHosts < STRETCH_MIN_HOSTS_PER_SITE || secondarySiteHosts < STRETCH_MIN_HOSTS_PER_SITE) {
+      errors.push({
+        code: 'STRETCH_MIN_HOSTS',
+        severity: 'error',
+        messageKey: 'validation.stretchMinHosts',
+      })
+    }
   }
 
   return errors

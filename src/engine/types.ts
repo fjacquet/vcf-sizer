@@ -40,6 +40,28 @@ export interface ComputeInputs {
   ramOvercommitRatio: number
   managementCores: number
   managementRamGB: number
+  // Phase 3 additions (optional — all existing callers unaffected):
+  nvmeTieringEnabled?: boolean   // default false
+  activeMemoryPct?: number       // default 50
+  gpuVmCount?: number            // default 0
+  vgpuMemoryGB?: number          // default 16
+}
+
+export interface StretchInputs {
+  preferredSiteHosts: number
+  secondarySiteHosts: number
+  hostStorageTB: number
+  vmCount: number
+  avgStorageGbPerVm: number
+}
+
+export interface StretchResult {
+  totalHosts: number
+  witnessCores: number       // 4 (ESA M profile — ESA does not support Tiny/2vCPU)
+  witnessRamGB: number       // 16 (ESA M profile)
+  minBandwidthGbps: number   // totalWorkloadStorageTB × 0.1
+  effectivePerSiteStorageTB: number
+  storageNote: string        // i18n key: 'deployment.stretch.storageNote'
 }
 
 export interface ComputeResult {
@@ -84,4 +106,6 @@ export interface ValidationInputs {
   hostCount: number
   dedupEnabled: boolean
   storageType: StorageType
+  preferredSiteHosts?: number   // default 3
+  secondarySiteHosts?: number   // default 3
 }

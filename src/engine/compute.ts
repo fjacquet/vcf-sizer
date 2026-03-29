@@ -34,7 +34,18 @@ export function calcCompute(inputs: ComputeInputs): ComputeResult {
     ramOvercommitRatio,
     managementCores,
     managementRamGB,
+    nvmeTieringEnabled = false,
+    activeMemoryPct = 50,
+    gpuVmCount = 0,
+    vgpuMemoryGB = 16,
   } = inputs
+
+  // NVMe Memory Tiering: when enabled and active memory <= 50%, halve effective DRAM
+  // Boundary: activeMemoryPct=50 → halved, activeMemoryPct=51 → NOT halved (per NVME-03)
+  const effectiveHostRamGB =
+    nvmeTieringEnabled && activeMemoryPct <= 50
+      ? new Decimal(hostRamGB).dividedBy(2).toNumber()
+      : hostRamGB
 
   // Physical cores per host
   const coresPerHost = new Decimal(coresPerSocket).times(socketsPerHost).toNumber()
@@ -50,13 +61,20 @@ export function calcCompute(inputs: ComputeInputs): ComputeResult {
     .dividedBy(ramOvercommitRatio)
     .toNumber()
 
-  // Total requirements (workload + management overhead)
+  // GPU RAM overhead: 2× vGPU memory per GPU VM (conservative vGPU host overhead)
+  // gpuVmCount=0 → zero overhead, no change to existing behavior (per GPU-03)
+  const gpuRamOverheadGB = new Decimal(gpuVmCount).times(vgpuMemoryGB).times(2).toNumber()
+
+  // Total requirements (workload + management overhead + GPU overhead)
   const totalCoresRequired = new Decimal(workloadCoresRequired).plus(managementCores).toNumber()
-  const totalRamRequiredGB = new Decimal(workloadRamRequiredGB).plus(managementRamGB).toNumber()
+  const totalRamRequiredGB = new Decimal(workloadRamRequiredGB)
+    .plus(managementRamGB)
+    .plus(gpuRamOverheadGB)
+    .toNumber()
 
   // Available capacity from current host configuration
   const availableCores = new Decimal(hostCount).times(coresPerHost).toNumber()
-  const availableRamGB = new Decimal(hostCount).times(hostRamGB).toNumber()
+  const availableRamGB = new Decimal(hostCount).times(effectiveHostRamGB).toNumber()
 
   // Utilization percentages (capped at sensible values for display)
   const coreUtilizationPct =
@@ -74,7 +92,7 @@ export function calcCompute(inputs: ComputeInputs): ComputeResult {
     new Decimal(totalCoresRequired).dividedBy(coresPerHost).toNumber()
   )
   const minHostsForRam = Math.ceil(
-    new Decimal(totalRamRequiredGB).dividedBy(hostRamGB).toNumber()
+    new Decimal(totalRamRequiredGB).dividedBy(effectiveHostRamGB).toNumber()
   )
 
   // Recommended host count = maximum of the two constraints

@@ -13,7 +13,17 @@
     "label": "Modèle de déploiement",
     "simple": "Simple (Lab / POC)",
     "ha": "Haute disponibilité (Production)",
-    "stretch": "Cluster étendu (2 sites)"
+    "stretch": "Cluster étendu (2 sites)",
+    "stretchSites": {
+      "preferredSiteHosts": "Hôtes site principal",
+      "secondarySiteHosts": "Hôtes site secondaire",
+      "witnessLabel": "Nœud témoin (profil ESA M)",
+      "witnessCpu": "vCPU",
+      "witnessRam": "RAM",
+      "bandwidthLabel": "Bande passante inter-site min.",
+      "storageNote": "Stockage utilisable par site = total / 2 sites",
+      "storageNoteLabel": "Note stockage par site"
+    }
   },
   "host": {
     "label": "Spécifications de l'hôte",
@@ -22,7 +32,13 @@
     "totalCores": "Total de cœurs par hôte",
     "ramGB": "RAM par hôte (Go)",
     "storageTB": "Stockage brut par hôte (To)",
-    "hostCount": "Nombre d'hôtes"
+    "hostCount": "Nombre d'hôtes",
+    "nvme": {
+      "label": "Hiérarchisation mémoire NVMe",
+      "activeMemoryPct": "Mémoire active %",
+      "activeIndicator": "Hiérarchisation NVMe active — DRAM divisée par deux",
+      "prerequisite": "Nécessite NVMe Classe D+ à 3+ DWPD"
+    }
   },
   "workload": {
     "label": "Profil de charge de travail",
@@ -31,7 +47,12 @@
     "avgVram": "vRAM moyen par VM (Go)",
     "avgStorage": "Stockage moyen par VM (Go)",
     "cpuOvercommit": "Ratio de surengagement vCPU",
-    "ramOvercommit": "Ratio de surengagement RAM"
+    "ramOvercommit": "Ratio de surengagement RAM",
+    "gpu": {
+      "label": "Charges de travail IA / GPU",
+      "vmCount": "VMs accélérées GPU",
+      "memoryGB": "Mémoire profil vGPU (Go)"
+    }
   },
   "storage": {
     "label": "Stockage principal",
@@ -53,7 +74,11 @@
   },
   "warnings": {
     "vcfaMinCores": "AVERTISSEMENT : VCF Automation (VCFA) requiert un hôte avec au moins 12 cœurs physiques (24 threads). Le déploiement sera bloqué avec la spécification d'hôte actuelle.",
-    "dedupStretchExclusion": "La déduplication globale ne peut pas être activée avec le cluster étendu."
+    "dedupStretchExclusion": "La déduplication globale ne peut pas être activée avec le cluster étendu.",
+    "stretchDedup": "La déduplication globale est désactivée en mode Cluster étendu."
+  },
+  "validation": {
+    "stretchMinHosts": "Le Cluster étendu nécessite au minimum 3 hôtes par site."
   },
   "results": {
     "toolbar": {

@@ -10,28 +10,49 @@
     "it": "IT"
   },
   "deployment": {
-    "label": "Deployment Model",
-    "simple": "Simple (Lab / POC)",
-    "ha": "High Availability (Production)",
-    "stretch": "Stretch Cluster (2-Site)"
+    "label": "Bereitstellungsmodell",
+    "simple": "Einfach (Lab / POC)",
+    "ha": "Hohe Verfügbarkeit (Produktion)",
+    "stretch": "Stretch-Cluster (2 Standorte)",
+    "stretchSites": {
+      "preferredSiteHosts": "Hosts bevorzugter Standort",
+      "secondarySiteHosts": "Hosts sekundärer Standort",
+      "witnessLabel": "Witness-Knoten (ESA M-Profil)",
+      "witnessCpu": "vCPU",
+      "witnessRam": "RAM",
+      "bandwidthLabel": "Min. standortübergreifende Bandbreite",
+      "storageNote": "Nutzbarer Speicher pro Standort = Gesamt / 2 Standorte",
+      "storageNoteLabel": "Speicherhinweis je Standort"
+    }
   },
   "host": {
-    "label": "Host Specifications",
-    "coresPerSocket": "Cores per Socket",
-    "socketsPerHost": "Sockets per Host",
-    "totalCores": "Total Cores per Host",
-    "ramGB": "RAM per Host (GB)",
-    "storageTB": "Raw Storage per Host (TB)",
-    "hostCount": "Number of Hosts"
+    "label": "Host-Spezifikationen",
+    "coresPerSocket": "Kerne pro Socket",
+    "socketsPerHost": "Sockets pro Host",
+    "totalCores": "Gesamtkerne pro Host",
+    "ramGB": "RAM pro Host (GB)",
+    "storageTB": "Rohspeicher pro Host (TB)",
+    "hostCount": "Anzahl Hosts",
+    "nvme": {
+      "label": "NVMe-Speicher-Tiering",
+      "activeMemoryPct": "Aktiver Speicher %",
+      "activeIndicator": "NVMe-Tiering aktiv — DRAM halbiert",
+      "prerequisite": "Erfordert NVMe Klasse D+ mit 3+ DWPD"
+    }
   },
   "workload": {
-    "label": "Workload Profile",
-    "vmCount": "Number of VMs",
-    "avgVcpu": "Average vCPU per VM",
-    "avgVram": "Average vRAM per VM (GB)",
-    "avgStorage": "Average Storage per VM (GB)",
-    "cpuOvercommit": "vCPU Over-Commit Ratio",
-    "ramOvercommit": "RAM Over-Commit Ratio"
+    "label": "Workload-Profil",
+    "vmCount": "Anzahl VMs",
+    "avgVcpu": "Durchschnittliche vCPU pro VM",
+    "avgVram": "Durchschnittlicher vRAM pro VM (GB)",
+    "avgStorage": "Durchschnittlicher Speicher pro VM (GB)",
+    "cpuOvercommit": "vCPU-Überbuchungsverhältnis",
+    "ramOvercommit": "RAM-Überbuchungsverhältnis",
+    "gpu": {
+      "label": "KI / GPU-Workloads",
+      "vmCount": "GPU-beschleunigte VMs",
+      "memoryGB": "vGPU-Profil-Speicher (GB)"
+    }
   },
   "storage": {
     "label": "Hauptspeicher",
@@ -52,8 +73,12 @@
     "minHosts": "mind. {count} Hosts"
   },
   "warnings": {
-    "vcfaMinCores": "WARNING: VCF Automation (VCFA) requires a host with at least 12 physical cores (24 threads). Deployment will be blocked with the current host specification.",
-    "dedupStretchExclusion": "Global Deduplication cannot be enabled with Stretch Cluster."
+    "vcfaMinCores": "WARNUNG: VCF Automation (VCFA) erfordert einen Host mit mindestens 12 physischen Kernen (24 Threads). Die Bereitstellung wird mit der aktuellen Host-Spezifikation blockiert.",
+    "dedupStretchExclusion": "Globale Deduplizierung kann nicht mit Stretch Cluster aktiviert werden.",
+    "stretchDedup": "Globale Deduplizierung ist im Stretch-Cluster-Modus deaktiviert."
+  },
+  "validation": {
+    "stretchMinHosts": "Der Stretch-Cluster benötigt mindestens 3 Hosts pro Standort."
   },
   "results": {
     "toolbar": {

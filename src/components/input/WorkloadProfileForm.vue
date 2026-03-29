@@ -13,6 +13,8 @@ const {
   avgStorageGbPerVm,
   cpuOvercommitRatio,
   ramOvercommitRatio,
+  gpuVmCount,
+  vgpuMemoryGB,
 } = storeToRefs(input)
 </script>
 
@@ -73,6 +75,29 @@ const {
           <option :value="1.5">1.5:1</option>
           <option :value="2">2:1</option>
         </select>
+      </div>
+    </div>
+
+    <!-- AI / GPU Workloads (GPU-01/02/03) -->
+    <div class="space-y-3 pt-2 border-t border-gray-100">
+      <h3 class="text-sm font-semibold text-gray-700">{{ t('workload.gpu.label') }}</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <NumberSliderInput
+          v-model="gpuVmCount"
+          :label="t('workload.gpu.vmCount')"
+          :min="0"
+          :max="50"
+          :step="1"
+        />
+        <NumberSliderInput
+          v-if="gpuVmCount > 0"
+          v-model="vgpuMemoryGB"
+          :label="t('workload.gpu.memoryGB')"
+          unit="GB"
+          :min="8"
+          :max="80"
+          :step="8"
+        />
       </div>
     </div>
   </section>

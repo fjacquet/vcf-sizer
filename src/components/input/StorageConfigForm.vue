@@ -10,12 +10,13 @@ import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
 const { t } = useI18n()
 const input = useInputStore()
 const calc = useCalculationStore()
-const { storageType, fttLevel, raidType, dedupEnabled, dedupRatio } = storeToRefs(input)
+const { storageType, fttLevel, raidType, dedupEnabled, dedupRatio, deploymentMode } = storeToRefs(input)
 const { validationErrors, storage } = storeToRefs(calc)
 
 const dedupExclusionError = computed(() =>
   validationErrors.value.find(e => e.code === 'DEDUP_STRETCH_EXCLUSION')
 )
+const isStretch = computed(() => deploymentMode.value === 'stretch')
 
 const storageTypes = [
   { value: 'vsan-esa' as const, labelKey: 'storage.vsanEsa' },
@@ -77,16 +78,26 @@ const storageTypes = [
         ({{ t('storage.minHosts', { count: storage.minHostsRequired }) }})
       </div>
 
-      <!-- Global Deduplication (STOR-05, STOR-06) -->
+      <!-- Global Deduplication (STOR-05, STOR-06, STRCH-04) -->
       <div class="space-y-2">
-        <label class="flex items-center gap-2 cursor-pointer">
+        <label
+          :class="['flex items-center gap-2', isStretch ? 'cursor-not-allowed opacity-50' : 'cursor-pointer']"
+        >
           <input
             type="checkbox"
             v-model="dedupEnabled"
-            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            :disabled="isStretch"
+            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
           />
           <span class="text-sm font-medium text-gray-700">{{ t('storage.dedupEnabled') }}</span>
         </label>
+        <!-- Stretch dedup mutual exclusion info (STRCH-04) -->
+        <div
+          v-if="isStretch"
+          class="text-xs text-gray-500 italic"
+        >
+          {{ t('warnings.stretchDedup') }}
+        </div>
         <WarningBanner
           v-if="dedupExclusionError"
           :message="t('warnings.dedupStretchExclusion')"

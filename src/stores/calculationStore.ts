@@ -8,6 +8,7 @@ import { useInputStore } from './inputStore'
 import { calcManagement } from '../engine/management'
 import { calcCompute } from '../engine/compute'
 import { calcStorage } from '../engine/storage'
+import { calcStretch } from '../engine/stretch'
 import { validateInputs } from '../engine/validation'
 
 export const useCalculationStore = defineStore('calculation', () => {
@@ -32,6 +33,10 @@ export const useCalculationStore = defineStore('calculation', () => {
       ramOvercommitRatio: input.ramOvercommitRatio,
       managementCores: management.value.totalCores,
       managementRamGB: management.value.totalRamGB,
+      nvmeTieringEnabled: input.nvmeTieringEnabled,
+      activeMemoryPct: input.activeMemoryPct,
+      gpuVmCount: input.gpuVmCount,
+      vgpuMemoryGB: input.vgpuMemoryGB,
     })
   )
 
@@ -48,6 +53,17 @@ export const useCalculationStore = defineStore('calculation', () => {
     })
   )
 
+  // Stretch cluster topology (only meaningful when deploymentMode === 'stretch')
+  const stretch = computed(() =>
+    calcStretch({
+      preferredSiteHosts: input.preferredSiteHosts,
+      secondarySiteHosts: input.secondarySiteHosts,
+      hostStorageTB: input.hostStorageTB,
+      vmCount: input.vmCount,
+      avgStorageGbPerVm: input.avgStorageGbPerVm,
+    })
+  )
+
   // Validation warnings and errors
   const validationErrors = computed(() =>
     validateInputs({
@@ -57,9 +73,11 @@ export const useCalculationStore = defineStore('calculation', () => {
       hostCount: input.hostCount,
       dedupEnabled: input.dedupEnabled,
       storageType: input.storageType,
+      preferredSiteHosts: input.preferredSiteHosts,
+      secondarySiteHosts: input.secondarySiteHosts,
     })
   )
 
   // All returned values are computed — ZERO ref() in this store (CALC-02)
-  return { management, compute, storage, validationErrors }
+  return { management, compute, storage, validationErrors, stretch }
 })

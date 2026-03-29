@@ -76,3 +76,47 @@ describe('validateInputs — Dedup + stretch mutual exclusion', () => {
     expect(errors.filter(e => e.code === 'DEDUP_STRETCH_EXCLUSION').length).toBe(0)
   })
 })
+
+describe('validateInputs — Stretch Cluster minimum hosts (STRCH-01)', () => {
+  it('stretch, preferredSiteHosts=2, secondarySiteHosts=2 → STRETCH_MIN_HOSTS error (< 3 per site)', () => {
+    const errors = validateInputs({
+      deploymentMode: 'stretch',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 4,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      preferredSiteHosts: 2,
+      secondarySiteHosts: 2,
+    })
+    expect(errors.some(e => e.code === 'STRETCH_MIN_HOSTS')).toBe(true)
+  })
+
+  it('stretch, preferredSiteHosts=3, secondarySiteHosts=3 → no STRETCH_MIN_HOSTS error', () => {
+    const errors = validateInputs({
+      deploymentMode: 'stretch',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 6,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      preferredSiteHosts: 3,
+      secondarySiteHosts: 3,
+    })
+    expect(errors.filter(e => e.code === 'STRETCH_MIN_HOSTS').length).toBe(0)
+  })
+
+  it('ha mode, preferredSiteHosts=2, secondarySiteHosts=2 → no STRETCH_MIN_HOSTS (not stretch mode)', () => {
+    const errors = validateInputs({
+      deploymentMode: 'ha',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 4,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      preferredSiteHosts: 2,
+      secondarySiteHosts: 2,
+    })
+    expect(errors.filter(e => e.code === 'STRETCH_MIN_HOSTS').length).toBe(0)
+  })
+})
