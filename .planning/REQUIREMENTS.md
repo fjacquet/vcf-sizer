@@ -113,7 +113,26 @@
 - [x] **EXPORT-03**: Export to Markdown: formatted sizing report with all computed values
 - [x] **EXPORT-04**: Export to PDF via browser print CSS (`@media print`) — no html2canvas dependency
 
-## v2 Requirements
+## v2.0 Requirements (Milestone v2.0 — Architecture Correctness & vSAN Max)
+
+### Stretch Cluster Correctness
+
+- [ ] **STRCH-06**: Tool enforces a minimum 10 Gbps inter-site bandwidth recommendation (floor on `minBandwidthGbps`), regardless of computed workload bandwidth
+- [ ] **STRCH-07**: Tool surfaces a `bandwidthFloorApplied` indicator when the workload formula produces a value below the 10 Gbps floor, so users understand why the recommendation is higher than the formula result
+- [ ] **STRCH-08**: Stretch network checklist displayed when stretch mode is active: MTU 9000, site-to-site RTT < 5ms, witness RTT threshold derived from per-site host count (< 200ms for ≤10 hosts/site, < 100ms for 11–15 hosts/site)
+
+### Architecture Model (Dedicated Domains vs Co-located)
+
+- [ ] **ARCH-01**: User can toggle "Dedicated management cluster" in HA and Stretch modes; when enabled, tool validates that a minimum of 4 management-domain hosts are provisioned (Broadcom KB 392993 — vSAN management domain minimum)
+- [ ] **ARCH-02**: Tool surfaces an informational note when co-located mode is selected with fewer than 3 hosts (vSAN) or fewer than 2 hosts (FC/NFS), pointing to the minimum for a converged VCF deployment
+
+### vSAN Max / Storage Clusters
+
+- [ ] **VMAX-01**: User can select "vSAN Max (Storage Cluster)" as a storage type; tool presents 5 ReadyNode profiles (XS / SM / MED / LRG / XL) with capacity per node (20 / 50 / 100 / 150 / 200 TB); tool sizes the storage cluster (node count, raw capacity, usable capacity) using the selected profile and node count
+- [ ] **VMAX-02**: When vSAN Max is selected, the compute cluster is sized independently from the storage cluster — compute hosts use the standard HCI engine (no vSAN overhead on compute); tool outputs two separate host counts: storage cluster and compute cluster
+- [ ] **VMAX-03**: Validation rule fires when vSAN Max storage node count is below 4 (minimum cluster size for all vSAN-SC profiles)
+
+## v2+ Future Requirements
 
 ### Extended Workload Types
 
@@ -135,7 +154,14 @@
 
 - **GPU-V2-01**: Full vGPU profile library (A16, A30, A100, H100 profiles with exact memory specs)
 
-## Out of Scope
+## Out of Scope (v2.0)
+
+| Feature | Reason |
+|---------|--------|
+| vSAN Max stretched topology | Separate feature from standard vSAN Max disaggregated model; defer to v2.1 |
+| VCF 9 Standard/Consolidated terminology in UI | VCF 9 retired these terms; using "Dedicated Domains" / "Co-located" instead |
+
+## Out of Scope (general)
 
 | Feature | Reason |
 |---------|--------|
@@ -165,12 +191,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NVME-01 to NVME-04 | Phase 3 | Pending |
 | STRCH-01 to STRCH-05 | Phase 3 | Pending |
 | GPU-01 to GPU-03 | Phase 3 | Pending |
+| STRCH-06 to STRCH-08 | Phase 4 | Pending |
+| ARCH-01, ARCH-02 | Phase 4 | Pending |
+| VMAX-01 to VMAX-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 55 total
-- Mapped to phases: 55
+- v2.0 requirements: 8 total
+- Mapped to phases: 63
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 — traceability updated for 3-phase coarse roadmap*
+*Last updated: 2026-03-29 — v2.0 requirements added (STRCH-06/07/08, ARCH-01/02, VMAX-01/02/03)*
