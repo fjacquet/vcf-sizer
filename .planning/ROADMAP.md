@@ -37,6 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3/3 plans complete
 
 Plans:
+
 - [x] 01-01-PLAN.md — Project scaffold, Tailwind v4, vue-i18n v11 with all four Swiss locales, Pinia stores, LanguageSwitcher
 - [x] 01-02-PLAN.md — Calculation engine TDD: management.ts, compute.ts, storage.ts, validation.ts + calculationStore
 - [x] 01-03-PLAN.md — Input panel components: DeploymentModelSelector, HostSpecsForm, WorkloadProfileForm, StorageConfigForm + human verify
@@ -57,6 +58,7 @@ Plans:
 **Plans:** 2/2 plans complete
 
 Plans:
+
 - [x] 02-01-PLAN.md — Install deps + split-screen layout + HostCountCard + CoresChart + RamChart + StorageChart
 - [x] 02-02-PLAN.md — URL state composable (lz-string + Zod) + main.ts hydration + ExportToolbar (Share URL, Markdown, PDF print)
 
@@ -75,6 +77,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
+
 - [ ] 03-01-PLAN.md — Engine + stores: extend types.ts, compute.ts (NVMe+GPU TDD), new stretch.ts (TDD), extend validation.ts (STRETCH_MIN_HOSTS), extend inputStore + calculationStore
 - [ ] 03-02-PLAN.md — UI: HostSpecsForm (NVMe section), DeploymentModelSelector (stretch site inputs + witness), WorkloadProfileForm (GPU section), StorageConfigForm (dedup disable), all 4 locale files + human verify
 
@@ -93,10 +96,12 @@ Plans:
 **Plans:** 2/2 plans complete
 
 Plans:
+
 - [x] 04-01-PLAN.md — Engine + stores: extend types.ts (ManagementArchitecture, StretchNetworkChecklist, StretchResult fields), TDD bandwidth floor + checklist in stretch.ts, validation rules (ARCH-01/02), inputStore + calculationStore + useUrlState sync
 - [x] 04-02-PLAN.md — UI: DeploymentModelSelector (architecture toggle + bandwidth floor indicator), StretchNetworkChecklist.vue output card, ResultsPanel wiring, all 4 locale files + human verify
 
 **Key constraints:**
+
 - `engine/types.ts` additive changes (new union members, new interfaces, new optional fields) must land before any other file in this phase
 - Bandwidth floor patch must update the existing stretch test first (TDD: write the failing test before adding the floor constant)
 - All new i18n keys must appear in all 4 locale files (en, fr, de, it) in the same commit as the UI component that uses them
@@ -114,9 +119,15 @@ Plans:
   3. User sees a validation error when the storage node count is below 4, preventing under-provisioning of the minimum vSAN-SC cluster size
   4. A shared URL containing a vSAN Max configuration restores the storage type, selected profile, storage node count, and compute node count exactly on reload
 
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+
+- [ ] 05-01-PLAN.md — Engine layer: extend types.ts (VsanMaxProfile, VsanMaxInputs, VsanMaxResult, StorageType union), convert calcStorage() to exhaustive switch, TDD calcVsanMax() in engine/vsanMax.ts, validation rules (DEDUP_NETWORK_SPEED, VSAN_MAX_MIN_NODES), inputStore + calculationStore + useUrlState triple-sync
+- [ ] 05-02-PLAN.md — UI layer: StorageConfigForm (vSAN Max button + profile dropdown + storage nodes slider), HostSpecsForm (network speed button group + compute cluster note), VsanMaxClusterCard.vue (new results card), ResultsPanel wiring, DeploymentModelSelector stretch bandwidth cap, all 4 locale files + human verify
 
 **Key constraints:**
+
 - Zod URL schema must be updated atomically with any new `inputStore` field; add a `URL_STATE_FIELDS` constant and a schema completeness test before writing UI
 - `calcStorage()` must be converted to an exhaustive `switch` with a `never` case before `'vsan-max'` is added to the `StorageType` union
 - `calcVsanMax()` must live in `engine/vsanMax.ts` and receive a `VsanMaxInputs` argument with distinct `storageNodeCount` and `computeNodeCount` — never reuse the HCI `hostCount`
@@ -126,7 +137,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -134,4 +145,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Outputs, Charts and Export | 2/2 | Complete | 2026-03-29 |
 | 3. Advanced Features and Polish | 0/2 | Not started | - |
 | 4. Correctness and Architecture Validation | 2/2 | Complete   | 2026-03-29 |
-| 5. vSAN Max Storage Cluster | 0/? | Not started | - |
+| 5. vSAN Max Storage Cluster | 0/2 | Not started | - |
