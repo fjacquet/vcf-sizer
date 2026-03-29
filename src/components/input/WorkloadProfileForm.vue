@@ -19,8 +19,8 @@ const {
 </script>
 
 <template>
-  <section class="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
-    <h2 class="text-base font-semibold text-gray-900">{{ t('workload.label') }}</h2>
+  <section class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('workload.label') }}</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <NumberSliderInput
         v-model="vmCount"
@@ -54,10 +54,10 @@ const {
         :step="10"
       />
       <div class="space-y-1">
-        <label class="text-sm font-medium text-gray-700">{{ t('workload.cpuOvercommit') }}</label>
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('workload.cpuOvercommit') }}</label>
         <select
           v-model="cpuOvercommitRatio"
-          class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         >
           <option :value="1">1:1</option>
           <option :value="2">2:1</option>
@@ -66,10 +66,10 @@ const {
         </select>
       </div>
       <div class="space-y-1">
-        <label class="text-sm font-medium text-gray-700">{{ t('workload.ramOvercommit') }}</label>
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('workload.ramOvercommit') }}</label>
         <select
           v-model="ramOvercommitRatio"
-          class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         >
           <option :value="1">1:1</option>
           <option :value="1.5">1.5:1</option>
@@ -79,8 +79,8 @@ const {
     </div>
 
     <!-- AI / GPU Workloads (GPU-01/02/03) -->
-    <div class="space-y-3 pt-2 border-t border-gray-100">
-      <h3 class="text-sm font-semibold text-gray-700">{{ t('workload.gpu.label') }}</h3>
+    <div class="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('workload.gpu.label') }}</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <NumberSliderInput
           v-model="gpuVmCount"

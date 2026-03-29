@@ -15,8 +15,8 @@ const isSufficient = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
       {{ t('results.hostCount.title') }}
     </h2>
     <div class="flex items-center gap-6">
@@ -27,9 +27,9 @@ const isSufficient = computed(() => {
         >
           {{ compute.recommendedHostCount }}
         </span>
-        <span class="text-xs text-gray-500 mt-1">{{ t('results.hostCount.recommended') }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('results.hostCount.recommended') }}</span>
       </div>
-      <div class="flex flex-col gap-1 text-sm text-gray-600">
+      <div class="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
         <div class="flex items-center gap-2">
           <span class="w-24 text-right font-medium">{{ t('results.hostCount.minForCpu') }}:</span>
           <span class="font-bold">{{ compute.minHostsForCpu }}</span>

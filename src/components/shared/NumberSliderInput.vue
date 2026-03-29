@@ -17,9 +17,9 @@ function onInput(e: Event) {
 
 <template>
   <div class="flex flex-col gap-1">
-    <label class="text-sm font-medium text-gray-700">
+    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
       {{ props.label }}
-      <span v-if="props.unit" class="text-gray-400 font-normal ml-1">{{ props.unit }}</span>
+      <span v-if="props.unit" class="text-gray-400 dark:text-gray-500 font-normal ml-1">{{ props.unit }}</span>
     </label>
     <div class="flex items-center gap-3">
       <input
@@ -28,7 +28,7 @@ function onInput(e: Event) {
         :min="props.min"
         :max="props.max"
         :step="props.step ?? 1"
-        class="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         @input="onInput"
         @change="onInput"
       />

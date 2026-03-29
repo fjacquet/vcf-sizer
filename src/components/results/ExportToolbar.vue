@@ -40,19 +40,19 @@ function handlePrint() {
 <template>
   <div class="flex flex-wrap gap-2 pt-2 print:hidden">
     <button
-      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
+      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       @click="handleShare"
     >
       {{ copied ? t('results.toolbar.copied') : t('results.toolbar.share') }}
     </button>
     <button
-      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
+      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       @click="handleExportMarkdown"
     >
       {{ t('results.toolbar.exportMd') }}
     </button>
     <button
-      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
+      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       @click="handlePrint"
     >
       {{ t('results.toolbar.print') }}

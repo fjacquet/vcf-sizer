@@ -17,25 +17,25 @@ const rows = [
 </script>
 
 <template>
-  <section class="bg-white rounded-lg border border-gray-200 p-4">
-    <h2 class="text-base font-semibold text-gray-900 mb-3">{{ t('management.label') }}</h2>
+  <section class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">{{ t('management.label') }}</h2>
     <table class="w-full text-xs">
       <thead>
-        <tr class="text-gray-500 border-b border-gray-100">
+        <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
           <th class="text-left pb-1">{{ t('management.component') }}</th>
           <th class="text-right pb-1">{{ t('management.vcpu') }}</th>
           <th class="text-right pb-1">{{ t('management.ramLabel') }}</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in rows" :key="row.key" class="border-b border-gray-50">
+        <tr v-for="row in rows" :key="row.key" class="border-b border-gray-50 dark:border-gray-700 text-gray-700 dark:text-gray-300">
           <td class="py-1">{{ t(row.key) }}</td>
           <td class="text-right font-mono">{{ row.cores() }}</td>
           <td class="text-right font-mono">{{ row.ram() }}</td>
         </tr>
       </tbody>
       <tfoot>
-        <tr class="font-semibold text-gray-800 border-t border-gray-200">
+        <tr class="font-semibold text-gray-800 dark:text-gray-200 border-t border-gray-200 dark:border-gray-600">
           <td class="pt-2">{{ t('management.totalCores') }}</td>
           <td class="text-right font-mono pt-2">{{ management.totalCores }}</td>
           <td class="text-right font-mono pt-2">{{ management.totalRamGB }} GB</td>

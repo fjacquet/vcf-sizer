@@ -24,8 +24,8 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
 </script>
 
 <template>
-  <section class="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
-    <h2 class="text-base font-semibold text-gray-900">{{ t('host.label') }}</h2>
+  <section class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('host.label') }}</h2>
 
     <!-- VCFA blocker — must be unmissable (MGMT-07) -->
     <WarningBanner
@@ -49,10 +49,10 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
         :max="8"
         :step="1"
       />
-      <div class="text-sm text-gray-600 sm:col-span-2">
+      <div class="text-sm text-gray-600 dark:text-gray-400 sm:col-span-2">
         {{ t('host.totalCores') }}:
         <span
-          :class="totalCoresPerHost < 12 ? 'text-red-600 font-bold' : 'text-gray-900 font-semibold'"
+          :class="totalCoresPerHost < 12 ? 'text-red-600 font-bold' : 'text-gray-900 dark:text-gray-100 font-semibold'"
         >
           {{ totalCoresPerHost }}
         </span>
@@ -83,14 +83,14 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
     </div>
 
     <!-- NVMe Memory Tiering (NVME-01/02/03/04) -->
-    <div class="space-y-3 pt-2 border-t border-gray-100">
+    <div class="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-700">
       <label class="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
           v-model="nvmeTieringEnabled"
-          class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
         />
-        <span class="text-sm font-medium text-gray-700">{{ t('host.nvme.label') }}</span>
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('host.nvme.label') }}</span>
       </label>
       <template v-if="nvmeTieringEnabled">
         <NumberSliderInput
@@ -104,12 +104,12 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
         <!-- Green indicator when tiering is active (activeMemoryPct <= 50) (NVME-03) -->
         <div
           v-if="nvmeTieringActive"
-          class="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1"
+          class="text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded px-2 py-1"
         >
           {{ t('host.nvme.activeIndicator') }}
         </div>
         <!-- Prerequisite notice always shown when toggle is on (NVME-04) -->
-        <div class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+        <div class="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded px-2 py-1">
           {{ t('host.nvme.prerequisite') }}
         </div>
       </template>

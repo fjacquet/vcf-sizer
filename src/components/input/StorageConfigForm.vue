@@ -26,8 +26,8 @@ const storageTypes = [
 </script>
 
 <template>
-  <section class="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
-    <h2 class="text-base font-semibold text-gray-900">{{ t('storage.label') }}</h2>
+  <section class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('storage.label') }}</h2>
 
     <!-- Storage type buttons (STOR-01) -->
     <div class="flex gap-2 flex-wrap">
@@ -38,7 +38,7 @@ const storageTypes = [
           'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
           storageType === type.value
             ? 'bg-blue-600 text-white border-blue-600'
-            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
         ]"
         @click="storageType = type.value"
       >
@@ -50,20 +50,20 @@ const storageTypes = [
     <template v-if="storageType === 'vsan-esa'">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="space-y-1">
-          <label class="text-sm font-medium text-gray-700">{{ t('storage.fttLevel') }}</label>
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('storage.fttLevel') }}</label>
           <select
             v-model="fttLevel"
-            class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option :value="1">FTT=1</option>
             <option :value="2">FTT=2</option>
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-sm font-medium text-gray-700">{{ t('storage.raidType') }}</label>
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('storage.raidType') }}</label>
           <select
             v-model="raidType"
-            class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="raid1">{{ t('storage.raid1') }}</option>
             <option value="raid5">{{ t('storage.raid5') }}</option>
@@ -73,8 +73,8 @@ const storageTypes = [
       </div>
 
       <!-- RAID scheme badge -->
-      <div class="text-xs text-gray-500">
-        {{ t('storage.raidType') }}: <span class="font-mono text-blue-700">{{ storage.raidScheme }}</span>
+      <div class="text-xs text-gray-500 dark:text-gray-400">
+        {{ t('storage.raidType') }}: <span class="font-mono text-blue-700 dark:text-blue-400">{{ storage.raidScheme }}</span>
         ({{ t('storage.minHosts', { count: storage.minHostsRequired }) }})
       </div>
 
@@ -87,14 +87,14 @@ const storageTypes = [
             type="checkbox"
             v-model="dedupEnabled"
             :disabled="isStretch"
-            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
+            class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
           />
-          <span class="text-sm font-medium text-gray-700">{{ t('storage.dedupEnabled') }}</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('storage.dedupEnabled') }}</span>
         </label>
         <!-- Stretch dedup mutual exclusion info (STRCH-04) -->
         <div
           v-if="isStretch"
-          class="text-xs text-gray-500 italic"
+          class="text-xs text-gray-500 dark:text-gray-400 italic"
         >
           {{ t('warnings.stretchDedup') }}
         </div>
@@ -115,20 +115,20 @@ const storageTypes = [
     </template>
 
     <!-- Storage capacity summary (STOR-08) -->
-    <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 border-t border-gray-100 pt-3">
+    <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
       <span>{{ t('storage.rawCapacity') }}</span>
       <span class="font-mono text-right">{{ storage.rawCapacityTB.toFixed(2) }} TB</span>
       <template v-if="storageType === 'vsan-esa'">
         <span>{{ t('storage.raidOverhead') }}</span>
         <span class="font-mono text-right">{{ storage.raidMultiplier }}x</span>
         <span>{{ t('storage.netUsable') }}</span>
-        <span class="font-mono text-right text-green-700 font-semibold">
+        <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
           {{ storage.safeUsableCapacityTB.toFixed(2) }} TB
         </span>
       </template>
       <template v-else>
         <span>{{ t('storage.netUsablePassthrough') }}</span>
-        <span class="font-mono text-right text-green-700 font-semibold">
+        <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
           {{ storage.rawCapacityTB.toFixed(2) }} TB
         </span>
       </template>
