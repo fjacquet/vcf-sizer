@@ -56,6 +56,12 @@
     "dedupStretchExclusion": "Global Deduplication cannot be enabled with Stretch Cluster."
   },
   "results": {
+    "toolbar": {
+      "share": "Share URL",
+      "copied": "Copied!",
+      "exportMd": "Export Markdown",
+      "print": "Print / PDF"
+    },
     "hostCount": {
       "title": "Recommended Host Count",
       "recommended": "Recommended Hosts",

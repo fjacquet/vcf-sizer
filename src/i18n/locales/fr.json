@@ -56,6 +56,12 @@
     "dedupStretchExclusion": "La déduplication globale ne peut pas être activée avec le cluster étendu."
   },
   "results": {
+    "toolbar": {
+      "share": "Partager l'URL",
+      "copied": "Copié !",
+      "exportMd": "Exporter en Markdown",
+      "print": "Imprimer / PDF"
+    },
     "hostCount": {
       "title": "Nombre d'hôtes recommandé",
       "recommended": "Hôtes recommandés",
