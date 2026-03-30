@@ -19,10 +19,10 @@
 
 ### Domain Management UI
 
-- [ ] **UI-01**: A tab strip above the input panel shows one tab per workload domain; clicking a tab makes that domain's inputs active
-- [ ] **UI-02**: User can add a new workload domain via an "Add Domain" button; new domain appends with default name "WLD-N" (N = current count + 1) and all default values
-- [ ] **UI-03**: User can remove a workload domain via a per-tab delete button; a confirmation dialog appears only when the domain has non-default data; the last remaining domain cannot be deleted
-- [ ] **UI-04**: User can rename a workload domain by double-clicking its tab label; inline edit field with blur/Enter to confirm, Escape to cancel
+- [x] **UI-01**: A tab strip above the input panel shows one tab per workload domain; clicking a tab makes that domain's inputs active
+- [x] **UI-02**: User can add a new workload domain via an "Add Domain" button; new domain appends with default name "WLD-N" (N = current count + 1) and all default values
+- [x] **UI-03**: User can remove a workload domain via a per-tab delete button; a confirmation dialog appears only when the domain has non-default data; the last remaining domain cannot be deleted
+- [x] **UI-04**: User can rename a workload domain by double-clicking its tab label; inline edit field with blur/Enter to confirm, Escape to cancel
 - [ ] **UI-05**: Management domain inputs (host specs + architecture toggle) are displayed in a dedicated section separate from the workload domain tab strip — not as a tab
 
 ### URL State
@@ -34,11 +34,11 @@
 
 ### Input Forms (per-domain)
 
-- [ ] **FORM-01**: `HostSpecsForm` accepts a `domainId` prop and reads/writes to the corresponding domain in `workloadDomains` via `computed({ get, set })`
-- [ ] **FORM-02**: `WorkloadProfileForm` accepts a `domainId` prop; VM count, vCPU/VM, vRAM/VM, storage/VM, and overcommit ratios are all per-domain
-- [ ] **FORM-03**: `StorageConfigForm` accepts a `domainId` prop; storage type selection and all storage-type-specific options (vSAN dedup, vSAN Max profile, etc.) are per-domain
-- [ ] **FORM-04**: `DeploymentModelSelector` accepts a `domainId` prop; `deploymentMode` (Simple/HA/Stretch) and all stretch-specific inputs (`preferredSiteHosts`, `secondarySiteHosts`) are per-domain
-- [ ] **FORM-05**: NVMe tiering, AI/GPU workload, and vSAN Max options are per-domain — each domain independently enables or disables these features
+- [x] **FORM-01**: `HostSpecsForm` accepts a `domainId` prop and reads/writes to the corresponding domain in `workloadDomains` via `computed({ get, set })`
+- [x] **FORM-02**: `WorkloadProfileForm` accepts a `domainId` prop; VM count, vCPU/VM, vRAM/VM, storage/VM, and overcommit ratios are all per-domain
+- [x] **FORM-03**: `StorageConfigForm` accepts a `domainId` prop; storage type selection and all storage-type-specific options (vSAN dedup, vSAN Max profile, etc.) are per-domain
+- [x] **FORM-04**: `DeploymentModelSelector` accepts a `domainId` prop; `deploymentMode` (Simple/HA/Stretch) and all stretch-specific inputs (`preferredSiteHosts`, `secondarySiteHosts`) are per-domain
+- [x] **FORM-05**: NVMe tiering, AI/GPU workload, and vSAN Max options are per-domain — each domain independently enables or disables these features
 
 ### Results (per-domain + aggregate)
 
