@@ -24,7 +24,7 @@ Full details: `.planning/milestones/v2.0-ROADMAP.md`
 
 - [x] **Phase 6: Markdown Extraction and Enrichment** — Complete, section-rich Markdown report from a dedicated composable (completed 2026-03-30)
 - [x] **Phase 7: Print/PDF CSS Overhaul** — Professional print layout with page geometry, breaks, header, footer, and chart fallbacks (completed 2026-03-30)
-- [ ] **Phase 8: PPTX Core Slides** — Downloadable VCF-branded PowerPoint covering all always-present slides
+- [x] **Phase 8: PPTX Core Slides** — Downloadable VCF-branded PowerPoint covering all always-present slides (completed 2026-03-30)
 - [ ] **Phase 9: PPTX Conditional Slides and Polish** — Conditional slides for optional features plus integration polish
 
 ---
@@ -78,7 +78,7 @@ Plans:
 Plans:
 - [x] 08-01-PLAN.md — Wave 0 TDD: create failing test file for all PPTX data-mapping helpers (PPTX-01..09)
 - [x] 08-02-PLAN.md — Install pptxgenjs, implement usePptxExport.ts with slide master and 7 slides (PPTX-01..09, PPTX-15)
-- [ ] 08-03-PLAN.md — Add Download PPTX button to ExportToolbar.vue with i18n keys (PPTX-01)
+- [x] 08-03-PLAN.md — Add Download PPTX button to ExportToolbar.vue with i18n keys (PPTX-01)
 **UI hint**: yes
 
 ### Phase 9: PPTX Conditional Slides and Polish
@@ -106,5 +106,5 @@ Plans:
 | 5. vSAN Max Storage Cluster | v2.0 | 2/2 | Complete | 2026-03-29 |
 | 6. Markdown Extraction and Enrichment | v2.1 | 3/3 | Complete | 2026-03-30 |
 | 7. Print/PDF CSS Overhaul | v2.1 | 3/3 | Complete | 2026-03-30 |
-| 8. PPTX Core Slides | v2.1 | 2/3 | In Progress|  |
+| 8. PPTX Core Slides | v2.1 | 3/3 | Complete   | 2026-03-30 |
 | 9. PPTX Conditional Slides and Polish | v2.1 | 0/? | Not started | - |
