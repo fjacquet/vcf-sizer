@@ -163,7 +163,11 @@ Plans:
   1. A horizontal 3-step indicator (1: Topology, 2: Management, 3: Workloads) is visible at all times during the sizing workflow with clear active/completed/upcoming visual states
   2. User can navigate to a previous step at any time — all input values entered in later steps are fully preserved on return
   3. Copying the shareable URL and pasting it into a new browser tab never restores or encodes the wizard step position — the app always opens at step 1 regardless of which step was active when the URL was copied
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 16-01-PLAN.md — uiStore extension, tests (WIZARD-02, WIZARD-07), and i18n keys for all 4 locales
+- [ ] 16-02-PLAN.md — WizardStepper.vue, TopologySelector.vue, and App.vue restructuring (WIZARD-01, WIZARD-02)
 **UI hint**: yes
 
 ### Phase 17: Wizard Step Content and Export Accuracy
@@ -203,5 +207,5 @@ Plans:
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete | 2026-03-30 |
 | 14. Multi-Domain Exports | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 15. Engine Correctness | v3.1 | 2/2 | Complete   | 2026-03-30 |
-| 16. Wizard Scaffold and State | v3.1 | 0/? | Not started | - |
+| 16. Wizard Scaffold and State | v3.1 | 0/2 | Not started | - |
 | 17. Wizard Step Content and Export Accuracy | v3.1 | 0/? | Not started | - |
