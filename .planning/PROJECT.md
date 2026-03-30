@@ -49,21 +49,41 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 
 ### Active
 
-- [ ] Chart images embedded in PPTX slides (rasterized from Chart.js canvas)
-- [ ] Localized PPTX and Markdown exports (EN-only for v2.1; localization pipeline deferred)
-- [ ] In-app Markdown preview panel before download
-- [ ] Dark mode print stylesheet
+- [ ] Multiple workload domains with independent host specs, workload profiles, storage configs, and optional features per domain
+- [ ] Management domain with independent host specs (decoupled from workload domains)
+- [ ] Tab-based domain UI with unlimited add/remove of named workload domains
+- [ ] Per-domain results + aggregate totals across all domains
+- [ ] Full multi-domain URL state (lz-string/Zod with variable-length domain arrays)
+- [ ] Per-domain sections in Markdown and PPTX exports
+
+### Deferred (post-v3.0)
+
+- Chart images embedded in PPTX slides (rasterized from Chart.js canvas)
+- Localized PPTX and Markdown exports (EN-only; localization pipeline deferred)
+- In-app Markdown preview panel before download
+- Dark mode print stylesheet
 
 ### Out of Scope
 
 - Backend/server-side logic — client-only SPA for zero-infrastructure hosting
 - User accounts or saved sessions (URL sharing covers persistence)
 - vSphere 7.x or VCF 5.x calculations — VCF 9.x only
-- vSAN Max stretched topology — disaggregated vSAN-SC + stretch is a separate feature; defer to v2.2
 - vSAN OSA legacy calculations — out of scope for VCF 9.x focus
-- Side-by-side configuration comparison, localStorage saves, dark mode — UI backlog
-- Per-locale export file naming (e.g., `rapport-vcf.md` for FR) — deferred
+- Side-by-side comparison columns, localStorage saves — UI backlog
+- Per-locale export file naming — deferred
 - Server-side PDF rendering — `jsPDF`/`html2canvas` rejected: bundle cost and quality
+
+## Current Milestone: v3.0 Multi-Domain Support
+
+**Goal:** Support N independent workload domains in a single VCF sizing session, each with its own host specs, workload profile, storage config, and optional features — plus an independent management domain with its own hardware.
+
+**Target features:**
+- Tab-based domain UI — unlimited named workload domains, add/remove dynamically
+- Per-domain full independence: host specs, workload profile, storage type/config, NVMe tiering, AI/GPU, stretch topology, vSAN Max
+- Management domain: independent host specs decoupled from workload domains
+- Results: per-domain host count + utilization + aggregate totals
+- URL state: full multi-domain config (lz-string/Zod with variable-length domain arrays)
+- Exports: per-domain sections in Markdown and PPTX
 
 ## Context
 
@@ -117,4 +137,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after v2.1 milestone*
+*Last updated: 2026-03-30 — v3.0 milestone started*
