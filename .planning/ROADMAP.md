@@ -126,10 +126,8 @@ Plans:
   3. Downloading the PPTX produces a presentation with one slide per workload domain showing the domain name, key inputs, and results summary
   4. The PPTX includes an aggregate totals slide after all per-domain domain slides
 **Plans**: 2 plans
-Plans:
-
-- [ ] 10-01-PLAN.md — Types, defaults, and inputStore refactor (DOM-01, DOM-02, DOM-03, DOM-04)
-- [ ] 10-02-PLAN.md — calculationStore refactor and integration (DOM-05, DOM-06)
+- [ ] 14-01-PLAN.md — Multi-domain Markdown export (EXP-01, EXP-02)
+- [ ] 14-02-PLAN.md — Multi-domain PPTX export (EXP-03, EXP-04)
 
 ---
 
@@ -150,4 +148,4 @@ Plans:
 | 11. URL State Schema Refactor | v3.0 | 1/1 | Complete    | 2026-03-30 |
 | 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete    | 2026-03-30 |
-| 14. Multi-Domain Exports | v3.0 | 0/? | Not started | - |
+| 14. Multi-Domain Exports | v3.0 | 0/2 | Not started | - |
