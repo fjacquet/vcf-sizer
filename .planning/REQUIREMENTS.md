@@ -48,10 +48,10 @@
 
 ### Exports (per-domain sections)
 
-- [x] **EXP-01**: Markdown export includes one section per workload domain, each containing the domain name, its configuration inputs, and its sizing results
-- [x] **EXP-02**: Markdown export includes a totals section after all domain sections summarizing aggregate host counts and resources
-- [ ] **EXP-03**: PPTX export includes one slide per workload domain showing the domain name, key inputs, and results summary
-- [ ] **EXP-04**: PPTX export includes an aggregate totals slide after all per-domain slides
+- [ ] **EXP-01**: Markdown export includes one section per workload domain, each containing the domain name, its configuration inputs, and its sizing results
+- [ ] **EXP-02**: Markdown export includes a totals section after all domain sections summarizing aggregate host counts and resources
+- [x] **EXP-03**: PPTX export includes one slide per workload domain showing the domain name, key inputs, and results summary
+- [x] **EXP-04**: PPTX export includes an aggregate totals slide after all per-domain slides
 
 ---
 

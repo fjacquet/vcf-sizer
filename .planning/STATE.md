@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Multi-Domain Support
 status: verifying
-last_updated: "2026-03-30T15:31:22.694Z"
+last_updated: "2026-03-30T15:31:55.334Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
@@ -56,7 +56,7 @@ Progress bar: [----------] 0/5 phases complete
 | Phase 12 P02 | 10min | 3 tasks | 7 files |
 | Phase 13 P01 | 12min | 2 tasks | 4 files |
 | Phase 13 P02 | 15min | 3 tasks | 11 files |
-| Phase 14-multi-domain-exports P01 | 10min | 2 tasks | 2 files |
+| Phase 14 P02 | 15min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -148,8 +148,8 @@ v3.0 decisions:
 - [Phase 12]: App.vue computes activeDomainId from workloadDomains[activeDomainIndex] with null-coalescing fallback
 - [Phase 13]: first-domain bridge pattern (workloadDomains[0] / domainResults[0]) used in export composables for Phase 13 compat; full multi-domain export is Phase 14
 - [Phase 13]: DomainResultCard absorbs HostCountCard layout; chart components use first-domain bridge (domainResults[0]) for Phase 13 compat
-- [Phase 14-multi-domain-exports]: Per-domain sections use H3 (###) not H2 — prevents heading collision with ## Domain: {name} wrapper
-- [Phase 14-multi-domain-exports]: Export composable loop pattern: for (const domain of store.workloadDomains) + domainResults.find(r => r.id === domain.id)!
+- [Phase 14]: buildAggregateSlideData(AggregateTotals) replaces buildRecommendationsData for multi-domain PPTX aggregate slide
+- [Phase 14]: buildTitleSlideData(domainCount) shows domain count instead of single deploymentMode in PPTX title slide
 
 ### Pending Todos
 
