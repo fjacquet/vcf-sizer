@@ -42,9 +42,9 @@
 
 ### Results (per-domain + aggregate)
 
-- [ ] **RES-01**: Each workload domain renders its own result card showing domain name, recommended host count, CPU utilization %, RAM utilization %, and storage breakdown for that domain
-- [ ] **RES-02**: An aggregate totals card summarizes all workload domains: total host count (sum), combined compute demand, combined storage demand
-- [ ] **RES-03**: Management domain results (mgmt component overhead + recommended management host count) render in their existing dedicated section, unchanged from v2.x
+- [x] **RES-01**: Each workload domain renders its own result card showing domain name, recommended host count, CPU utilization %, RAM utilization %, and storage breakdown for that domain
+- [x] **RES-02**: An aggregate totals card summarizes all workload domains: total host count (sum), combined compute demand, combined storage demand
+- [x] **RES-03**: Management domain results (mgmt component overhead + recommended management host count) render in their existing dedicated section, unchanged from v2.x
 
 ### Exports (per-domain sections)
 
