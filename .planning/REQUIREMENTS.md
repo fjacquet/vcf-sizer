@@ -10,10 +10,10 @@
 
 ### Domain Data Model & Store
 
-- [ ] **DOM-01**: `inputStore` is refactored from a flat structure to `managementDomain: ManagementDomainConfig` + `workloadDomains: WorkloadDomainConfig[]`
-- [ ] **DOM-02**: `WorkloadDomainConfig` type includes a stable `id` (crypto.randomUUID()), a user-editable `name`, all per-domain host specs, workload profile, storage config, and optional feature toggles (NVMe, AI/GPU, stretch, vSAN Max)
-- [ ] **DOM-03**: `ManagementDomainConfig` type contains management host specs (CPU, cores, RAM) and the management architecture toggle — independent from any workload domain
-- [ ] **DOM-04**: Default state on first load is one workload domain named "WLD-1" with all existing default values
+- [x] **DOM-01**: `inputStore` is refactored from a flat structure to `managementDomain: ManagementDomainConfig` + `workloadDomains: WorkloadDomainConfig[]`
+- [x] **DOM-02**: `WorkloadDomainConfig` type includes a stable `id` (crypto.randomUUID()), a user-editable `name`, all per-domain host specs, workload profile, storage config, and optional feature toggles (NVMe, AI/GPU, stretch, vSAN Max)
+- [x] **DOM-03**: `ManagementDomainConfig` type contains management host specs (CPU, cores, RAM) and the management architecture toggle — independent from any workload domain
+- [x] **DOM-04**: Default state on first load is one workload domain named "WLD-1" with all existing default values
 - [ ] **DOM-05**: `calculationStore` maps over `workloadDomains` to produce a `domainResults` computed array (one result per domain) — zero `ref()` (CALC-02)
 - [ ] **DOM-06**: `calculationStore` reduces `domainResults` into `aggregateTotals` (total host count, combined resources) — zero `ref()` (CALC-02)
 
