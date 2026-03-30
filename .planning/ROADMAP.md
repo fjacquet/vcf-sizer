@@ -91,7 +91,10 @@ Plans:
   3. When deployment mode is stretch cluster, the downloaded PPTX contains a stretch topology slide; for other deployment modes, it is absent
   4. When storage type is vSAN Max, the downloaded PPTX contains a vSAN Max cluster slide; for other storage types, it is absent
   5. When one or more validation warnings are active, the downloaded PPTX contains a validation warnings slide; when there are no warnings, it is absent
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 09-01-PLAN.md — Wave 0 TDD: extend test file with 5 failing describe blocks for conditional slide helpers (PPTX-10..14)
+- [ ] 09-02-PLAN.md — Implement 5 data-mapping helpers + 5 conditional slide blocks in generatePptxReport (PPTX-10..14)
 
 ---
 
@@ -107,4 +110,4 @@ Plans:
 | 6. Markdown Extraction and Enrichment | v2.1 | 3/3 | Complete | 2026-03-30 |
 | 7. Print/PDF CSS Overhaul | v2.1 | 3/3 | Complete | 2026-03-30 |
 | 8. PPTX Core Slides | v2.1 | 3/3 | Complete   | 2026-03-30 |
-| 9. PPTX Conditional Slides and Polish | v2.1 | 0/? | Not started | - |
+| 9. PPTX Conditional Slides and Polish | v2.1 | 0/2 | Not started | - |
