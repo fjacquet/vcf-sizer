@@ -1,21 +1,35 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputStore } from '@/stores/inputStore'
-import { storeToRefs } from 'pinia'
+import { createDefaultWorkloadDomain } from '@/engine/defaults'
+import type { WorkloadDomainConfig } from '@/engine/types'
 import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
 
 const { t } = useI18n()
+const props = defineProps<{ domainId: string }>()
 const input = useInputStore()
-const {
-  vmCount,
-  avgVcpuPerVm,
-  avgVramGbPerVm,
-  avgStorageGbPerVm,
-  cpuOvercommitRatio,
-  ramOvercommitRatio,
-  gpuVmCount,
-  vgpuMemoryGB,
-} = storeToRefs(input)
+
+function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
+  return computed({
+    get: () => {
+      const d = input.workloadDomains.find(d => d.id === props.domainId)
+      return (d ?? createDefaultWorkloadDomain(0))[key]
+    },
+    set: (val: WorkloadDomainConfig[K]) => {
+      input.updateDomain(props.domainId, { [key]: val } as Partial<WorkloadDomainConfig>)
+    },
+  })
+}
+
+const vmCount = domainField('vmCount')
+const avgVcpuPerVm = domainField('avgVcpuPerVm')
+const avgVramGbPerVm = domainField('avgVramGbPerVm')
+const avgStorageGbPerVm = domainField('avgStorageGbPerVm')
+const cpuOvercommitRatio = domainField('cpuOvercommitRatio')
+const ramOvercommitRatio = domainField('ramOvercommitRatio')
+const gpuVmCount = domainField('gpuVmCount')
+const vgpuMemoryGB = domainField('vgpuMemoryGB')
 </script>
 
 <template>

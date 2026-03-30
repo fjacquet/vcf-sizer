@@ -3,21 +3,44 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
-import { storeToRefs } from 'pinia'
+import { createDefaultWorkloadDomain } from '@/engine/defaults'
+import type { WorkloadDomainConfig } from '@/engine/types'
 import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
 import WarningBanner from '@/components/shared/WarningBanner.vue'
 
 const { t } = useI18n()
+const props = defineProps<{ domainId: string }>()
 const input = useInputStore()
 const calc = useCalculationStore()
-const {
-  coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB, hostCount,
-  nvmeTieringEnabled, activeMemoryPct, networkSpeedGbE, storageType,
-} = storeToRefs(input)
-const { validationErrors } = storeToRefs(calc)
+
+function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
+  return computed({
+    get: () => {
+      const d = input.workloadDomains.find(d => d.id === props.domainId)
+      return (d ?? createDefaultWorkloadDomain(0))[key]
+    },
+    set: (val: WorkloadDomainConfig[K]) => {
+      input.updateDomain(props.domainId, { [key]: val } as Partial<WorkloadDomainConfig>)
+    },
+  })
+}
+
+const domainResult = computed(() =>
+  calc.domainResults.find(r => r.id === props.domainId)
+)
+
+const coresPerSocket = domainField('coresPerSocket')
+const socketsPerHost = domainField('socketsPerHost')
+const hostRamGB = domainField('hostRamGB')
+const hostStorageTB = domainField('hostStorageTB')
+const hostCount = domainField('hostCount')
+const nvmeTieringEnabled = domainField('nvmeTieringEnabled')
+const activeMemoryPct = domainField('activeMemoryPct')
+const networkSpeedGbE = domainField('networkSpeedGbE')
+const storageType = domainField('storageType')
 
 const vcfaBlockerError = computed(() =>
-  validationErrors.value.find(e => e.code === 'VCFA_MIN_CORES' && e.severity === 'error')
+  domainResult.value?.validationErrors.find(e => e.code === 'VCFA_MIN_CORES' && e.severity === 'error') ?? null
 )
 const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.value)
 const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemoryPct.value <= 50)

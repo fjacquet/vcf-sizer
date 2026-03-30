@@ -3,15 +3,51 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
-import { storeToRefs } from 'pinia'
+import { createDefaultWorkloadDomain } from '@/engine/defaults'
+import type { WorkloadDomainConfig } from '@/engine/types'
 import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
 import WarningBanner from '@/components/shared/WarningBanner.vue'
 
 const { t } = useI18n()
+const props = defineProps<{ domainId: string }>()
 const input = useInputStore()
 const calc = useCalculationStore()
-const { deploymentMode, preferredSiteHosts, secondarySiteHosts, managementArchitecture, networkSpeedGbE } = storeToRefs(input)
-const { management, stretch, validationErrors, dedicatedMgmtHostCount } = storeToRefs(calc)
+
+function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
+  return computed({
+    get: () => {
+      const d = input.workloadDomains.find(d => d.id === props.domainId)
+      return (d ?? createDefaultWorkloadDomain(0))[key]
+    },
+    set: (val: WorkloadDomainConfig[K]) => {
+      input.updateDomain(props.domainId, { [key]: val } as Partial<WorkloadDomainConfig>)
+    },
+  })
+}
+
+// Per-domain fields via domainField helper
+const deploymentMode = domainField('deploymentMode')
+const preferredSiteHosts = domainField('preferredSiteHosts')
+const secondarySiteHosts = domainField('secondarySiteHosts')
+const networkSpeedGbE = domainField('networkSpeedGbE')
+const storageType = domainField('storageType')
+
+// GLOBAL fields — NOT per-domain (locked decision)
+const managementArchitecture = computed({
+  get: () => input.managementArchitecture,
+  set: (val: 'shared' | 'dedicated') => { input.managementArchitecture = val },
+})
+
+// Calc results — management and dedicatedMgmtHostCount are still top-level
+const management = computed(() => calc.management)
+const dedicatedMgmtHostCount = computed(() => calc.dedicatedMgmtHostCount)
+
+// Per-domain calc results
+const domainResult = computed(() =>
+  calc.domainResults.find(r => r.id === props.domainId)
+)
+const stretch = computed(() => domainResult.value?.stretch ?? null)
+const validationErrors = computed(() => domainResult.value?.validationErrors ?? [])
 
 const modes = [
   { value: 'simple' as const, labelKey: 'deployment.simple' },
@@ -83,16 +119,16 @@ const bandwidthCappedByLineRate = computed(() => {
         <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded p-2">
           <span class="col-span-2 font-medium text-gray-700 dark:text-gray-300">{{ t('deployment.stretchSites.witnessLabel') }}</span>
           <span>{{ t('deployment.stretchSites.witnessCpu') }}</span>
-          <span class="font-mono text-right">{{ stretch.witnessCores }}</span>
+          <span class="font-mono text-right">{{ stretch?.witnessCores }}</span>
           <span>{{ t('deployment.stretchSites.witnessRam') }}</span>
-          <span class="font-mono text-right">{{ stretch.witnessRamGB }} GB</span>
+          <span class="font-mono text-right">{{ stretch?.witnessRamGB }} GB</span>
         </div>
 
         <!-- Cross-site bandwidth recommendation (STRCH-05/STRCH-06/07) -->
         <div class="text-xs text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded px-2 py-1">
           {{ t('deployment.stretchSites.bandwidthLabel') }}:
           <span class="font-mono font-semibold">{{ effectiveBandwidthGbps.toFixed(2) }} Gb/s</span>
-          <span v-if="stretch.bandwidthFloorApplied" class="block mt-1 text-amber-600 dark:text-amber-400 text-xs italic">
+          <span v-if="stretch?.bandwidthFloorApplied" class="block mt-1 text-amber-600 dark:text-amber-400 text-xs italic">
             {{ t('deployment.stretchSites.bandwidthFloorIndicator') }}
           </span>
           <span v-if="bandwidthCappedByLineRate" class="block mt-1 text-amber-600 dark:text-amber-400 text-xs italic">
@@ -139,7 +175,7 @@ const bandwidthCappedByLineRate = computed(() => {
         <WarningBanner
           v-for="err in architectureErrors"
           :key="err.code"
-          :message="err.code === 'COLLOCATED_MIN_HOSTS' ? t(err.messageKey, { min: input.storageType === 'vsan-esa' ? 3 : 2 }) : t(err.messageKey)"
+          :message="err.code === 'COLLOCATED_MIN_HOSTS' ? t(err.messageKey, { min: storageType === 'vsan-esa' ? 3 : 2 }) : t(err.messageKey)"
           :severity="err.severity"
         />
       </div>
