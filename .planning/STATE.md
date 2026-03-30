@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Multi-Domain Support
-status: verifying
-last_updated: "2026-03-30T13:38:27.481Z"
-last_activity: 2026-03-30
+status: executing
+last_updated: "2026-03-30T13:11:19.518Z"
+last_activity: 2026-03-30 -- Phase 12 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,14 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 11 — url-state-schema-refactor
+**Current focus:** Phase 12 — domain-tab-ui-and-per-domain-input-forms
 
 ## Current Position
 
-Phase: 12
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-30
+Phase: 12 (domain-tab-ui-and-per-domain-input-forms) — EXECUTING
+Plan: 2 of 2
+Status: Executing Phase 12
+Last activity: 2026-03-30 -- Phase 12 Plan 01 complete
 
 Progress bar: [----------] 0/5 phases complete
 
@@ -52,7 +52,6 @@ Progress bar: [----------] 0/5 phases complete
 | Phase 09 P02 | 4min | 2 tasks | 1 files |
 | Phase 10 P01 | 6min | 3 tasks | 6 files |
 | Phase 11 P01 | 5min | 2 tasks | 2 files |
-| Phase 12 P01 | 25min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -137,8 +136,6 @@ v3.0 decisions:
 - [Phase 10]: vitest.config.ts extended to include src/stores/**/*.test.ts — was missing from original include list
 - [Phase 11]: Export WorkloadDomainSchema and ManagementDomainSchema from useUrlState.ts for Phase 12+ reuse
 - [Phase 11]: Exclude domain id from generateShareUrl — saves URL bytes; IDs re-generated on hydration via crypto.randomUUID()
-- [Phase 12]: domainField() computed helper pattern used in all 4 forms for per-domain field binding via computed({ get, set }) wrapping updateDomain()
-- [Phase 12]: managementArchitecture stays global in DeploymentModelSelector (not per-domain), consistent with locked v3.0 decision
 
 ### Pending Todos
 
