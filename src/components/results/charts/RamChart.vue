@@ -65,10 +65,27 @@ const chartOptions = computed((): ChartOptions<'bar'> => {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 break-inside-avoid">
     <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ t('results.charts.ram') }}</h3>
-    <div class="h-48 relative">
+    <div class="h-48 relative print:hidden">
       <Bar :data="chartData" :options="chartOptions" />
     </div>
+    <!-- Print fallback: data table -->
+    <table class="hidden print:table w-full text-sm border-collapse mt-2">
+      <thead>
+        <tr class="border-b border-gray-300">
+          <th class="text-left py-1 font-medium">{{ t('results.charts.ram') }}</th>
+          <th class="text-right py-1 font-medium">{{ t('results.charts.required') }}</th>
+          <th class="text-right py-1 font-medium">{{ t('results.charts.available') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="py-1">{{ t('results.charts.ram') }}</td>
+          <td class="text-right font-mono">{{ compute.totalRamRequiredGB }} GB</td>
+          <td class="text-right font-mono">{{ compute.availableRamGB }} GB</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
