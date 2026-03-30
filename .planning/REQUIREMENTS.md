@@ -31,15 +31,15 @@
 
 ### PPTX Export
 
-- [ ] **PPTX-01**: User can download a `.pptx` file via a new button in `ExportToolbar.vue`
-- [ ] **PPTX-02**: PPTX file uses a VCF-branded slide master (Broadcom blue `#003087`, consistent heading/body fonts, logo placeholder)
-- [ ] **PPTX-03**: PPTX includes a title slide with deployment mode label and generation date
-- [ ] **PPTX-04**: PPTX includes a configuration summary slide (host specs, storage type, network speed, management architecture)
-- [ ] **PPTX-05**: PPTX includes a workload profile slide (VM count, vCPU, vRAM, overcommit ratios)
-- [ ] **PPTX-06**: PPTX includes a management domain overhead slide (per-component vCPU and RAM breakdown table)
-- [ ] **PPTX-07**: PPTX includes a compute results slide (recommended host count, CPU and RAM utilization percentages)
-- [ ] **PPTX-08**: PPTX includes a storage results slide (capacity breakdown: raw, RAID overhead, LFS, metadata, safe usable)
-- [ ] **PPTX-09**: PPTX includes a recommendations slide summarising key sizing outputs and any active warnings
+- [x] **PPTX-01**: User can download a `.pptx` file via a new button in `ExportToolbar.vue`
+- [x] **PPTX-02**: PPTX file uses a VCF-branded slide master (Broadcom blue `#003087`, consistent heading/body fonts, logo placeholder)
+- [x] **PPTX-03**: PPTX includes a title slide with deployment mode label and generation date
+- [x] **PPTX-04**: PPTX includes a configuration summary slide (host specs, storage type, network speed, management architecture)
+- [x] **PPTX-05**: PPTX includes a workload profile slide (VM count, vCPU, vRAM, overcommit ratios)
+- [x] **PPTX-06**: PPTX includes a management domain overhead slide (per-component vCPU and RAM breakdown table)
+- [x] **PPTX-07**: PPTX includes a compute results slide (recommended host count, CPU and RAM utilization percentages)
+- [x] **PPTX-08**: PPTX includes a storage results slide (capacity breakdown: raw, RAID overhead, LFS, metadata, safe usable)
+- [x] **PPTX-09**: PPTX includes a recommendations slide summarising key sizing outputs and any active warnings
 - [ ] **PPTX-10**: PPTX includes a conditional AI/GPU slide when `gpuVmCount > 0`
 - [ ] **PPTX-11**: PPTX includes a conditional NVMe memory tiering slide when `nvmeTieringEnabled = true`
 - [ ] **PPTX-12**: PPTX includes a conditional stretch cluster topology slide when `deploymentMode = 'stretch'`

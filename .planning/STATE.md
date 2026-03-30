@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Export Quality
-status: verifying
-last_updated: "2026-03-30T07:18:42.888Z"
+status: executing
+last_updated: "2026-03-30T07:49:09.050Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 7
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 07 — print-pdf-css-overhaul
+**Current focus:** Phase 08 — pptx-core-slides
 
 ## Current Position
 
-Phase: 07 (print-pdf-css-overhaul) — EXECUTING
-Plan: 3 of 3
-Next: Phase 07 (print-pdf-css-overhaul) — NOT STARTED
-Status: Phase complete — ready for verification
+Phase: 08 (pptx-core-slides) — EXECUTING
+Plan: 2 of 3
+Next: Phase 08 (pptx-core-slides) — NOT STARTED
+Status: Ready to execute
 
-Progress: [##########----------] 1/4 phases complete
+Progress: [##########----------] 2/4 phases complete
 
 ## Performance Metrics
 
@@ -43,6 +43,7 @@ Progress: [##########----------] 1/4 phases complete
 | Phase 07 P01 | 2min | 2 tasks | 6 files |
 | Phase 07 P02 | 3min | 1 tasks | 5 files |
 | Phase 07 P03 | 2min | 2 tasks | 3 files |
+| Phase 08 P01 | 2min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,7 @@ v2.1 decisions:
 - [Phase 07-02]: hidden print:flex pattern: hidden hides on screen, print:flex overrides to flex in print media
 - [Phase 07-03]: print:table (not print:block) on table elements preserves semantic table rendering in print media
 - [Phase 07-03]: StorageChart RAID overhead row uses rawCapacityTB - usableAfterRaidTB formula identical to chart dataset
+- [Phase 08]: [08-01]: Wave 0 test file tests 7 data-mapping helpers as pure functions accepting store/calc instances — avoids pptxgenjs browser-API dependency in Node test environment (Pitfall 7)
 
 ### Pending Todos
 
@@ -119,4 +121,4 @@ To resume:
 
 1. Read .planning/ROADMAP.md for full phase structure (Phases 6-9)
 2. Read .planning/REQUIREMENTS.md for v2.1 requirement IDs (MD-01..09, PRINT-01..06, PPTX-01..15)
-3. Run: `/gsd:plan-phase 7` to begin Print/PDF CSS Overhaul
+3. Run: `/gsd:plan-phase 8` to begin PPTX Core Slides
