@@ -152,6 +152,10 @@
     "totalCores": "Total Management Cores",
     "totalRam": "Total Management RAM"
   },
+  "domain": {
+    "addDomain": "Add Domain",
+    "deleteConfirm": "Delete domain \"{name}\"? This cannot be undone."
+  },
   "print": {
     "header": {
       "title": "VCF 9.x Sizing Report"

@@ -152,6 +152,10 @@
     "totalCores": "Total des cœurs de gestion",
     "totalRam": "Total de la RAM de gestion"
   },
+  "domain": {
+    "addDomain": "Ajouter un domaine",
+    "deleteConfirm": "Supprimer le domaine \"{name}\" ? Cette action est irréversible."
+  },
   "print": {
     "header": {
       "title": "Rapport de dimensionnement VCF 9.x"

@@ -152,6 +152,10 @@
     "totalCores": "Gesamte Management-Kerne",
     "totalRam": "Gesamter Management-RAM"
   },
+  "domain": {
+    "addDomain": "Domäne hinzufügen",
+    "deleteConfirm": "Domäne \"{name}\" löschen? Dies kann nicht rückgängig gemacht werden."
+  },
   "print": {
     "header": {
       "title": "VCF 9.x Dimensionierungsbericht"
