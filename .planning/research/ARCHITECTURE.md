@@ -1,298 +1,292 @@
-# Architecture Patterns — v3.0 Multi-Domain Refactor
+# Architecture Research — v3.1 Sizing Correctness & Guided Wizard
 
-**Domain:** VCF 9.x Sizing Calculator SPA — Multi-Domain Store Refactor
+**Domain:** VCF 9.x Sizing Calculator SPA — Wizard Stepper + Management-First Calculation
 **Researched:** 2026-03-30
-**Confidence:** HIGH (grounded in direct codebase inspection + established Pinia/Zod patterns)
-**Replaces:** v2.1 export architecture (2026-03-29)
+**Confidence:** HIGH (grounded in direct codebase inspection of all engine, store, and component files)
+**Replaces:** v3.0 multi-domain architecture (2026-03-30)
 
 ---
 
 ## Context: What This Document Covers
 
-This is the v3.0 milestone architecture document. It answers six specific questions for the roadmapper:
+This is the v3.1 milestone architecture document. It answers five specific questions for the roadmapper:
 
-1. How to restructure `inputStore.ts` to hold an array of workload domains without violating CALC-02
-2. How `calculationStore.ts` maps over the domain array while remaining `computed()`-only
-3. How the Zod URL schema handles variable-length `z.array()` with safe defaults
-4. What the new TypeScript domain types look like and where they live
-5. What the exact file change inventory is (new vs modified vs unchanged)
-6. What the correct build order is across phases
+1. How wizard step state should be managed in Pinia without violating CALC-02
+2. How the engine calculation order changes for the colocated case
+3. What `calculationStore.ts` changes are needed while keeping CALC-02 (zero ref())
+4. How aggregate totals are restructured for dedicated vs colocated architectures
+5. What the integration points are with `useMarkdownExport` and `usePptxExport`
 
 ---
 
 ## Established Constraints (Non-Negotiable)
 
-These constraints come from `CLAUDE.md` and `PROJECT.md` and must be preserved throughout v3.0:
-
 | Constraint | Rule | Location |
 |------------|------|----------|
 | CALC-01 | Engine files (`src/engine/*.ts`) must never import from Vue, Pinia, or any Vue ecosystem library | CLAUDE.md |
 | CALC-02 | `calculationStore.ts` must contain ZERO `ref()` — only `computed()` | CLAUDE.md |
-| URL-SYNC | Zod schema + hydrate + serialize must remain atomically consistent (change one, change all three) | useUrlState.ts pattern |
+| URL-SYNC | Zod schema + hydrate + serialize must remain atomically consistent | useUrlState.ts pattern |
 | I18N | Validation warning `messageKey` must be an i18n key, never a raw English string | engine/types.ts |
 
 ---
 
-## New Data Model
+## Standard Architecture
 
-### WorkloadDomain Type
+### System Overview (Current v3.0 baseline)
 
-A new type must be added to `src/engine/types.ts` (pure TypeScript, no Vue imports — CALC-01 compliant):
-
-```typescript
-export interface WorkloadDomain {
-  id: string            // uuid-like, generated at creation (e.g. crypto.randomUUID())
-  name: string          // user-editable label ("Workload Domain 1")
-
-  // Host specification (mirrors current flat fields)
-  coresPerSocket: number
-  socketsPerHost: number
-  hostRamGB: number
-  hostStorageTB: number
-  hostCount: number
-
-  // NVMe Memory Tiering
-  nvmeTieringEnabled: boolean
-  activeMemoryPct: number
-
-  // Workload profile
-  vmCount: number
-  avgVcpuPerVm: number
-  avgVramGbPerVm: number
-  avgStorageGbPerVm: number
-  cpuOvercommitRatio: number
-  ramOvercommitRatio: number
-
-  // AI/GPU
-  gpuVmCount: number
-  vgpuMemoryGB: number
-
-  // Deployment topology (per domain — stretch is per-domain not global)
-  deploymentMode: DeploymentMode
-  preferredSiteHosts: number
-  secondarySiteHosts: number
-
-  // Storage configuration
-  storageType: StorageType
-  fttLevel: FttLevel
-  raidType: RaidType
-  dedupEnabled: boolean
-  dedupRatio: number
-  vsanMaxProfile: VsanMaxProfile
-  vsanMaxStorageNodes: number
-  networkSpeedGbE: 10 | 25 | 100
-}
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Component Layer (Vue SFC)                       │
+│                                                                      │
+│  App.vue                                                             │
+│    ├── input/DeploymentModelSelector.vue  (per-domain)               │
+│    ├── input/HostSpecsForm.vue            (per-domain)               │
+│    ├── input/WorkloadProfileForm.vue      (per-domain)               │
+│    ├── input/StorageConfigForm.vue        (per-domain)               │
+│    ├── input/ManagementDomainSection.vue  (global, mgmt-only)        │
+│    ├── shared/DomainTabStrip.vue          (domain add/remove/rename) │
+│    ├── shared/ManagementSummary.vue       (calc.management readout)  │
+│    └── results/ResultsPanel.vue                                      │
+│         ├── results/DomainResultCard.vue  (per-domain)               │
+│         ├── results/AggregateTotalsCard.vue                          │
+│         └── results/ExportToolbar.vue                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                      Store Layer (Pinia)                             │
+│                                                                      │
+│  inputStore.ts       — all ref() mutable state                       │
+│    ├── managementArchitecture: ref<'shared'|'dedicated'>             │
+│    ├── managementDomain: ref<ManagementDomainConfig>                 │
+│    ├── workloadDomains: ref<WorkloadDomainConfig[]>                  │
+│    └── activeDomainIndex: ref<number>                                │
+│                                                                      │
+│  calculationStore.ts — zero ref(), only computed()                   │
+│    ├── management: computed (calls calcManagement)                   │
+│    ├── domainResults: computed<DomainResult[]>                       │
+│    ├── aggregateTotals: computed<AggregateTotals>                    │
+│    └── dedicatedMgmtHostCount: computed<number|null>                 │
+│                                                                      │
+│  uiStore.ts          — locale switching only                         │
+├─────────────────────────────────────────────────────────────────────┤
+│                      Engine Layer (Pure TypeScript)                  │
+│                                                                      │
+│  engine/management.ts  — calcManagement(mode): MgmtDomainResult     │
+│  engine/compute.ts     — calcCompute(inputs): ComputeResult          │
+│  engine/storage.ts     — calcStorage(inputs): StorageResult          │
+│  engine/stretch.ts     — calcStretch(inputs): StretchResult          │
+│  engine/vsanMax.ts     — calcVsanMax(inputs): VsanMaxResult          │
+│  engine/validation.ts  — validateInputs(inputs): ValidationWarning[] │
+│  engine/types.ts       — all shared TypeScript interfaces            │
+│  engine/defaults.ts    — default factory functions                   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-```typescript
-export interface ManagementDomain {
-  // Independent host specs for management domain hardware
-  coresPerSocket: number
-  socketsPerHost: number
-  hostRamGB: number
-  hostStorageTB: number
-  // managementArchitecture is a global toggle, not per management domain
-}
+### System Overview (Target v3.1 — changes highlighted)
+
 ```
-
-The default factory function (also in `src/engine/types.ts` or a sibling `src/engine/defaults.ts`):
-
-```typescript
-export function createDefaultWorkloadDomain(index: number): WorkloadDomain {
-  return {
-    id: crypto.randomUUID(),
-    name: `Workload Domain ${index + 1}`,
-    coresPerSocket: 16,
-    socketsPerHost: 2,
-    hostRamGB: 512,
-    hostStorageTB: 3.84,
-    hostCount: 4,
-    nvmeTieringEnabled: false,
-    activeMemoryPct: 50,
-    vmCount: 100,
-    avgVcpuPerVm: 4,
-    avgVramGbPerVm: 8,
-    avgStorageGbPerVm: 100,
-    cpuOvercommitRatio: 4,
-    ramOvercommitRatio: 1,
-    gpuVmCount: 0,
-    vgpuMemoryGB: 16,
-    deploymentMode: 'ha',
-    preferredSiteHosts: 3,
-    secondarySiteHosts: 3,
-    storageType: 'vsan-esa',
-    fttLevel: 1,
-    raidType: 'raid5',
-    dedupEnabled: false,
-    dedupRatio: 2,
-    vsanMaxProfile: 'med',
-    vsanMaxStorageNodes: 4,
-    networkSpeedGbE: 25,
-  }
-}
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Component Layer (Vue SFC)                       │
+│                                                                      │
+│  App.vue                      ← MODIFIED: render wizard or flat view │
+│    └── WizardStepper.vue      ← NEW: 3-step container                │
+│         ├── Step1Topology.vue ← NEW: topology + mgmt arch selection  │
+│         ├── Step2Management.vue ← NEW: mgmt domain host specs + result│
+│         └── Step3Workloads.vue  ← NEW: domain tabs + results + export │
+│                                                                      │
+│  (All existing input/* and results/* components are REUSED as-is     │
+│   as inner components of the wizard steps — no changes needed)       │
+│                                                                      │
+│  NEW: components/shared/WizardStepper.vue                            │
+│  NEW: components/wizard/Step1Topology.vue                            │
+│  NEW: components/wizard/Step2Management.vue                          │
+│  NEW: components/wizard/Step3Workloads.vue                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                      Store Layer (Pinia)                             │
+│                                                                      │
+│  inputStore.ts       — UNCHANGED except colocated mgmt overhead flag │
+│                                                                      │
+│  calculationStore.ts — MODIFIED: management-first ordering           │
+│    ├── management: computed (SAME — calcManagement first)            │
+│    ├── mgmtHostCount: computed<number>  ← RENAMED/EXPANDED           │
+│    │     dedicated: max(4, ceil(mgmt.totalCores / coresPerHost))     │
+│    │     colocated: 0  (absorbed into WLD-1, not a separate count)   │
+│    ├── domainResults: computed<DomainResult[]>                        │
+│    │     WLD-1 (colocated): passes mgmt.totalCores/RAM as overhead   │
+│    │     WLD-n (all): passes 0 overhead (mgmt already counted once)  │
+│    ├── aggregateTotals: computed<AggregateTotals> ← MODIFIED         │
+│    │     dedicated: mgmtHostCount + sum(domain.recommendedHostCount)  │
+│    │     colocated: sum(domain.recommendedHostCount) [WLD-1 includes] │
+│    └── dedicatedMgmtHostCount: computed<number|null>  ← KEPT as-is   │
+│                                                                      │
+│  uiStore.ts          — MODIFIED: add currentWizardStep: ref<1|2|3>   │
+│       OR                                                             │
+│  wizardStore.ts (NEW) — currentStep, canAdvance validators           │
+├─────────────────────────────────────────────────────────────────────┤
+│                      Engine Layer (Pure TypeScript)                  │
+│                                                                      │
+│  engine/compute.ts   — calcCompute()  ← SIGNATURE UNCHANGED          │
+│       (CalcCompute already accepts managementCores/RAM as params;    │
+│        colocated passes actual mgmt numbers, dedicated passes 0)     │
+│  All other engine files: UNCHANGED                                   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## inputStore.ts Restructure
+## Recommended Project Structure
 
-### Before (flat — current)
-
-```typescript
-const deploymentMode = ref<'simple' | 'ha' | 'stretch'>('ha')
-const coresPerSocket = ref(16)
-// ... 20+ more flat refs
+```
+src/
+├── engine/                   # Pure TypeScript — ZERO Vue imports (CALC-01)
+│   ├── types.ts              # MODIFIED: add MgmtOverheadMode type
+│   ├── compute.ts            # UNCHANGED: already accepts managementCores param
+│   ├── management.ts         # UNCHANGED: calcManagement(mode) still correct
+│   ├── storage.ts            # UNCHANGED
+│   ├── stretch.ts            # UNCHANGED
+│   ├── vsanMax.ts            # UNCHANGED
+│   ├── validation.ts         # UNCHANGED
+│   └── defaults.ts           # UNCHANGED
+│
+├── stores/
+│   ├── inputStore.ts         # UNCHANGED (all state already properly structured)
+│   ├── calculationStore.ts   # MODIFIED: management-first aggregation logic
+│   ├── uiStore.ts            # MODIFIED: add currentWizardStep (preferred option)
+│   └── [wizardStore.ts]      # ALTERNATIVE: new store for wizard step only
+│
+├── composables/
+│   ├── useUrlState.ts        # UNCHANGED (wizard step intentionally not serialized)
+│   ├── useMarkdownExport.ts  # MINOR: verify mgmt section appears before domain loop
+│   └── usePptxExport.ts      # MINOR: verify mgmt slide appears before domain slides
+│
+├── components/
+│   ├── input/                # ALL UNCHANGED — reused inside wizard steps
+│   ├── results/              # ALL UNCHANGED — reused inside wizard steps
+│   ├── shared/               # MINOR: WizardStepper.vue added here
+│   │   ├── DomainTabStrip.vue         # UNCHANGED
+│   │   ├── LanguageSwitcher.vue       # UNCHANGED
+│   │   ├── ManagementSummary.vue      # UNCHANGED
+│   │   ├── NumberSliderInput.vue      # UNCHANGED
+│   │   ├── WarningBanner.vue          # UNCHANGED
+│   │   └── WizardStepper.vue          # NEW: step indicator + nav buttons
+│   └── wizard/                        # NEW directory
+│       ├── Step1Topology.vue          # NEW: DeploymentModelSelector + mgmt arch
+│       ├── Step2Management.vue        # NEW: ManagementDomainSection + ManagementSummary
+│       └── Step3Workloads.vue         # NEW: DomainTabStrip + all input forms + ResultsPanel
+│
+└── App.vue                   # MODIFIED: renders WizardStepper instead of flat layout
 ```
 
-### After (structured — v3.0)
+---
+
+## Architectural Patterns
+
+### Pattern 1: Wizard Step as uiStore Extension (RECOMMENDED)
+
+**What:** Add `currentWizardStep: ref<1 | 2 | 3>(1)` and a `setStep(n)` action to the existing `uiStore.ts` rather than creating a new store.
+
+**When to use:** When wizard state is purely ephemeral UI state (not serialized, not driving calculations). This matches `activeDomainIndex` in `inputStore` — same philosophy of keeping transient UI state close to other UI state.
+
+**Why not a new `wizardStore.ts`:** A separate store for a single `ref<number>` adds indirection without benefit. The `uiStore` already holds locale (another ephemeral UI state). Precedent is established.
+
+**Why not `inputStore.ts`:** `inputStore` holds domain data that IS serialized to URL and used by the engine. Wizard step is neither — mixing concerns violates the "inputs = data" contract.
+
+**Trade-offs:**
+- PRO: No new file, no new store registration, minimal diff
+- PRO: Consistent with existing `uiStore` philosophy (ephemeral UI state only)
+- CON: `uiStore` grows slightly; if wizard logic becomes complex, extract later
+
+**Example:**
+```typescript
+// uiStore.ts — add to existing store
+const currentWizardStep = ref<1 | 2 | 3>(1)
+
+function setStep(step: 1 | 2 | 3) {
+  currentWizardStep.value = step
+}
+
+function nextStep() {
+  if (currentWizardStep.value < 3) {
+    currentWizardStep.value = (currentWizardStep.value + 1) as 1 | 2 | 3
+  }
+}
+
+function prevStep() {
+  if (currentWizardStep.value > 1) {
+    currentWizardStep.value = (currentWizardStep.value - 1) as 1 | 2 | 3
+  }
+}
+
+return { locale, setLocale, currentWizardStep, setStep, nextStep, prevStep }
+```
+
+### Pattern 2: Management-First Calculation Order in calculationStore
+
+**What:** The `management` computed already runs first (it's declared first in the store body). The real problem is in `aggregateTotals` — it does not include dedicated management hosts in the total.
+
+**Current bug:** `aggregateTotals.totalRecommendedHosts` sums only `domainResults` (workload hosts). Management hosts from `dedicatedMgmtHostCount` are never added. Colocated mode does not inject management overhead into WLD-1's compute calculation — it passes `management.value.totalCores` to ALL domains, which is incorrect.
+
+**Analysis of current `calculationStore.ts`:**
+```
+// Line 57-58: passes management overhead to ALL workload domains
+managementCores: management.value.totalCores,  // ← WRONG for dedicated mode
+managementRamGB: management.value.totalRamGB,  // ← WRONG for dedicated mode
+```
+
+In dedicated mode, the management overhead runs on dedicated management hosts — it should NOT be counted as overhead in workload domain calcCompute calls. The current code double-counts management resources in dedicated mode.
+
+In colocated (shared) mode, the management overhead should be counted only in WLD-1 (domain index 0), not in every workload domain.
+
+**Correct Logic:**
 
 ```typescript
-export const useInputStore = defineStore('input', () => {
-  // Global (non-domain-specific)
-  const managementArchitecture = ref<'shared' | 'dedicated'>('shared')
-  const managementDomain = ref<ManagementDomain>({
-    coresPerSocket: 16,
-    socketsPerHost: 2,
-    hostRamGB: 512,
-    hostStorageTB: 3.84,
+// In calculationStore.ts — management-first ordering fix
+const domainResults = computed<DomainResult[]>(() =>
+  input.workloadDomains.map((domain, index) => {
+    // Colocated: management overhead only applies to first workload domain (WLD-1)
+    // Dedicated: management overhead applies to NEITHER workload domain (runs on mgmt hosts)
+    const isColocated = input.managementArchitecture === 'shared'
+    const isFirstDomain = index === 0
+
+    const mgmtCores = isColocated && isFirstDomain ? management.value.totalCores : 0
+    const mgmtRamGB = isColocated && isFirstDomain ? management.value.totalRamGB : 0
+
+    return {
+      // ...
+      compute: calcCompute({
+        // ...
+        managementCores: mgmtCores,   // correct: 0 for dedicated, 0 for WLD-n, actual for WLD-1
+        managementRamGB: mgmtRamGB,
+      }),
+    }
   })
-
-  // Array of workload domains — one domain minimum, N maximum
-  const workloadDomains = ref<WorkloadDomain[]>([createDefaultWorkloadDomain(0)])
-
-  // Active tab index — UI state only, NOT serialized to URL
-  const activeDomainIndex = ref(0)
-
-  // Domain mutations
-  function addDomain() {
-    workloadDomains.value.push(createDefaultWorkloadDomain(workloadDomains.value.length))
-    activeDomainIndex.value = workloadDomains.value.length - 1
-  }
-
-  function removeDomain(id: string) {
-    const idx = workloadDomains.value.findIndex(d => d.id === id)
-    if (idx === -1 || workloadDomains.value.length === 1) return // minimum 1
-    workloadDomains.value.splice(idx, 1)
-    activeDomainIndex.value = Math.min(activeDomainIndex.value, workloadDomains.value.length - 1)
-  }
-
-  function updateDomain(id: string, patch: Partial<WorkloadDomain>) {
-    const domain = workloadDomains.value.find(d => d.id === id)
-    if (domain) Object.assign(domain, patch)
-  }
-
-  return {
-    managementArchitecture,
-    managementDomain,
-    workloadDomains,
-    activeDomainIndex,
-    addDomain,
-    removeDomain,
-    updateDomain,
-  }
-})
+)
 ```
 
-**Critical detail:** `workloadDomains` is a single `ref<WorkloadDomain[]>`. Vue 3 tracks mutations to nested reactive objects inside a `ref()` array. Individual property mutations via `Object.assign(domain, patch)` trigger reactivity correctly because `ref([])` wraps the array in a reactive proxy. This is confirmed Vue 3 behavior (HIGH confidence).
+**Trade-offs:**
+- PRO: Correct VCF 9.x sizing behavior
+- PRO: calcCompute() signature unchanged — it already accepts managementCores as a parameter
+- PRO: CALC-02 fully preserved — no ref() introduced
+- CON: Domain result for WLD-1 will show higher host count than before (correct, not a regression)
 
-**`activeDomainIndex` is NOT serialized to URL** — it is ephemeral UI state. When a shared URL is loaded, the first domain tab becomes active. This avoids stale index references when the URL recipient's domain array has a different length.
+### Pattern 3: Aggregate Totals Restructure
 
----
+**What:** `aggregateTotals.totalRecommendedHosts` must include dedicated management hosts when `managementArchitecture === 'dedicated'`.
 
-## calculationStore.ts — Computed-Only Array Mapping
+**Current bug:** The current aggregateTotals only sums workload domain hosts. In dedicated mode, management hosts from `dedicatedMgmtHostCount` are never counted.
 
-CALC-02 requires zero `ref()`. The solution is to use `computed()` that maps over the reactive array.
-
-### Pattern: computed() over a ref() array
+**Correct Logic:**
 
 ```typescript
-export const useCalculationStore = defineStore('calculation', () => {
-  const input = useInputStore()
-
-  // Management overhead — global, computed once
-  const management = computed(() => calcManagement(input.managementArchitecture))
-
-  // Per-domain results — maps over the array, returns a new array each recompute
-  // This is CALC-02 compliant: computed() is the only reactive primitive used here
-  const domainResults = computed(() =>
-    input.workloadDomains.map(domain => {
-      const effectiveHostCount =
-        domain.deploymentMode === 'stretch'
-          ? domain.preferredSiteHosts + domain.secondarySiteHosts
-          : domain.hostCount
-
-      return {
-        id: domain.id,
-        name: domain.name,
-        compute: calcCompute({
-          deploymentMode: domain.deploymentMode,
-          coresPerSocket: domain.coresPerSocket,
-          socketsPerHost: domain.socketsPerHost,
-          hostRamGB: domain.hostRamGB,
-          hostCount: effectiveHostCount,
-          vmCount: domain.vmCount,
-          avgVcpuPerVm: domain.avgVcpuPerVm,
-          avgVramGbPerVm: domain.avgVramGbPerVm,
-          cpuOvercommitRatio: domain.cpuOvercommitRatio,
-          ramOvercommitRatio: domain.ramOvercommitRatio,
-          managementCores: management.value.totalCores,
-          managementRamGB: management.value.totalRamGB,
-          nvmeTieringEnabled: domain.nvmeTieringEnabled,
-          activeMemoryPct: domain.activeMemoryPct,
-          gpuVmCount: domain.gpuVmCount,
-          vgpuMemoryGB: domain.vgpuMemoryGB,
-        }),
-        storage: calcStorage({
-          storageType: domain.storageType,
-          hostCount: effectiveHostCount,
-          hostStorageTB: domain.hostStorageTB,
-          fttLevel: domain.fttLevel,
-          raidType: domain.raidType,
-          dedupEnabled: domain.dedupEnabled,
-          dedupRatio: domain.dedupRatio,
-          deploymentMode: domain.deploymentMode,
-        }),
-        stretch: domain.deploymentMode === 'stretch'
-          ? calcStretch({
-              preferredSiteHosts: domain.preferredSiteHosts,
-              secondarySiteHosts: domain.secondarySiteHosts,
-              hostStorageTB: domain.hostStorageTB,
-              vmCount: domain.vmCount,
-              avgStorageGbPerVm: domain.avgStorageGbPerVm,
-            })
-          : null,
-        vsanMax: domain.storageType === 'vsan-max'
-          ? calcVsanMax({
-              profile: domain.vsanMaxProfile,
-              storageNodeCount: domain.vsanMaxStorageNodes,
-              computeNodeCount: domain.hostCount,
-            })
-          : null,
-        validationErrors: validateInputs({
-          deploymentMode: domain.deploymentMode,
-          coresPerSocket: domain.coresPerSocket,
-          socketsPerHost: domain.socketsPerHost,
-          hostCount: domain.hostCount,
-          dedupEnabled: domain.dedupEnabled,
-          storageType: domain.storageType,
-          preferredSiteHosts: domain.preferredSiteHosts,
-          secondarySiteHosts: domain.secondarySiteHosts,
-          managementArchitecture: input.managementArchitecture,
-          networkSpeedGbE: domain.networkSpeedGbE,
-          vsanMaxStorageNodes: domain.vsanMaxStorageNodes,
-        }),
-      }
-    })
+const aggregateTotals = computed<AggregateTotals>(() => {
+  const workloadHostSum = domainResults.value.reduce(
+    (sum, d) => sum + d.compute.recommendedHostCount, 0
   )
+  const mgmtHostCount = input.managementArchitecture === 'dedicated'
+    ? (dedicatedMgmtHostCount.value ?? 0)
+    : 0  // colocated: mgmt absorbed into WLD-1, already counted in workloadHostSum
 
-  // Aggregate totals — a second computed() that reduces domainResults
-  const aggregateTotals = computed(() => ({
-    totalRecommendedHosts: domainResults.value.reduce(
-      (sum, d) => sum + d.compute.recommendedHostCount, 0
-    ),
-    totalVmCount: input.workloadDomains.reduce(
-      (sum, d) => sum + d.vmCount, 0
-    ),
+  return {
+    totalRecommendedHosts: workloadHostSum + mgmtHostCount,
+    totalVmCount: input.workloadDomains.reduce((sum, d) => sum + d.vmCount, 0),
     totalRawStorageTB: domainResults.value.reduce(
       (sum, d) => sum + d.storage.rawCapacityTB, 0
     ),
@@ -300,409 +294,292 @@ export const useCalculationStore = defineStore('calculation', () => {
       (sum, d) => sum + d.storage.effectiveCapacityTB, 0
     ),
     allValidationErrors: domainResults.value.flatMap(d => d.validationErrors),
-  }))
-
-  // Management domain dedicated host count (unchanged from v2.x)
-  const dedicatedMgmtHostCount = computed<number | null>(() => {
-    if (input.managementArchitecture !== 'dedicated') return null
-    // Use managementDomain host specs for the calculation
-    const coresPerHost = input.managementDomain.coresPerSocket * input.managementDomain.socketsPerHost
-    return Math.max(4, Math.ceil(management.value.totalCores / coresPerHost))
-  })
-
-  // ZERO ref() — CALC-02 compliant
-  return { management, domainResults, aggregateTotals, dedicatedMgmtHostCount }
-})
-```
-
-**Why this works with CALC-02:** `computed()` can contain any logic — loops, `.map()`, `.reduce()`, conditionals. The constraint is on the reactive primitive used, not on the complexity of the derivation function. Returning an array from `computed()` is standard Vue 3 (HIGH confidence).
-
-**Reactivity depth note:** `input.workloadDomains` is `ref<WorkloadDomain[]>`. When `Object.assign(domain, patch)` mutates a domain's property, Vue 3 tracks this because `ref([])` uses `reactive()` internally for nested objects. The `computed(() => input.workloadDomains.map(...))` will re-run. This is confirmed Vue 3 deep reactivity behavior (HIGH confidence).
-
----
-
-## useUrlState.ts — Zod Array Schema
-
-### The Schema Change
-
-`InputStateSchema` must be restructured from flat fields to nested objects with `z.array()`.
-
-```typescript
-// New domain schema — mirrors WorkloadDomain type
-const WorkloadDomainSchema = z.object({
-  id: z.string().default(() => crypto.randomUUID()),
-  name: z.string().default('Workload Domain 1'),
-  coresPerSocket: z.number().int().min(1).max(256).default(16),
-  socketsPerHost: z.number().int().min(1).max(8).default(2),
-  hostRamGB: z.number().positive().default(512),
-  hostStorageTB: z.number().positive().default(3.84),
-  hostCount: z.number().int().min(1).max(64).default(4),
-  nvmeTieringEnabled: z.boolean().default(false),
-  activeMemoryPct: z.number().min(0).max(100).default(50),
-  vmCount: z.number().int().min(0).default(100),
-  avgVcpuPerVm: z.number().positive().default(4),
-  avgVramGbPerVm: z.number().positive().default(8),
-  avgStorageGbPerVm: z.number().positive().default(100),
-  cpuOvercommitRatio: z.number().positive().max(20).default(4),
-  ramOvercommitRatio: z.number().positive().max(4).default(1),
-  gpuVmCount: z.number().int().min(0).default(0),
-  vgpuMemoryGB: z.number().positive().default(16),
-  deploymentMode: z.enum(['simple', 'ha', 'stretch']).default('ha'),
-  preferredSiteHosts: z.number().int().min(1).default(3),
-  secondarySiteHosts: z.number().int().min(1).default(3),
-  storageType: z.enum(['vsan-esa', 'fc', 'nfs', 'vsan-max']).default('vsan-esa'),
-  fttLevel: z.union([z.literal(1), z.literal(2)]).default(1),
-  raidType: z.enum(['raid1', 'raid5', 'raid6']).default('raid5'),
-  dedupEnabled: z.boolean().default(false),
-  dedupRatio: z.number().min(1).max(10).default(2),
-  vsanMaxProfile: z.enum(['xs', 'sm', 'med', 'lrg', 'xl']).default('med'),
-  vsanMaxStorageNodes: z.number().int().min(4).max(64).default(4),
-  networkSpeedGbE: z.union([z.literal(10), z.literal(25), z.literal(100)]).default(25),
-}).strip()
-
-const ManagementDomainSchema = z.object({
-  coresPerSocket: z.number().int().min(1).max(256).default(16),
-  socketsPerHost: z.number().int().min(1).max(8).default(2),
-  hostRamGB: z.number().positive().default(512),
-  hostStorageTB: z.number().positive().default(3.84),
-}).strip()
-
-const InputStateSchema = z.object({
-  managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
-  managementDomain: ManagementDomainSchema.default({}),
-  workloadDomains: z
-    .array(WorkloadDomainSchema)
-    .min(1)
-    .default([]),  // hydration will call createDefaultWorkloadDomain(0) if array is empty
-}).strip()
-```
-
-**Variable-length array safety rules:**
-
-1. `z.array(WorkloadDomainSchema).min(1)` — enforce at least one domain at the Zod layer. If the URL contains an empty array, it fails validation and the fallback default (one domain) is used.
-2. `.strip()` on both `WorkloadDomainSchema` and `InputStateSchema` — unknown keys from future versions are silently dropped (forward compatibility via `.strip()` is the existing project pattern).
-3. Each domain object defaults all fields independently — a partial domain object from a future URL still hydrates safely.
-4. `id` uses a callable `.default(() => crypto.randomUUID())` — Zod 4 supports factory functions as defaults so each domain gets a fresh UUID on parse, not a shared one.
-
-### hydration change
-
-```typescript
-export function hydrateFromUrl(): void {
-  // ... decompress + parse unchanged ...
-
-  const store = useInputStore()
-  const state = result.data
-
-  store.managementArchitecture = state.managementArchitecture
-  store.managementDomain = state.managementDomain
-
-  // Ensure minimum 1 domain after URL parse
-  const domains = state.workloadDomains.length > 0
-    ? state.workloadDomains
-    : [createDefaultWorkloadDomain(0)]
-  store.workloadDomains = domains
-}
-```
-
-### serialization change
-
-```typescript
-export function generateShareUrl(): string {
-  const store = useInputStore()
-  const state = {
-    managementArchitecture: store.managementArchitecture,
-    managementDomain: { ...store.managementDomain },
-    // activeDomainIndex is NOT serialized — ephemeral UI state
-    workloadDomains: store.workloadDomains.map(d => ({ ...d })),
   }
-  const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(state))
-  // ... URL construction unchanged ...
-}
-```
-
-**Spread `{ ...d }` rationale:** Pinia reactive objects are proxies. Spreading creates a plain object for JSON serialization, avoiding proxy serialization artifacts. This is the same discipline as the existing `generateShareUrl()` which reads individual fields explicitly.
-
-**URL length concern:** A single domain produces ~600-800 bytes of JSON before compression. lz-string typically achieves 60-70% compression on JSON. Two domains = ~1400 bytes uncompressed → ~500 bytes compressed → ~670 base64 chars. Well within browser URL limits (2000+ chars safe). Ten domains = ~6000 bytes uncompressed → ~2100 bytes compressed → ~2800 chars — still within modern browser limits (8000+). This is LOW risk for realistic workloads (2-5 domains).
-
----
-
-## Component Architecture Changes
-
-### New Tab-Based Domain UI
-
-A new top-level component `DomainTabs.vue` orchestrates the tab interface. It replaces the current single-domain form layout.
-
-```
-App.vue (or layout root)
-  ├── DomainTabs.vue              NEW — tab bar + add/remove buttons
-  │     ├── DomainTabPanel.vue    NEW — renders one domain's input forms
-  │     │     ├── HostSpecsForm.vue         MODIFIED — takes domainId prop
-  │     │     ├── WorkloadProfileForm.vue   MODIFIED — takes domainId prop
-  │     │     ├── StorageConfigForm.vue     MODIFIED — takes domainId prop
-  │     │     └── DeploymentModelSelector.vue MODIFIED — takes domainId prop
-  │     └── ManagementDomainPanel.vue       NEW — management domain host specs
-  │
-  └── ResultsPanel.vue            MODIFIED — renders per-domain + aggregate
-        ├── DomainResultCard.vue  NEW — per-domain host count + utilization
-        ├── AggregateCard.vue     NEW — summed totals across domains
-        ├── HostCountCard.vue     MODIFIED — receives domain result as prop
-        ├── CoresChart.vue        MODIFIED — multi-series or per-domain
-        ├── RamChart.vue          MODIFIED — multi-series or per-domain
-        └── StorageChart.vue      MODIFIED — multi-series or per-domain
-```
-
-### Component prop pattern for domain-scoped inputs
-
-Input form components must stop reading directly from the flat `inputStore` global and instead receive a `domainId` prop:
-
-```typescript
-// HostSpecsForm.vue — v3.0 prop pattern
-const props = defineProps<{ domainId: string }>()
-const input = useInputStore()
-const domain = computed(() => input.workloadDomains.find(d => d.id === props.domainId)!)
-
-// Reading: domain.value.coresPerSocket
-// Writing: input.updateDomain(props.domainId, { coresPerSocket: newValue })
-```
-
-This keeps components as thin projections of store state, maintains reactivity, and avoids prop-drilling the entire domain object (which would break reactivity tracking).
-
-**Writable computed alternative:** For v-model compatibility with existing `NumberSliderInput`, a writable computed per field is cleaner:
-
-```typescript
-const coresPerSocket = computed({
-  get: () => domain.value.coresPerSocket,
-  set: (v) => input.updateDomain(props.domainId, { coresPerSocket: v }),
 })
 ```
 
-This preserves `v-model="coresPerSocket"` on `NumberSliderInput` without touching the child component.
+**Trade-offs:**
+- PRO: Correct procurement total regardless of architecture mode
+- PRO: Zero new ref() — CALC-02 preserved
+- PRO: No engine changes required — logic is correctly in the store
+- CON: `AggregateTotals` interface may need a `mgmtHostCount` field added for export accuracy
+
+### Pattern 4: WizardStepper Component Architecture
+
+**What:** A container component that renders one of three step panels based on `uiStore.currentWizardStep`. The step panels are thin wrappers that compose existing input components.
+
+**When to use:** When the steps are purely presentational reorganizations of existing inputs — not new data models.
+
+**Step composition:**
+```
+Step1Topology.vue
+  - DeploymentModelSelector (with managementArchitecture toggle)
+  - No new components needed; DeploymentModelSelector already has this
+
+Step2Management.vue
+  - ManagementDomainSection (existing)
+  - ManagementSummary (existing — shows computed mgmt result)
+  - NEW: MgmtDomainResultCard (shows host count needed for dedicated mode)
+
+Step3Workloads.vue
+  - DomainTabStrip (existing)
+  - Per-active-domain: DeploymentModelSelector, HostSpecsForm,
+    WorkloadProfileForm, StorageConfigForm (all existing)
+  - ResultsPanel (existing)
+  - ExportToolbar (existing)
+```
+
+**Trade-offs:**
+- PRO: No refactoring of existing input components — they are slotted into steps
+- PRO: Step 3 is essentially the current App.vue left pane + right pane
+- CON: App.vue grows conditional complexity (use v-if on step, not v-show, to avoid rendering all three steps at once)
 
 ---
 
-## Data Flow Diagram
+## Data Flow
+
+### Wizard Navigation Flow
 
 ```
-inputStore (ref() state)
-  ├── managementArchitecture: ref<'shared'|'dedicated'>
-  ├── managementDomain: ref<ManagementDomain>
-  ├── workloadDomains: ref<WorkloadDomain[]>     ← N items
-  ├── activeDomainIndex: ref<number>             ← UI only, not serialized
-  ├── addDomain()                                 ← action (mutates ref)
-  ├── removeDomain(id)                            ← action (mutates ref)
-  └── updateDomain(id, patch)                    ← action (mutates ref)
-         ↓ reactive read
-calculationStore (computed() state)
-  ├── management: computed → MgmtDomainResult
-  ├── domainResults: computed → Array<DomainResult>   ← maps over workloadDomains
-  ├── aggregateTotals: computed → AggregateTotals      ← reduces domainResults
-  └── dedicatedMgmtHostCount: computed → number|null
-         ↓ read
-Components (Vue SFCs)
-  ├── DomainTabs.vue              reads activeDomainIndex, workloadDomains.length
-  ├── DomainTabPanel.vue          renders by domainId, reads domain from workloadDomains
-  ├── Input forms (per domain)    read/write via updateDomain(id, patch)
-  └── Results (per domain + agg)  read domainResults[i] + aggregateTotals
-         ↓ read
-useUrlState.ts (plain TS composable)
-  ├── hydrateFromUrl()            writes to inputStore on startup
-  └── generateShareUrl()          reads inputStore, serializes workloadDomains array
+User arrives
+    ↓
+App.vue renders WizardStepper
+    ↓
+uiStore.currentWizardStep === 1
+    ↓
+Step1Topology.vue renders:
+  - DeploymentModelSelector bound to inputStore.managementArchitecture
+  - inputStore.managementDomain.deploymentMode (topology for mgmt domain)
+    ↓
+User clicks "Next"
+    ↓
+uiStore.nextStep() → currentWizardStep === 2
+    ↓
+Step2Management.vue renders:
+  - ManagementDomainSection (inputStore.managementDomain host specs)
+  - ManagementSummary (calc.management — immediate computed result)
+    ↓
+User clicks "Next"
+    ↓
+uiStore.nextStep() → currentWizardStep === 3
+    ↓
+Step3Workloads.vue renders all workload domain forms + ResultsPanel
+```
 
-useMarkdownExport.ts (plain TS composable)
-  └── generateMarkdownReport()    reads inputStore + calculationStore
-                                  now iterates over domainResults array
+### Calculation Order (Fixed) Data Flow
 
-usePptxExport.ts (plain TS composable)
-  └── generatePptx()              reads inputStore + calculationStore
-                                  now generates per-domain slide sections
+```
+inputStore.managementDomain.deploymentMode
+    ↓
+calculationStore.management (computed first)
+    = calcManagement(mode): MgmtDomainResult {totalCores, totalRamGB}
+    ↓
+calculationStore.dedicatedMgmtHostCount (computed second)
+    = null if shared, max(4, ceil(totalCores / coresPerHost)) if dedicated
+    ↓
+calculationStore.domainResults (computed third — uses management.value)
+    WLD-1 (colocated only): calcCompute({managementCores: management.value.totalCores, ...})
+    WLD-1 (dedicated):      calcCompute({managementCores: 0, ...})
+    WLD-n (any):            calcCompute({managementCores: 0, ...})
+    ↓
+calculationStore.aggregateTotals (computed last — reduces domainResults)
+    dedicated:  sum(domain.recommendedHostCount) + dedicatedMgmtHostCount
+    colocated:  sum(domain.recommendedHostCount)  [WLD-1 already inflated]
+```
+
+### Export Integration Data Flow
+
+```
+useMarkdownExport.generateMarkdownReport()
+    ↓
+reads: calc.management          (MgmtDomainResult — first section, unchanged)
+reads: calc.dedicatedMgmtHostCount (shown in mgmt architecture section)
+reads: calc.domainResults       (per-domain loop — unchanged structure)
+reads: calc.aggregateTotals     (final totals — will now include mgmt hosts in dedicated)
+    ↓
+aggregateTotals section MUST show breakdown:
+  - Workload hosts: sum(domain.recommendedHostCount)
+  - Management hosts (dedicated): dedicatedMgmtHostCount
+  - Total hosts (procurement): totalRecommendedHosts
+
+usePptxExport.generatePptx()
+    ↓
+Same pattern — management slide before domain slides already exists
+Aggregate totals slide must reflect corrected totalRecommendedHosts
 ```
 
 ---
 
-## File Change Inventory
+## Component Change Inventory
 
 ### New Files
 
-| File | Purpose |
-|------|---------|
-| `src/engine/defaults.ts` | `createDefaultWorkloadDomain()` and `createDefaultManagementDomain()` factory functions |
-| `src/components/input/DomainTabs.vue` | Tab bar with add/remove domain controls |
-| `src/components/input/DomainTabPanel.vue` | Renders one domain's full input form set |
-| `src/components/input/ManagementDomainPanel.vue` | Management domain host specs form |
-| `src/components/results/DomainResultCard.vue` | Per-domain compute + storage results |
-| `src/components/results/AggregateCard.vue` | Cross-domain aggregate totals |
+| File | Type | Purpose |
+|------|------|---------|
+| `src/components/wizard/Step1Topology.vue` | Vue SFC | Wizard step 1: topology + architecture selection |
+| `src/components/wizard/Step2Management.vue` | Vue SFC | Wizard step 2: management domain specs + result |
+| `src/components/wizard/Step3Workloads.vue` | Vue SFC | Wizard step 3: domain tabs + forms + results |
+| `src/components/shared/WizardStepper.vue` | Vue SFC | Step indicator bar + prev/next navigation buttons |
 
-### Modified Files (substantial changes)
+### Modified Files
 
-| File | Change Summary |
-|------|---------------|
-| `src/engine/types.ts` | Add `WorkloadDomain`, `ManagementDomain`, `DomainResult`, `AggregateTotals` interfaces |
-| `src/stores/inputStore.ts` | Replace flat refs with `managementDomain`, `workloadDomains` array, `activeDomainIndex`; add `addDomain`, `removeDomain`, `updateDomain` actions |
-| `src/stores/calculationStore.ts` | Replace flat computeds with `domainResults` (mapped array) + `aggregateTotals` (reduced) |
-| `src/composables/useUrlState.ts` | Zod schema restructure: `WorkloadDomainSchema`, `ManagementDomainSchema`, `InputStateSchema` with `z.array()`; rewrite `hydrateFromUrl` and `generateShareUrl` |
-| `src/composables/useMarkdownExport.ts` | Iterate over `domainResults` to generate per-domain sections |
-| `src/composables/usePptxExport.ts` | Generate per-domain slide sections |
-| `src/components/input/HostSpecsForm.vue` | Accept `domainId` prop; read/write via writable computeds |
-| `src/components/input/WorkloadProfileForm.vue` | Accept `domainId` prop; read/write via writable computeds |
-| `src/components/input/StorageConfigForm.vue` | Accept `domainId` prop; read/write via writable computeds |
-| `src/components/input/DeploymentModelSelector.vue` | Accept `domainId` prop; read/write via writable computeds |
-| `src/components/results/ResultsPanel.vue` | Render `DomainResultCard` per domain + `AggregateCard` |
-| `src/components/results/HostCountCard.vue` | Accept `ComputeResult` as prop rather than reading from store directly |
-| `src/components/results/charts/CoresChart.vue` | Multi-domain data series or per-domain chart |
-| `src/components/results/charts/RamChart.vue` | Multi-domain data series or per-domain chart |
-| `src/components/results/charts/StorageChart.vue` | Multi-domain data series or per-domain chart |
+| File | Change Required | Constraint Impact |
+|------|----------------|-------------------|
+| `src/stores/uiStore.ts` | Add `currentWizardStep ref<1\|2\|3>`, `setStep`, `nextStep`, `prevStep` | None — uiStore already has ref(), CALC-02 applies to calculationStore only |
+| `src/stores/calculationStore.ts` | Fix mgmtCores/mgmtRamGB per-domain logic; fix aggregateTotals to include dedicatedMgmtHostCount | CALC-02: all changes must use computed(), zero ref() |
+| `src/engine/types.ts` | Optionally add `mgmtHostCount` field to `AggregateTotals` for export clarity | CALC-01: pure TypeScript only |
+| `src/App.vue` | Render `WizardStepper` + step components instead of flat two-column layout | None |
+| `src/composables/useMarkdownExport.ts` | Update aggregate section to show mgmt host count breakdown | None |
+| `src/composables/usePptxExport.ts` | Update aggregate totals slide to reflect corrected numbers | None |
 
 ### Unchanged Files
 
 | File | Reason |
 |------|--------|
-| `src/engine/compute.ts` | Pure function — CALC-01 compliant, called per domain without changes |
-| `src/engine/storage.ts` | Pure function — CALC-01 compliant, called per domain without changes |
-| `src/engine/stretch.ts` | Pure function — CALC-01 compliant, called per domain without changes |
-| `src/engine/management.ts` | Pure function — called once with `managementArchitecture` |
-| `src/engine/vsanMax.ts` | Pure function — called per domain when `storageType === 'vsan-max'` |
-| `src/engine/validation.ts` | Pure function — called per domain without changes |
-| `src/engine/*.test.ts` | Engine tests are pure function tests — no store coupling |
-| `src/stores/uiStore.ts` | Locale switching is unaffected |
-| `src/components/shared/*.vue` | `NumberSliderInput`, `WarningBanner`, `LanguageSwitcher` unchanged |
-| `src/i18n/` | New domain-related i18n keys added but no structural change |
+| `src/engine/compute.ts` | `calcCompute()` already accepts `managementCores` as a parameter — no signature change needed |
+| `src/engine/management.ts` | `calcManagement()` is already correct — returns overhead for a given mode |
+| `src/engine/storage.ts` | No change to storage calculations |
+| `src/engine/stretch.ts` | No change to stretch calculations |
+| `src/engine/vsanMax.ts` | No change to vSAN Max calculations |
+| `src/engine/validation.ts` | No change to validation logic |
+| `src/engine/defaults.ts` | No change to default values |
+| `src/stores/inputStore.ts` | Already has correct structure: `managementDomain`, `workloadDomains[]`, `managementArchitecture` |
+| `src/composables/useUrlState.ts` | Wizard step is intentionally NOT serialized to URL (ephemeral UI state) |
+| `src/components/input/*` | All five input forms are reused inside wizard step components unchanged |
+| `src/components/results/*` | All result components are reused inside Step3Workloads unchanged |
+| `src/components/shared/DomainTabStrip.vue` | Unchanged — reused in Step3 |
+| `src/components/shared/ManagementSummary.vue` | Unchanged — reused in Step2 |
+| `src/components/shared/NumberSliderInput.vue` | Unchanged |
+| `src/components/shared/LanguageSwitcher.vue` | Unchanged |
+| `src/components/shared/WarningBanner.vue` | Unchanged |
 
 ---
 
-## Build Order for Phases
+## Scaling Considerations
 
-Dependencies flow downward. Each step must be stable before the next begins (TDD discipline: tests first).
+This is a client-side SPA with no backend. Scaling concerns are about bundle size and reactivity graph complexity, not servers.
 
-### Phase 1 — Foundation: Types + Store Refactor
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| Current (1 wizard, 3 steps) | uiStore extension is sufficient; no need for dedicated store |
+| If wizard gains validation gates (canAdvance logic) | Move to `wizardStore.ts` if uiStore grows beyond 60 lines |
+| If steps become independently navigable from URL | Add `?step=N` to URL schema and hydrate via `useUrlState.ts` |
 
-**Rationale:** Everything downstream depends on this. Must be done first.
+### Scaling Priorities
 
-1. Add `WorkloadDomain`, `ManagementDomain`, `DomainResult`, `AggregateTotals` to `src/engine/types.ts`
-2. Create `src/engine/defaults.ts` with factory functions
-3. Rewrite `src/stores/inputStore.ts` (new shape, add/remove/update actions)
-4. Rewrite `src/stores/calculationStore.ts` (`domainResults` computed array, `aggregateTotals`)
-5. Write unit tests for the new store shape (test that `computed()` maps correctly over array)
-
-**Gate:** `npm run type-check` passes, existing engine tests still pass.
-
-### Phase 2 — URL State: Zod Schema Refactor
-
-**Rationale:** URL state must be updated before the UI is touched. If hydration is broken, sharing breaks. Easier to test in isolation before UI complexity is added.
-
-1. Rewrite `useUrlState.ts`: new `WorkloadDomainSchema`, `InputStateSchema` with `z.array()`
-2. Update `hydrateFromUrl()` and `generateShareUrl()`
-3. Update `useUrlState.test.ts` — test round-trip for 1 domain, 3 domains, empty array coercion
-
-**Gate:** `npx vitest run src/composables/useUrlState.test.ts` passes.
-
-### Phase 3 — Input UI: Per-Domain Forms
-
-**Rationale:** Input components must be refactored before results can be tested end-to-end. New tab infrastructure is needed for the domain-scoped form components.
-
-1. Add `domainId` prop to all four input form components; replace direct store reads with writable computeds
-2. Create `DomainTabs.vue` (tab bar + add/remove)
-3. Create `DomainTabPanel.vue` (renders one domain's forms)
-4. Create `ManagementDomainPanel.vue` (management host specs)
-5. Update layout/App component to render `DomainTabs.vue`
-
-**Gate:** Single-domain UI works identically to v2.x UI. Adding a second domain produces independent inputs.
-
-### Phase 4 — Results UI: Per-Domain + Aggregate
-
-**Rationale:** Results components depend on `domainResults` array shape from Phase 1.
-
-1. Create `DomainResultCard.vue` (reads `domainResults[i]`)
-2. Create `AggregateCard.vue` (reads `aggregateTotals`)
-3. Modify `ResultsPanel.vue` to iterate over domains
-4. Modify chart components for multi-domain data or per-domain rendering
-5. Modify `HostCountCard.vue` to accept `ComputeResult` prop
-
-**Gate:** Per-domain results display correctly; aggregate totals match sum.
-
-### Phase 5 — Export: Markdown and PPTX
-
-**Rationale:** Export composables depend on the final shape of `domainResults` from Phase 1 and the store shape from Phase 1-2.
-
-1. Update `useMarkdownExport.ts` — iterate over `domainResults` for per-domain sections
-2. Update `usePptxExport.ts` — generate per-domain slide sections
-3. Update composable tests
-
-**Gate:** Markdown report contains one section per domain. PPTX contains per-domain slides.
-
-### Phase 6 — i18n Keys
-
-**Rationale:** New UI strings for domain tabs, domain labels, aggregate section headers. Can be done in parallel with Phase 3-4, but gating on other phases ensures all strings are known.
-
-1. Add keys to all four locale files: `domains.add`, `domains.remove`, `domains.management`, `domains.workload`, `domains.aggregate`, etc.
-2. Use i18n keys in all new components (never raw English strings — existing project rule)
+1. **Reactivity cost:** `domainResults` is a computed that maps an array. Each domain triggers a re-render of `DomainResultCard`. Already efficient — no change needed.
+2. **Bundle cost:** Wizard step components are lightweight Vue SFCs. No dynamic import needed (unlike pptxgenjs).
 
 ---
 
-## Anti-Patterns to Avoid
+## Anti-Patterns
 
-### Anti-Pattern 1: ref() in calculationStore
+### Anti-Pattern 1: Wizard Step in inputStore
 
-**What:** Adding `ref<DomainResult[]>([])` to `calculationStore.ts` and syncing it from a watcher.
-**Why bad:** Violates CALC-02. Creates a second source of truth. Watchers introduce timing bugs.
-**Instead:** `computed(() => input.workloadDomains.map(...))` — Vue recomputes on demand, no sync needed.
+**What people do:** Add `currentWizardStep: ref<number>` to `inputStore.ts` alongside domain data.
 
-### Anti-Pattern 2: Per-field computed array in calculationStore
+**Why it's wrong:** `inputStore` state is serialized to URL via `useUrlState.ts`. Wizard step is ephemeral UI state — it should reset to step 1 on every page load. Mixing it into `inputStore` would either pollute the URL schema or require an explicit exclusion in `generateShareUrl()`.
 
-**What:** Creating separate `const domainComputes = computed(...)`, `const domainStorages = computed(...)` arrays.
-**Why bad:** Multiplies recomputations. `domainResults` as a single `computed()` that returns a full result object per domain is recomputed atomically once when any domain input changes.
-**Instead:** One `domainResults` computed that returns the full enriched domain object per domain.
+**Do this instead:** Add to `uiStore.ts` (already handles ephemeral locale state) or a dedicated `wizardStore.ts`.
 
-### Anti-Pattern 3: Spreading reactive store objects into props
+### Anti-Pattern 2: Passing Management Overhead to All Domains
 
-**What:** `<DomainTabPanel v-bind="workloadDomains[i]" />` — spreading the domain object as props.
-**Why bad:** Vue loses reactivity tracking. Deep mutations no longer trigger updates.
-**Instead:** Pass `domainId` as the only prop. Components look up their domain from the store reactively.
+**What people do:** Pass `management.value.totalCores` and `management.value.totalRamGB` to every `calcCompute()` call in the `domainResults.map()`.
 
-### Anti-Pattern 4: Serializing activeDomainIndex to URL
+**Why it's wrong:** In dedicated mode, management runs on its own hosts — adding it as overhead to workload host calculations double-counts the hardware. In colocated mode, only WLD-1 absorbs the overhead — adding it to WLD-2, WLD-3, etc. also double-counts.
 
-**What:** Including `activeDomainIndex` in the Zod schema and URL state.
-**Why bad:** The URL recipient may have a different number of domains loaded. An index of `2` pointing to a non-existent domain causes a silent undefined reference.
-**Instead:** Active tab is ephemeral UI state — always resets to index 0 on URL load.
+**Do this instead:** Use an index check inside the map:
+```typescript
+const mgmtCores = (isColocated && index === 0) ? management.value.totalCores : 0
+```
 
-### Anti-Pattern 5: Zod .parse() instead of .safeParse() for URL hydration
+### Anti-Pattern 3: ref() in calculationStore for Colocated Flag
 
-**What:** Using `InputStateSchema.parse(parsed)` in `hydrateFromUrl()`.
-**Why bad:** `.parse()` throws on invalid input. URL hydration must be silent-fail. Existing code correctly uses `.safeParse()` — must be preserved.
-**Instead:** Keep `.safeParse()`. Log warnings to console. Fall back to store defaults.
+**What people do:** Add `const isColocated = ref(false)` to `calculationStore.ts` to track architecture mode.
+
+**Why it's wrong:** CALC-02 — `calculationStore.ts` must have zero `ref()`. The architecture mode is already in `inputStore.managementArchitecture` (a ref in the right store). `calculationStore` should read it via `input.managementArchitecture`.
+
+**Do this instead:** Read `input.managementArchitecture` directly inside the `computed()` callback — Pinia tracks this dependency automatically.
+
+### Anti-Pattern 4: Wizard v-show Instead of v-if
+
+**What people do:** Use `v-show` to toggle visibility of all three step panels in App.vue or WizardStepper.vue.
+
+**Why it's wrong:** All three step panels mount simultaneously. Step 3 contains the full `ResultsPanel` with Chart.js canvases and the domain tab strip — this incurs unnecessary DOM cost on first load.
+
+**Do this instead:** Use `v-if` keyed on `uiStore.currentWizardStep`. Steps 1 and 2 are lightweight. Step 3 mounts on demand.
+
+### Anti-Pattern 5: Aggregate Totals Forgetting Management Hosts
+
+**What people do:** Keep `aggregateTotals.totalRecommendedHosts` as a pure sum of workload domain host counts.
+
+**Why it's wrong:** In dedicated mode, the procurement order must include management cluster hosts. A sizing tool that outputs the wrong total defeats its core purpose.
+
+**Do this instead:** Add `dedicatedMgmtHostCount.value ?? 0` to the sum when `managementArchitecture === 'dedicated'`.
 
 ---
 
-## Scalability Considerations
+## Integration Points
 
-| Concern | Single Domain (v2.x) | 2-5 Domains (v3.0 target) | 10+ Domains (edge case) |
-|---------|---------------------|--------------------------|------------------------|
-| `domainResults` recompute cost | One calcCompute call | 2-5 calcCompute calls | 10+ calls — negligible, all synchronous |
-| URL length | ~300 chars compressed | ~500-1000 chars compressed | ~2800 chars — still in safe range |
-| Tab UI rendering | N/A | Standard tab strip | Scrollable tab strip needed |
-| Chart series | 1-series | Multi-series or per-domain toggle | Per-domain toggle recommended |
+### Export Composables
+
+Both export composables read from the Pinia stores at call time (snapshot pattern). They do not subscribe to reactive state.
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `useMarkdownExport` ↔ `calculationStore` | Direct store read at function call time | `calc.aggregateTotals.totalRecommendedHosts` will auto-reflect fix once calculationStore is patched |
+| `usePptxExport` ↔ `calculationStore` | Same pattern | Aggregate totals slide will auto-reflect fix |
+| `useMarkdownExport` ↔ `AggregateTotals` type | If `mgmtHostCount` field is added to interface | Markdown "Aggregate Totals" section should show mgmt host breakdown |
+| `usePptxExport` ↔ `AggregateTotals` type | Same | Aggregate slide should show mgmt host breakdown |
+
+### URL State
+
+`useUrlState.ts` serializes `inputStore` only. The `uiStore.currentWizardStep` must NOT be serialized — this is intentional behavior matching `activeDomainIndex` (which is also excluded from URL state per URL-04 in the existing code).
+
+No changes needed to `useUrlState.ts`, `InputStateSchema`, `hydrateFromUrl`, or `generateShareUrl`.
+
+### i18n
+
+New wizard step components will need i18n keys for:
+- Step labels: `wizard.step1.label`, `wizard.step2.label`, `wizard.step3.label`
+- Navigation: `wizard.next`, `wizard.back`
+- Step descriptions (optional UX copy)
+
+The engine layer remains i18n-free. Validation warning messages continue to use existing i18n keys.
 
 ---
 
-## Confidence Assessment
+## Build Order
 
-| Area | Confidence | Source |
-|------|------------|--------|
-| Vue 3 deep reactivity of ref([]) arrays | HIGH | Vue 3 official docs, direct codebase patterns |
-| computed() mapping over reactive arrays | HIGH | Vue 3 official docs, established Pinia pattern |
-| Zod 4 z.array() with .min() and per-field defaults | HIGH | Zod 4 official docs (zod.dev/api) |
-| Zod 4 callable .default(() => fn()) | MEDIUM | Zod docs confirm factory defaults; verify against exact Zod 4.x.x installed |
-| lz-string URL length budget | MEDIUM | Manual calculation; actual compression ratio varies with input entropy |
-| WritableComputed for v-model in domain forms | HIGH | Vue 3 computed setter pattern, confirmed working in existing codebase |
-| storeToRefs() compatibility with array ref | HIGH | Pinia 3 docs confirm storeToRefs() wraps all ref() and reactive() state |
+The following ordering respects engine-before-store-before-UI dependencies and CALC-01/CALC-02:
+
+1. **Engine fix first:** Fix `calculationStore.ts` management-overhead logic (Pattern 2). Write failing tests first (TDD wave 0). This is the highest-risk change — verify via existing 236 tests.
+
+2. **Types second:** If `AggregateTotals` needs a `mgmtHostCount` field, add to `engine/types.ts`. This is CALC-01 safe (pure TypeScript).
+
+3. **Aggregate fix third:** Fix `aggregateTotals` in `calculationStore.ts` to include `dedicatedMgmtHostCount`. Add tests.
+
+4. **uiStore extension fourth:** Add `currentWizardStep` and navigation helpers to `uiStore.ts`. This is independent of the engine fix.
+
+5. **Wizard components fifth:** Build `WizardStepper.vue`, `Step1Topology.vue`, `Step2Management.vue`, `Step3Workloads.vue`. These compose existing input/results components — no new calculation logic.
+
+6. **App.vue integration sixth:** Replace flat two-column layout with `WizardStepper`. Gate on `uiStore.currentWizardStep`.
+
+7. **Export updates last:** Update `useMarkdownExport.ts` and `usePptxExport.ts` aggregate sections to surface `mgmtHostCount` breakdown. These are last because they depend on the type change and corrected values from step 1-3.
 
 ---
 
 ## Sources
 
-- Vue 3 Reactivity Fundamentals: https://vuejs.org/guide/essentials/reactivity-fundamentals.html
-- Vue 3 Computed Properties (writable): https://vuejs.org/guide/essentials/computed.html#writable-computed
-- Pinia Setup Stores: https://pinia.vuejs.org/core-concepts/
-- Pinia State: https://pinia.vuejs.org/core-concepts/state.html
-- Zod 4 Arrays: https://zod.dev/api (z.array section)
-- Zod 4 Object .strip(): https://zod.dev/api (z.object section)
-- Existing codebase: direct inspection of inputStore.ts, calculationStore.ts, useUrlState.ts, engine/types.ts
+- Direct inspection of `src/engine/compute.ts` — `managementCores` param already exists in `ComputeInputs`
+- Direct inspection of `src/stores/calculationStore.ts` — confirmed current bug: all domains receive full mgmt overhead
+- Direct inspection of `src/stores/uiStore.ts` — confirmed pattern for ephemeral UI state
+- Direct inspection of `src/stores/inputStore.ts` — confirmed `activeDomainIndex` precedent for non-serialized UI state
+- Direct inspection of `src/engine/types.ts` — confirmed `AggregateTotals` structure
+- Direct inspection of `src/composables/useUrlState.ts` — confirmed `activeDomainIndex` excluded from URL-04
+- Pinia docs pattern: `computed()` reading other store state inside `defineStore` with Composition API — HIGH confidence, established pattern throughout this codebase
+- Project CLAUDE.md — CALC-01, CALC-02 constraints are hard rules
+
+---
+*Architecture research for: VCF 9.x Sizing Calculator — v3.1 Wizard + Management-First Engine*
+*Researched: 2026-03-30*

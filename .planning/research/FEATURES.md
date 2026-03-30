@@ -1,391 +1,246 @@
-# Feature Landscape: Multi-Domain Support (v3.0)
+# Feature Research
 
-**Domain:** Infrastructure sizing calculator — VMware Cloud Foundation 9.x — Multi-Workload Domain Support
-**Researched:** 2026-03-30 (v3.0 multi-domain milestone)
-**Confidence:** HIGH (tab UX patterns — NN/g + industry sources), HIGH (VCF domain architecture — Broadcom techdocs), MEDIUM (Nutanix Sizer multi-workload patterns — community docs), HIGH (delete confirmation UX — multiple verified sources)
-
----
-
-## Scope Note
-
-This document replaces the v2.1 export-quality research. It focuses on the v3.0 milestone: adding N independent workload domains to an existing single-domain sizing calculator. Key existing architecture constraints:
-
-- `inputStore.ts` holds all mutable state as flat `ref()` fields — no arrays today
-- `calculationStore.ts` is zero-`ref()`, pure `computed()` — must remain so
-- `useUrlState.ts` uses a flat Zod schema — must expand to variable-length array
-- Engine functions (compute, storage, management, stretch, vsanMax) are pure TypeScript with no Vue imports
-- All 4 locales (en/fr/de/it) must be served from day one
+**Domain:** VCF 9.x sizing calculator — Milestone v3.1: Sizing Correctness & Guided Workflow
+**Researched:** 2026-03-30
+**Confidence:** MEDIUM (wizard UX: HIGH from multiple sources; VCF sizing order: MEDIUM from official docs; colocated overhead: LOW — no VCF 9 authoritative spec found)
 
 ---
 
-## VCF Workload Domain Architecture Context
+## Context: This Is a Subsequent Milestone
 
-Understanding what a "workload domain" IS in VCF 9.x informs what must be independently configurable per domain.
+The v3.0 multi-domain foundation is complete. This research targets the three new capability clusters introduced in v3.1:
 
-A VI workload domain in VCF is:
-- A pool of hosts managed by its own dedicated vCenter Server instance
-- Independent network configuration and policy boundaries
-- Independent storage (vSAN ESA, FC, NFS, or vSAN Max per domain)
-- Independent lifecycle management (patching, upgrades per domain)
-- Sized independently from other domains
-
-**Implication for the calculator:** Each domain must independently carry ALL of the inputs currently in `inputStore.ts`:
-- Host specs (cores, sockets, RAM, storage per host)
-- Workload profile (VM count, vCPU/vRAM/storage per VM, overcommit ratios)
-- Storage type + configuration (FTT, RAID, dedup, vSAN Max profile)
-- Optional features: NVMe tiering, AI/GPU workloads, stretch cluster, vSAN Max
-- Deployment model (simple/ha/stretch — stretch is per-domain in VCF)
-- Network speed (affects dedup eligibility and stretch bandwidth cap)
-
-The management domain (vCenter, SDDC Manager, NSX Manager, VCF Ops, VCF Automation) is shared across ALL workload domains in a VCF instance. It must have its own independent host specs but does NOT carry a workload profile.
+1. Guided 3-step wizard UX (Topology → Management → Workloads)
+2. Calculation order fix: management-first sizing
+3. Colocated mode: management overhead absorbed into WLD-1 cluster
 
 ---
 
-## Table Stakes
+## Feature Landscape
 
-Features users expect. Missing any of these makes the multi-domain feature unusable or feels incomplete.
+### Table Stakes (Users Expect These)
 
-| Feature | Why Expected | Complexity | Architecture Note |
-|---------|--------------|------------|-------------------|
-| Tab-per-domain UI | Industry standard for multi-item editing (IDEs, browsers, spreadsheets, Nutanix Sizer). Users cannot reason about N configs in one scrolling form. | MEDIUM | New tabbed layout wrapping existing input components |
-| Add domain button | Dynamic addition is required — users configure domains one at a time as they plan their VCF deployment | LOW | Appends to domains array in store |
-| Remove domain button per tab | Users need to delete domains they no longer need. Single-domain state (last domain) must be protected. | LOW | Must not allow deleting the last domain |
-| Named domains | Each domain should have a user-visible name (e.g. "Production", "Dev/Test", "GPU Cluster"). Anonymous "Domain 1/2/3" labels are confusing for export reports. | LOW | Name is just a string field on each domain object |
-| Default name on add | When adding a domain, provide a sensible default name ("Domain 2", "Domain 3") so users can immediately add and configure without a required name step | LOW | Auto-increment label |
-| Per-domain independent config | Every existing input (host specs, workload, storage, optional features) applies independently per domain — this is the entire value proposition | HIGH | inputStore refactor to domains array |
-| Management domain with own host specs | Management domain overhead is fixed (existing calcManagement() engine), but the hardware carrying it must be independently specifiable | MEDIUM | Separate mgmt host spec inputs decoupled from WLD |
-| Per-domain results | Host count recommendation, compute utilization %, storage capacity — per domain, shown when that tab is active | MEDIUM | calculationStore iterates over domains array |
-| Aggregate totals | Total host count across all domains + management domain is what gets sent to procurement. This is a primary deliverable. | MEDIUM | Sum across all domain results |
-| URL state with multi-domain | The shareable URL must encode the full multi-domain configuration. This is the persistence mechanism — no localStorage. | HIGH | Zod schema change: add `domains: z.array(DomainSchema)` |
-| Per-domain sections in Markdown export | A sizing report covering 3 domains must have 3 domain sections. Single-domain export format is insufficient. | HIGH | useMarkdownExport.ts refactor |
-| Per-domain sections in PPTX export | Each domain should have its own slide(s) in the PowerPoint output. The aggregate summary slide replaces the current single-domain summary. | HIGH | usePptxExport.ts refactor |
+Features that must be present for the wizard to feel correct and trustworthy.
 
----
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Persistent step indicator (3 steps numbered) | Users need to see total steps and current position at all times; this is universal wizard UX | LOW | Horizontal layout preferred for 3-step desktop flows; show step number + label |
+| Step labels that describe content | "Step 1" alone is insufficient; labels like "Topology", "Management", "Workloads" reduce cognitive load | LOW | Already defined in milestone scope |
+| Completed-step visual differentiation | Checkmark or filled icon for done steps vs current vs future; industry standard since Material Design | LOW | Three states: completed, active, upcoming |
+| Forward/back navigation on every step | Blocking back navigation increases anxiety and form abandonment; all tested patterns include back | LOW | Back must not lose data entered in previous steps |
+| Per-step validation before advancing | Advancing with invalid data causes confusing downstream errors; users expect inline blocking | MEDIUM | Only block advance, never block back; show inline error summary |
+| Data persistence across step transitions | Users expect entered values to survive navigation between steps; loss is experienced as a bug | LOW | Already handled by Pinia store; wizard just controls visibility |
+| Clear "finish" entry point to results | After step 3 (Workloads), the existing results view must be immediately accessible | LOW | Current tab UI becomes the results view; wizard wraps it |
+| Step state NOT persisted in shareable URL | Wizard position is ephemeral UI state, not configuration data; URL encodes domain config only | MEDIUM | activeTabIndex exclusion precedent already set in v3.0 |
 
-## Differentiators
+### Differentiators (Competitive Advantage)
 
-Features that set this tool apart from generic sizing tools. Not table stakes, but add significant value.
+Features that make the sizing wizard authoritative rather than generic.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Domain duplication ("Copy from...") | Cloud architects frequently configure multiple similar domains (e.g., two VI domains with the same host type but different workload profiles). Copy avoids re-entering host specs. | MEDIUM | Deep-clone domain object, auto-rename copy |
-| Inline tab rename (double-click) | Standard in browsers (Arc, Warp) and IDEs. Faster than a modal dialog. Consistent with user mental model of named tabs. | LOW | Replace tab label with `<input>` on dblclick, commit on blur/Enter |
-| Aggregate totals panel | Pinned summary card showing total hosts across all domains + management = total servers for procurement. This is the number that goes on the PO. | MEDIUM | Computed from sum of all domain results + mgmt hosts |
-| Delete confirmation only when domain has data | Skip the "are you sure?" dialog if the domain is empty/default. Show it only when the domain has been meaningfully configured (vmCount > 0 or non-default host specs). Context-sensitive confirmation reduces dialog fatigue. | LOW | Check if domain has non-default values before showing modal |
-| Tab scrolling with overflow | When a user adds 5+ domains, tabs must scroll horizontally rather than wrap or shrink labels into illegibility. Gradient fade at container edge hints at more tabs. | LOW | CSS overflow-x: auto on tab list, Tailwind `scrollbar-hide` |
-| Domain-name-in-export filenames | Markdown and PPTX filenames reflect the project or first domain name (e.g. "vcf-sizer-production.md") for easier file management | LOW | Pass domain metadata to export composables |
-| Validation per domain | Each domain independently reports its own warnings (too few hosts, dedup ineligible, etc.). Aggregate warnings panel shows all domain issues. | MEDIUM | validateInputs() called per domain, results merged |
+| Domain-aware step ordering (Topology → Mgmt → Workloads) | Mirrors the actual VCF deployment sequence; forces correct design thinking; differentiates from generic calculators | MEDIUM | This is the core v3.1 thesis: wizard enforces correct mental model |
+| Management-first result display before workload entry | Users see management overhead committed before they add workload domains; builds confidence in total | MEDIUM | Show management DomainResultCard at end of step 2 |
+| Step 2 summary panel showing management overhead committed | At step 3, display a collapsed summary of management resource commitment as context for workload sizing | MEDIUM | Prevents "where did those hosts go?" confusion |
+| Colocated mode: automatic overhead absorption into WLD-1 | When colocated, no separate management hosts are procured; engine adds mgmt vCPU/RAM to WLD-1 sizing | HIGH | Core correctness fix; most complex engine change in v3.1 |
+| Aggregate totals recalculated after management-first pass | Procurement total = mgmt hosts (dedicated) OR workload hosts with overhead (colocated); accurate BOM | MEDIUM | Currently the aggregate double-counts or ignores mgmt overhead |
+| Validation warning when colocated minimum hosts are insufficient | Colocated requires >= 3 hosts (vSAN) or >= 2 (FC/NFS); must accommodate management overhead | MEDIUM | Already partially implemented; needs colocated-overhead-aware recalculation |
 
----
+### Anti-Features (Commonly Requested, Often Problematic)
 
-## Anti-Features
-
-Features to explicitly NOT build in v3.0.
-
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Side-by-side domain comparison columns | Complex layout, breaks responsive design, duplicates the per-domain tab info | Use the aggregate totals panel for cross-domain summary |
-| Drag-to-reorder tabs | Adds significant implementation complexity (drag events, touch support, state reorder) for minimal user benefit — domains are not ordered by importance | Provide simple "left/right" reorder arrows on the tab if order matters, deferred to post-v3.0 |
-| Per-domain color theming | Cosmetic, adds accessibility concerns, zero sizing value | Use tab index + name for differentiation |
-| localStorage persistence of domains | URL sharing IS the persistence model. localStorage adds sync complexity, stale-state bugs, and cross-device confusion | Keep URL state as sole persistence mechanism |
-| Import from VCF Planning Workbook | Parsing an external Excel/CSV file adds significant scope and is a separate feature | Out of scope for v3.0 |
-| Domain "locking" to prevent edits | Premature optimization — users who want a snapshot use the shareable URL | Not needed |
-| Nested sub-domains | VCF workload domains can have multiple clusters but the calculator models at the domain level | Keep domain = single cluster sizing model (clusters not modeled separately) |
-| Type-to-confirm delete dialog | Appropriate for repository deletion (permanent, irrecoverable). Overkill for a domain config in a client-side tool where the user can simply re-add the domain | Use a simple "Delete domain?" modal with Cancel/Delete buttons |
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Non-linear step navigation (click any step from indicator) | Power users want to jump between sections quickly | Breaks the management-first design sequence that is the core correctness guarantee of v3.1; users would re-order topology after sizing management | Allow back navigation freely; keep forward navigation linear with validation |
+| Saving wizard progress to localStorage | Some users request "resume later" | Adds implementation complexity; URL sharing (lz-string) already covers the use case; localStorage has stale-state risk | URL sharing already provides shareable state; document it clearly |
+| Animated step transitions (slide/fade effects) | Modern aesthetic appeal | Adds CSS complexity for zero correctness value; increases perceived latency for users iterating on sizing numbers | Instant transitions; focus on validation feedback animations instead |
+| Wizard-only mode that hides the full tab UI forever | Simplicity request | Power users (cloud architects, VI admins) need direct access to the multi-domain tab UI for complex scenarios; wizard should be an onboarding path, not a prison | Wizard as default entry point; "advanced mode" or "edit directly" escape hatch to full tab UI |
+| Per-step separate URLs (route-based wizard) | Clean browser history | Requires Vue Router integration; adds significant router config for no functional benefit; back button behavior becomes ambiguous | Internal component state drives step; URL encodes domain data only, not UI step |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Management domain host specs independent from workload domains
-  → Requires: separate mgmt host spec section in UI
-  → Requires: mgmt host spec inputs NOT part of domain array
+[Step 1: Topology Selection]
+    └──gates──> [Step 2: Management Domain Design]
+                    └──gates──> [Step 3: Workload Domains + Export]
+                                    └──requires──> [Aggregate Totals (management-first)]
 
-Add/Remove domain tabs
-  → Requires: domains array in inputStore (replaces flat fields)
-  → Requires: domain schema in useUrlState Zod schema
-  → Requires: per-domain calculationStore computed iteration
+[Management-First Engine Fix]
+    └──enables──> [Colocated Overhead Absorption into WLD-1]
+    └──enables──> [Correct Aggregate Totals]
+    └──enables──> [Accurate Export (Markdown + PPTX)]
 
-Per-domain results
-  → Requires: domains array in calculationStore
-  → Requires: engine functions accept domain config objects (already pure functions, no change to signatures needed — just called per-domain)
+[Colocated Architecture Toggle] (already built)
+    └──drives──> [Colocated Overhead Engine Logic] (new in v3.1)
+    └──drives──> [Colocated Minimum Host Validation] (already built, needs update)
 
-Aggregate totals
-  → Requires: per-domain results (all domains computed)
-  → Requires: management domain host count
+[Step 2 Completion]
+    └──unlocks──> [Management DomainResultCard display]
 
-Per-domain export sections
-  → Requires: per-domain results
-  → Requires: named domains (for section headers)
-  → Requires: aggregate totals
-
-URL state with domains array
-  → Requires: Zod schema update (z.array(DomainSchema))
-  → Requires: hydrateFromUrl() updated to restore domains array
-  → Requires: generateShareUrl() serializes full domains array
-
-Domain duplication (differentiator)
-  → Requires: add domain (table stake)
-  → Requires: domain objects are plain serializable data (no reactive refs at domain level)
+[Step 3 = Current Tab UI]
+    └──requires──> [No structural change to per-domain input forms]
+    └──requires──> [No change to DomainResultCard or AggregateTotalsCard]
 ```
+
+### Dependency Notes
+
+- **Wizard step gating requires management engine fix first:** The step 2 to 3 gate is only meaningful if management sizing is calculated independently of workload domains. Engine fix must land before wizard step 2 validation is meaningful.
+- **Colocated overhead requires management-first pass:** To know how much overhead to absorb into WLD-1, the engine must calculate management vCPU/RAM first, then pass that delta into WLD-1's host sizing function.
+- **Export accuracy depends on engine fix:** Markdown and PPTX exports inherit from calculationStore; once engine is correct, exports are automatically correct (no separate export work required for v3.1 correctness).
+- **Step 3 = existing UI:** The workload domain tab UI built in v3.0 becomes the content of step 3 unchanged. Wizard is a wrapper, not a replacement.
 
 ---
 
-## Domain Object: What Each Domain Carries
+## MVP Definition for v3.1
 
-Based on the existing `inputStore.ts` fields, each workload domain must carry:
+### Launch With (v3.1)
 
-```
-WorkloadDomain {
-  id: string           // uuid or nanoid — stable key for v-for/keying
-  name: string         // user-visible label
+Minimum feature set to deliver the stated milestone goal.
 
-  // Host specs (currently global in inputStore)
-  coresPerSocket: number
-  socketsPerHost: number
-  hostRamGB: number
-  hostStorageTB: number
-  hostCount: number        // or preferredSiteHosts/secondarySiteHosts for stretch
+- [ ] 3-step wizard component with horizontal step indicator (numbered + labeled) — required to enforce management-first sequence
+- [ ] Step 1 (Topology): deployment model selector (Simple / HA / Stretch / vSAN Max) — currently in inputStore, needs to be surfaced as dedicated step
+- [ ] Step 2 (Management): management domain host specs + architecture toggle (dedicated/colocated) — already built; wrap in step 2 container
+- [ ] Step 2 to Step 3 gate: management sizing must be complete (host count >= minimum) before advancing
+- [ ] Management DomainResultCard displayed at end of Step 2 — gives user immediate feedback on management overhead committed
+- [ ] Step 3 (Workloads + Export): existing workload domain tab UI unchanged
+- [ ] Engine fix: management vCPU/RAM calculated independently, aggregate = mgmt hosts + workload hosts (dedicated) OR colocated absorption into WLD-1
+- [ ] Colocated overhead absorption: when architectureMode is colocated, engine adds management component vCPU/RAM to WLD-1 required resources before computing WLD-1 host count
+- [ ] Aggregate totals: recomputed after management-first engine fix reflects correct procurement total
+- [ ] Back navigation: step 3 to step 2 to step 1 without data loss
 
-  // Deployment model
-  deploymentMode: 'simple' | 'ha' | 'stretch'
-  preferredSiteHosts: number
-  secondarySiteHosts: number
-  networkSpeedGbE: 10 | 25 | 100
+### Add After Validation (v3.1.x)
 
-  // Workload profile
-  vmCount: number
-  avgVcpuPerVm: number
-  avgVramGbPerVm: number
-  avgStorageGbPerVm: number
-  cpuOvercommitRatio: number
-  ramOvercommitRatio: number
+- [ ] Step 2 summary panel collapsed at top of step 3 showing committed management resources — adds clarity but not correctness
+- [ ] Step indicator "click to revisit completed step" navigation — convenience for power users
+- [ ] Wizard intro/landing view ("Start Sizing" CTA) — only if user research shows confusion at cold start
 
-  // Optional: NVMe tiering
-  nvmeTieringEnabled: boolean
-  activeMemoryPct: number
+### Future Consideration (v4+)
 
-  // Optional: AI/GPU
-  gpuVmCount: number
-  vgpuMemoryGB: number
-
-  // Storage config
-  storageType: 'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'
-  fttLevel: 1 | 2
-  raidType: 'raid1' | 'raid5' | 'raid6'
-  dedupEnabled: boolean
-  dedupRatio: number
-  vsanMaxProfile: 'xs' | 'sm' | 'med' | 'lrg' | 'xl'
-  vsanMaxStorageNodes: number
-}
-```
-
-Management domain carries only:
-```
-ManagementDomainConfig {
-  coresPerSocket: number
-  socketsPerHost: number
-  hostRamGB: number
-  hostStorageTB: number
-  managementArchitecture: 'shared' | 'dedicated'
-}
-```
-
-Note: `managementArchitecture` moves from a workload-domain-level concern to a global/management-domain concern in v3.0, since it only applies to the management domain itself.
+- [ ] Guided tooltips and contextual help overlays per step — reduces cold-start friction for less experienced users
+- [ ] Wizard state exportable as "project file" (JSON download) — complementary to URL sharing for very large domain configs
 
 ---
 
-## Tab UX Patterns: Actionable Guidelines
+## VCF 9.x Sizing Order: What the Docs Say
 
-Based on NN/g research and industry patterns, the following guidelines apply directly to the domain tab implementation:
+### Official Sizing Sequence (MEDIUM confidence)
 
-### When to use tabs (applies here)
-- Content sections are mutually exclusive and independent
-- Users need to switch context frequently without losing progress in the other tabs
-- The number of items is known at runtime but bounded (VCF practically limits to 5-10 workload domains)
+Source: Broadcom TechDocs, VMware Cloud Foundation blog posts, community deployment guides.
 
-### Tab rendering rules
-- Active tab: distinct background (Tailwind `bg-white` or brand color), full border, elevated
-- Inactive tab: muted background, bottom border only — visually "behind" the active tab
-- Tab strip: horizontally scrollable when tabs overflow (`overflow-x: auto`, no wrapping)
-- Overflow hint: gradient fade at right edge of tab strip when more tabs exist off-screen
+**The management domain is always deployed and sized first.** This is architecturally mandated:
 
-### Add tab button
-- Position: immediately after the last tab in the tab strip (right side), not in a toolbar
-- Label: "+" or "+ Add Domain" depending on available space
-- On click: appends new domain with default name ("Domain N"), activates the new tab immediately
+> "Each VCF instance is configured with a single management domain which is used to house VCF core management components which includes a SDDC Manager appliance. After the management domain is created, you can deploy or import workload domains."
+> — VMware Cloud Foundation blog, July 2025
 
-### Tab naming (inline rename)
-- Double-click on tab label replaces it with a focused `<input>` element
-- Width: clamp input to min 80px, max 200px
-- Commit: on Enter keypress or blur (focus loss)
-- Cancel: on Escape keypress (restore previous name)
-- Validation: prevent empty name (restore previous name if blank on commit)
-- Do NOT require a rename dialog/modal — inline edit is the table-stakes pattern
+**Sizing order implications for the engine:**
 
-### Remove tab button
-- "×" icon appears inside each tab label on hover (or always visible on small screens)
-- Minimum domains: disable or hide remove button when only 1 domain exists
-- Confirmation: show a simple modal ("Delete domain '[name]'? This cannot be undone.") ONLY when the domain has non-default data (vmCount > 0 OR host specs differ from defaults). Skip confirmation for default/empty domains.
-- After delete: activate the previous tab (left neighbor), or the next tab if deleting the first
+1. Size management domain hosts first (vCenter + NSX Manager + SDDC Manager + VCF Operations + VCF Automation)
+2. Determine architecture mode (dedicated vs. colocated)
+3. If dedicated: management cluster is a separate procurement line item; workload domains are sized independently
+4. If colocated: management VMs run on the same cluster as WLD-1; WLD-1 host count must accommodate both management overhead AND workload VMs
 
-### Keyboard accessibility
-- Tab strip items are `role="tab"` in a `role="tablist"` (ARIA tabs pattern)
-- Active tab content region is `role="tabpanel"` with `aria-labelledby` pointing to the tab
-- Arrow keys navigate between tabs (left/right)
-- Delete key on focused tab triggers delete flow
+### Management Domain Component Overhead (MEDIUM confidence)
 
----
+Source: William Lam's lab deployment guide (June 2025) — non-official but widely cited, cross-referenced with the "What Does It Take to Run VCF 9?" production sizing article.
 
-## Aggregate Totals: What to Show
+**Simple (single-node) deployment — minimum viable:**
 
-The aggregate totals panel (pinned, always visible or at bottom of page) must answer the procurement question: "How many servers total?"
+| Component | vCPU | RAM |
+|-----------|------|-----|
+| vCenter Server | 4 | 21 GB |
+| NSX Manager | 6 | 24 GB |
+| SDDC Manager | 4 | 16 GB |
+| VCF Operations | 4 | 16 GB |
+| VCF Operations Fleet Manager | 4 | 12 GB |
+| VCF Operations Collector | 4 | 16 GB |
+| VCF Automation | 24 | 96 GB |
+| **Total (simple)** | **48** | **194 GB** |
 
-| Metric | Source | Why It Matters |
-|--------|--------|---------------|
-| Total workload domain hosts | Sum of `recommendedHostCount` across all domains | Goes to procurement |
-| Management domain hosts | `dedicatedMgmtHostCount` when dedicated, or included in first domain when shared | Required for total |
-| Grand total hosts | Sum of above | The number on the PO |
-| Total vCPU capacity | Sum of `availableCores` across all domains | Cross-domain sanity check |
-| Total RAM capacity (TB) | Sum of `availableRamGB` across all domains | Cross-domain sanity check |
-| Total usable storage (TB) | Sum of `safeUsableCapacityTB` across all domains | Cross-domain sanity check |
-| Domains with warnings | Count of domains with `validationErrors.length > 0` | Flag for review |
+**HA (three-node) deployment — production:**
 
-The panel should use progressive disclosure: show the headline numbers (total hosts), with a "Details" expansion for per-domain breakdown.
+NSX Manager, VCF Operations, and VCF Automation each deploy as 3-node clusters. The existing inputStore already models the HA multiplier (x3) for NSX Manager, VCF Operations, and VCF Automation. This is confirmed correct per the PROJECT.md validated requirements.
 
----
+**Production-grade sizing (4-node management cluster):**
 
-## URL State: Multi-Domain Schema
+A full production management domain runs approximately 25 VMs consuming 234 vCPUs and 825 GB RAM allocated across the cluster, including HA appliances, NSX Edge nodes, Identity Broker, and additional operational tools beyond the minimal 7-component stack.
 
-The existing flat Zod schema in `useUrlState.ts` must be restructured. The clean approach:
+### Colocated Mode: Overhead Absorption (LOW confidence — no official formula found)
 
-```typescript
-// Per-domain Zod schema (all fields optional with defaults)
-const WorkloadDomainSchema = z.object({
-  id: z.string().default(() => crypto.randomUUID()),
-  name: z.string().default('Domain 1'),
-  // ... all domain fields with defaults matching current inputStore defaults
-}).strip()
+**What is established:**
 
-// Top-level schema replaces flat InputStateSchema
-const AppStateSchema = z.object({
-  domains: z.array(WorkloadDomainSchema).min(1).default(() => [defaultDomain()]),
-  management: ManagementConfigSchema,
-}).strip()
-```
+- VCF 9 dropped the term "Consolidated Architecture" (used in VCF 4.x/5.x) to reduce confusion, but running management and workload VMs on the same cluster is supported
+- In colocated mode, resource pools provide isolation between management VMs and workload VMs
+- Minimum host count for colocated: 3 (vSAN) or 2 (FC/NFS) — already implemented in the tool per validated requirements
 
-Key constraints:
-- `z.array().min(1)` — at least one domain always required
-- `.default()` with a factory function — generates a domain with all defaults if `domains` is missing from the URL (backward compatibility with v2.x URLs)
-- `.strip()` at both levels — unknown keys discarded at domain and top level
-- IDs must be stable across hydration (don't regenerate on parse — use the stored ID)
+**What the engine should do (derived from architectural logic, not an official formula):**
 
-Backward compatibility with v2.x single-domain URLs: If a v2.x compressed URL is loaded, `AppStateSchema.safeParse()` will fail (no `domains` key). The fallback behavior should produce a single default domain — effectively a fresh start, which is acceptable.
+When architectureMode is colocated:
+
+1. Calculate management component vCPU total (simple or HA mode — uses existing component table in engine)
+2. Calculate management component RAM total
+3. Add these values to WLD-1's required vCPU and required RAM before computing WLD-1 host count
+4. WLD-1 host count drives the management cluster count (same physical hosts)
+5. Aggregate totals: total hosts = WLD-1 hosts (which already includes management overhead) + WLD-2..N hosts
+
+**Risk:** No official Broadcom document for VCF 9 specifies this calculation formula explicitly. The existing tool already has the HA multiplier and component vCPU/RAM values in the engine. The absorption logic is the missing architectural link and must be designed by the requirements author based on engineering reasoning.
+
+**Recommended approach for requirements:** Define a `managementOverheadVcpu` and `managementOverheadRamGb` computed value in the engine (or calculationStore), then pass it into the WLD-1 sizing function as an additive overhead parameter when architectureMode is colocated.
 
 ---
 
-## Export: Multi-Domain Structure
+## Feature Prioritization Matrix
 
-### Markdown Report Structure
-
-```
-# VCF Sizing Report
-[Report metadata: date, tool version, locale]
-
-## Deployment Overview
-[Aggregate totals table: total hosts by domain + management]
-
-## Management Domain
-[Host specs, management overhead breakdown, dedicated/shared architecture]
-
-## Workload Domain: [Domain Name] (1 of N)
-[Full existing single-domain report structure: workload profile, host specs,
- compute results, storage results, optional sections (stretch/NVMe/GPU/vSAN Max),
- validation warnings]
-
-## Workload Domain: [Domain Name] (2 of N)
-[Same structure]
-
-...
-
-## Summary
-[Shareable URL]
-```
-
-### PPTX Structure
-
-```
-Slide 1: Title (existing)
-Slide 2: Deployment Overview (new — aggregate totals)
-Slide 3: Management Domain (existing slide adapted)
-Slide 4..N+3: Per-domain slides (one slide per domain minimum)
-  - Domain name as slide title
-  - Compute + storage results
-  - Conditional: stretch/NVMe/GPU sub-section
-Slide N+4: Warnings (if any domain has warnings)
-```
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| 3-step wizard component with step indicator | HIGH | LOW | P1 |
+| Per-step data persistence (no loss on back/next) | HIGH | LOW (already in Pinia) | P1 |
+| Step 2 to 3 gate: management sizing required | HIGH | LOW | P1 |
+| Management-first engine calculation order | HIGH | MEDIUM | P1 |
+| Colocated overhead absorption into WLD-1 | HIGH | HIGH | P1 |
+| Aggregate totals recalculated (correct) | HIGH | MEDIUM | P1 |
+| Management DomainResultCard at step 2 | MEDIUM | LOW (card already exists) | P1 |
+| Back navigation without data loss | HIGH | LOW | P1 |
+| Per-step validation blocking forward advance | MEDIUM | MEDIUM | P1 |
+| Step 2 summary panel in step 3 | MEDIUM | LOW | P2 |
+| Completed-step click-to-revisit | LOW | LOW | P2 |
+| Wizard intro/landing page | LOW | MEDIUM | P3 |
+| Animated transitions | LOW | MEDIUM | P3 |
 
 ---
 
-## Phase-Specific Complexity Notes
+## Competitor Feature Analysis
 
-### Highest complexity: inputStore refactor
-Replacing 20+ flat `ref()` fields with a `domains` array is the foundational change. Every input component, the calculationStore, and useUrlState must change together. The TDD discipline from prior phases (Wave 0: failing tests first) is critical here.
+| Feature | Generic Sizing Tools | Broadcom VCF Fleet Planning Sizer | This Tool (VCF Sizer) |
+|---------|---------------------|----------------------------------|----------------------|
+| Guided wizard flow | Most use flat forms | No wizard; spreadsheet-based | New in v3.1 |
+| Management-first sizing order | Not enforced | Manual user responsibility | Enforced by step gating in v3.1 |
+| Colocated overhead auto-absorption | Not available | Manual calculation | New in v3.1 engine fix |
+| Multi-language (FR/EN/DE/IT) | Typically EN only | EN only | Already shipped |
+| Client-side / offline capable | Requires server | Cloud-hosted | Static SPA |
+| Shareable URL with full state | Rare | Not available | Already shipped (lz-string) |
+| Export (Markdown, PDF, PPTX) | PDF at most | Spreadsheet export | Already shipped |
 
-### Medium complexity: calculationStore multi-domain
-The store must iterate over all domains and expose both per-domain results AND aggregate computed values. The CALC-02 rule (zero `ref()`) must hold — all results remain `computed()`.
-
-### Medium complexity: URL state schema migration
-The Zod schema change is a breaking change to URL format. Existing v2.x shared URLs will produce empty/default state on load. This is acceptable — document it in the release notes. The schema migration must maintain `.strip()` at all levels and handle the `crypto.randomUUID()` default for domain IDs.
-
-### Low complexity: Tab UI itself
-The tab component is CSS + Vue conditional rendering. Tailwind handles overflow scrolling. The inline rename pattern is ~30 lines of Vue component logic. This is NOT the risky part.
-
-### Low complexity: Export refactor
-The markdown and PPTX composables are already pure TypeScript with no Vue lifecycle hooks. They just need to iterate over the domains array rather than reading from a single flat state object.
-
----
-
-## MVP Recommendation for v3.0 Phase Structure
-
-**Phase 1: Domain data model + store refactor**
-- WorkloadDomain interface + factory function in engine/types.ts
-- inputStore refactored: flat fields replaced by `domains: WorkloadDomain[]` + `management: ManagementConfig`
-- calculationStore: per-domain computed array + aggregate totals
-- useUrlState: AppStateSchema with domains array
-- All existing engine tests still pass (engines are called per-domain with same signatures)
-
-**Phase 2: Tab UI**
-- Domain tab strip with add/remove/rename
-- Existing input components rendered inside active domain tab
-- Management domain section (separate, not a tab)
-
-**Phase 3: Results + aggregate panel**
-- Per-domain results shown in active tab
-- Aggregate totals panel (total hosts)
-- Per-domain validation warnings
-
-**Phase 4: Export refactor**
-- Markdown: per-domain sections + aggregate overview
-- PPTX: per-domain slides + aggregate summary slide
-
-Defer:
-- Domain duplication (copy): can be added in Phase 2 cleanup or post-v3.0
-- Drag-to-reorder tabs: post-v3.0
+Note: The Broadcom VCF Fleet Planning Sizer at sizer.vmtechie.blog is a community tool, not the official Broadcom sizer. The official Broadcom sizer requires a Broadcom account and is not publicly accessible for evaluation.
 
 ---
 
 ## Sources
 
-- [Tabs, Used Right — Nielsen Norman Group](https://www.nngroup.com/articles/tabs-used-right/)
-- [Tabs UX: Best Practices — Eleken](https://www.eleken.co/blog-posts/tabs-ux)
-- [Dynamic Tabs in React (URL params strategy) — remix-run/react-router discussion #11040](https://github.com/remix-run/react-router/discussions/11040)
-- [Workload Domains in VMware Cloud Foundation — Broadcom TechDocs](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-5-2-and-earlier/5-1/getting-started-with-vcf-5-1/cloud-foundation-architecture/workload-domains-in-vmware-cloud-foundation.html)
-- [Architecture Models and Workload Domain Types — Broadcom TechDocs](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-5-2-and-earlier/5-2/vcf-design-5-2/vmware-cloud-foundation-concepts/vmware-cloud-foundation-architecture-models.html)
-- [Nutanix Sizer Overview — Read the Docs](https://sizing-workshop.readthedocs.io/en/latest/sizer/overview/overview.html)
-- [Delete with Additional Confirmation — Cloudscape Design System](https://cloudscape.design/patterns/resource-management/delete/delete-with-additional-confirmation/)
-- [How to Design Destructive Actions That Prevent Data Loss — UX Movement](https://uxmovement.com/buttons/how-to-design-destructive-actions-that-prevent-data-loss/)
-- [Tabs Overflow — Spectrum Web Components (Adobe)](https://opensource.adobe.com/spectrum-web-components/components/tabs-overflow/)
-- [Double-click tab rename — cmux GitHub issue #1654](https://github.com/manaflow-ai/cmux/issues/1654)
-- [Inline tab rename — pgadmin4 GitHub issue #8896](https://github.com/pgadmin-org/pgadmin4/issues/8896)
+- [Management Domain Model — Broadcom TechDocs VCF 9.0](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/design/design-library/workload-domain-deployment-models/management-domain-deployment-model.html) — MEDIUM confidence (official doc)
+- [Planning a Successful VCF 9.0 Deployment — VMware Cloud Foundation Blog, July 2025](https://blogs.vmware.com/cloud-foundation/2025/07/28/planning-a-successful-vmware-cloud-foundation-9-0-deployment/) — MEDIUM confidence
+- [Deployment Pathways for VMware Cloud Foundation 9 — VMware Blog, July 2025](https://blogs.vmware.com/cloud-foundation/2025/07/03/vcf-9-0-deployment-pathways/) — MEDIUM confidence
+- [Minimal Resources for Deploying VCF 9.0 in a Lab — William Lam, June 2025](https://williamlam.com/2025/06/minimal-resources-for-deploying-vcf-9-0-in-a-lab.html) — MEDIUM confidence (community, widely cited)
+- [What Does It Take to Run VCF 9? — WEI Blog](https://www.wei.com/blog/what-does-it-take-to-run-vcf-9/) — LOW confidence (vendor blog, production spec)
+- [Minimum Number of ESXi Hosts — Broadcom KB 392993](https://knowledge.broadcom.com/external/article/392993/minimum-number-of-esxi-hosts-required-on.html) — HIGH confidence (official KB)
+- [Sizing Compute Resources for ESXi for the Management Domain — Broadcom TechDocs VCF 4.5](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-5-2-and-earlier/4-5/vcf-design-management-domain-4-5/vcf-esxi-design/vcf-deployment-specification-for-esxi/vcf-physical-design-for-esxi.html) — MEDIUM confidence (VCF 4.5, not VCF 9 — architectural patterns still applicable)
+- [Wizard UI Pattern: When to Use It and How to Get It Right — Eleken](https://www.eleken.co/blog-posts/wizard-ui-pattern-explained) — HIGH confidence
+- [Best Practices for High-Conversion Wizard UI Design — Lollypop Design, January 2026](https://lollypop.design/blog/2026/january/wizard-ui-design/) — HIGH confidence
+- [Beyond the Progress Bar: The Art of Stepper UI Design — David Pham, February 2026](https://medium.com/@david.pham_1649/beyond-the-progress-bar-the-art-of-stepper-ui-design-cfa270a8e862) — HIGH confidence
+- [Tailwind CSS Stepper — Flowbite](https://flowbite.com/docs/components/stepper/) — HIGH confidence (implementation reference)
+- [Stepper Components — Origin UI Vue](https://www.originui-vue.com/stepper) — HIGH confidence (Tailwind + Vue 3 reference)
+
+---
+
+*Feature research for: VCF 9.x sizing calculator — v3.1 Guided Workflow & Sizing Correctness*
+*Researched: 2026-03-30*

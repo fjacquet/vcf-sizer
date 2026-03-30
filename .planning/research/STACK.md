@@ -1231,3 +1231,364 @@ export default defineConfig({
 
 *Stack research for: VCF 9.x sizing calculator (client-side SPA)*
 *Researched: 2026-03-28 (v1.0), updated 2026-03-29 (v2.0 addendum), updated 2026-03-29 (v2.1 addendum), updated 2026-03-30 (v3.0 addendum)*
+
+---
+
+## MILESTONE v3.1 ADDENDUM: Stack for Wizard UI + Calculation Order Fix
+
+**Researched:** 2026-03-30
+**Confidence:** HIGH (codebase reviewed directly; Vue 3 / Tailwind v4 patterns from official docs; VCF sizing order from Broadcom TechDocs)
+
+This section answers: what patterns and (if any) stack additions are needed for:
+1. A 3-step guided wizard UI (Topology → Management → Workloads) using Vue 3 + Tailwind CSS v4 with no external component library
+2. Fixing the calculation order so management domain sizing precedes workload domain sizing, and colocated overhead is assigned correctly
+
+---
+
+### Verdict Summary
+
+| Capability | Action | Rationale |
+|------------|--------|-----------|
+| 3-step wizard shell | No new package — `<component :is>` + Pinia `uiStore` | Native Vue 3 dynamic component pattern; all logic in ~80 lines |
+| Step indicator header | No new package — Tailwind v4 `data-*` variants | v4 native attribute variants; zero CSS file additions |
+| Step state preservation | No new package — `<KeepAlive>` (Vue 3 built-in) | Preserves form inputs when navigating back to previous steps |
+| Wizard step tracking | Extend existing `uiStore.ts` | `currentWizardStep: ref<1\|2\|3>(1)` added to existing UI state store |
+| vue-router for steps | NOT recommended — keep unused | Router adds 80-line boilerplate for zero benefit in a sequential-step, no-URL-needed flow |
+| Calculation order fix | No new package — `calculationStore.ts` conditional patch | Management overhead routing logic change; Decimal.js already handles arithmetic |
+
+**No new npm packages are required for v3.1.** Zero `npm install` actions needed.
+
+---
+
+### 1. Wizard Architecture Decision: Component-Based, Not Router-Based
+
+#### Why vue-router is the wrong tool here
+
+`vue-router@5.0.4` is already installed but intentionally not wired into `main.ts`. Router-based step navigation is correct when:
+- Each step needs its own URL for bookmarking or deep-linking
+- The user may share a URL to a specific step
+- Browser back/forward buttons should navigate between steps
+
+None of these apply to the VCF wizard. Steps are a sequential UX flow, not navigable destinations. More critically, URL state is already managed by `useUrlState.ts` via lz-string compression. Introducing router URLs alongside the lz-string URL param would create two conflicting URL mechanisms.
+
+Keep `vue-router` as a dormant dependency. It has zero bundle impact when not imported.
+
+#### Recommended pattern: `<component :is>` + `uiStore.currentWizardStep`
+
+```
+uiStore.ts  (extend existing)
+  currentWizardStep: ref<1 | 2 | 3>(1)
+  function goToStep(step: 1 | 2 | 3): void
+  function nextStep(): void
+  function prevStep(): void
+
+WizardShell.vue  (new component in src/components/)
+  const stepComponents = [TopologyStep, ManagementStep, WorkloadsStep]
+  <KeepAlive>
+    <component :is="stepComponents[uiStore.currentWizardStep - 1]" />
+  </KeepAlive>
+```
+
+Step content components:
+- `TopologyStep.vue` — wraps `DeploymentModelSelector` + management architecture toggle (currently in `ManagementDomainSection`)
+- `ManagementStep.vue` — wraps `ManagementDomainSection` host specs form + `ManagementSummary`
+- `WorkloadsStep.vue` — wraps `DomainTabStrip` + per-domain input forms + `ResultsPanel` + `ExportToolbar`
+
+These are thin wrappers that reuse existing components. The wizard shell owns the layout; the step components own the content.
+
+#### Why `<KeepAlive>` is required
+
+When `<component :is>` switches steps, Vue unmounts the leaving component and destroys its instance. Without `<KeepAlive>`, any local component state (focus, intermediate input values not yet committed to Pinia) is lost. Because the primary state lives in `inputStore` (Pinia), KeepAlive is a safety net rather than the primary persistence mechanism — but it prevents unnecessary re-mounts and preserves scroll position within each step.
+
+`<KeepAlive>` caches up to all three step instances. For three components this is negligible memory overhead.
+
+---
+
+### 2. Tailwind CSS v4 Stepper Indicator Pattern
+
+Tailwind v4 supports `data-*` attribute variants natively without any configuration. This eliminates the v3-era arbitrary-value syntax (`[&[data-active='true']]`).
+
+**Key v4 behavior:**
+- `:data-active="true"` in Vue sets the `data-active` HTML attribute on the element
+- `:data-active="false"` in Vue removes the attribute (Vue boolean attribute binding)
+- `data-active:` utility applies when the attribute is present
+- `not-data-active:` utility applies when the attribute is absent
+
+**Stepper indicator markup pattern:**
+
+```html
+<!-- WizardStepIndicator.vue -->
+<div class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+  <template v-for="(step, i) in steps" :key="step.id">
+    <!-- Step node -->
+    <div class="flex flex-col items-center gap-1">
+      <button
+        :data-active="uiStore.currentWizardStep === i + 1"
+        :data-completed="uiStore.currentWizardStep > i + 1"
+        :disabled="uiStore.currentWizardStep < i + 1"
+        @click="uiStore.goToStep(i + 1)"
+        class="
+          w-10 h-10 rounded-full border-2 flex items-center justify-center
+          font-semibold transition-colors duration-150
+          border-gray-300 text-gray-400 bg-white
+          data-active:border-blue-600 data-active:bg-blue-600 data-active:text-white
+          data-completed:border-blue-500 data-completed:bg-blue-500 data-completed:text-white
+          disabled:cursor-default disabled:opacity-60
+        "
+      >
+        <span v-if="uiStore.currentWizardStep > i + 1" class="text-xs">✓</span>
+        <span v-else>{{ i + 1 }}</span>
+      </button>
+      <span
+        :data-active="uiStore.currentWizardStep === i + 1"
+        class="text-xs text-gray-400 data-active:text-blue-600 data-active:font-medium hidden sm:block"
+      >
+        {{ step.label }}
+      </span>
+    </div>
+    <!-- Connector line (not after last step) -->
+    <div
+      v-if="i < steps.length - 1"
+      :data-completed="uiStore.currentWizardStep > i + 1"
+      class="flex-1 mx-2 h-0.5 bg-gray-200 data-completed:bg-blue-500 transition-colors duration-300"
+    />
+  </template>
+</div>
+```
+
+Step labels are hidden on mobile (`hidden sm:block`) — only step numbers show on small screens. This requires zero additional CSS.
+
+**The Broadcom blue color (`#003087`) already in use in the PPTX export** should be used for the active step indicator to maintain visual consistency:
+
+```html
+<!-- In style.css or via Tailwind CSS-first config: -->
+@theme {
+  --color-brand: #003087;
+}
+```
+
+Then use `data-active:bg-[#003087]` or the CSS variable. If the theme extension is added to `style.css`, the brand color becomes a first-class utility.
+
+---
+
+### 3. Pinia `uiStore` Extension
+
+Add wizard step state to the existing `uiStore.ts` (not a new store):
+
+```typescript
+// src/stores/uiStore.ts (additions only)
+const currentWizardStep = ref<1 | 2 | 3>(1)
+
+function goToStep(step: 1 | 2 | 3) {
+  currentWizardStep.value = step
+}
+function nextStep() {
+  if (currentWizardStep.value < 3) currentWizardStep.value++
+}
+function prevStep() {
+  if (currentWizardStep.value > 1) currentWizardStep.value--
+}
+```
+
+Return `{ currentWizardStep, goToStep, nextStep, prevStep }` from the store's return statement alongside existing locale fields.
+
+**Why extend `uiStore` rather than create `wizardStore`:**
+- Wizard step is a UI state concern, same category as locale selection
+- Three refs + three actions do not justify a dedicated store
+- A dedicated store is warranted only if wizard state grows to include per-step validation aggregation, cross-step dependency tracking, or route guards — none of which are required for v3.1's linear 3-step flow
+
+**Do NOT serialize `currentWizardStep` to URL state.** On load, the wizard always starts at Step 1 with the configuration hydrated from lz-string. This is consistent with the existing policy that `activeDomainIndex` is excluded from URL state.
+
+---
+
+### 4. Calculation Order Fix: No New Libraries
+
+#### Root cause (from code review of `calculationStore.ts`)
+
+The `management` computed (lines 21–23) runs first and produces `management.value.totalCores` / `management.value.totalRamGB`. These values are then passed to **every** workload domain's `calcCompute()` call (lines 57–58). This is the bug:
+
+- **Dedicated architecture**: the management domain has its own 4-host cluster. Workload domains should receive `managementCores: 0` and `managementRamGB: 0` — the management overhead does not consume workload cluster capacity.
+- **Colocated architecture**: management overhead belongs only to WLD-1 (the first workload domain). All other workload domains should receive `managementCores: 0` and `managementRamGB: 0`.
+
+Currently the code adds management overhead to **all** workload domains regardless of architecture, which double-counts management resources.
+
+Additionally, the `aggregateTotals` does not add the management domain's host count when architecture is `'dedicated'`.
+
+#### Fix pattern (store layer only — engine unchanged)
+
+The fix is entirely in `calculationStore.ts`. The engine functions (`calcManagement`, `calcCompute`) do not need signature changes — the conditional routing happens in the store before the engine is called.
+
+```typescript
+// calculationStore.ts — fixed domainResults computed
+const domainResults = computed<DomainResult[]>(() =>
+  input.workloadDomains.map((domain, index) => {
+    // Management overhead routing:
+    // - dedicated: management has its own cluster; zero overhead to workload domains
+    // - colocated: overhead belongs only to the first workload domain (index === 0)
+    const mgmtCores =
+      input.managementArchitecture === 'dedicated'
+        ? 0
+        : index === 0
+          ? management.value.totalCores
+          : 0
+    const mgmtRamGB =
+      input.managementArchitecture === 'dedicated'
+        ? 0
+        : index === 0
+          ? management.value.totalRamGB
+          : 0
+
+    const effectiveHostCount =
+      domain.deploymentMode === 'stretch'
+        ? domain.preferredSiteHosts + domain.secondarySiteHosts
+        : domain.hostCount
+
+    return {
+      id: domain.id,
+      name: domain.name,
+      compute: calcCompute({
+        ...
+        managementCores: mgmtCores,
+        managementRamGB: mgmtRamGB,
+      }),
+      // storage, stretch, vsanMax, validationErrors — unchanged
+    }
+  })
+)
+```
+
+#### Aggregate totals fix
+
+```typescript
+// calculationStore.ts — fixed aggregateTotals computed
+const aggregateTotals = computed<AggregateTotals>(() => ({
+  totalRecommendedHosts:
+    domainResults.value.reduce((sum, d) => sum + d.compute.recommendedHostCount, 0)
+    + (input.managementArchitecture === 'dedicated'
+        ? (dedicatedMgmtHostCount.value ?? 0)
+        : 0),
+  // totalVmCount, totalRawStorageTB, totalEffectiveStorageTB, allValidationErrors — unchanged
+}))
+```
+
+#### Management domain result (new computed)
+
+The management domain currently lacks a `ComputeResult` (only `MgmtDomainResult` with component-level vCPU/RAM). For Step 2 and the management result card, add:
+
+```typescript
+// calculationStore.ts — new computed (CALC-02 compliant: computed() only)
+const managementComputeResult = computed<ComputeResult | null>(() => {
+  if (input.managementArchitecture !== 'dedicated') return null
+  const coresPerHost =
+    input.managementDomain.coresPerSocket * input.managementDomain.socketsPerHost
+  return calcCompute({
+    deploymentMode: input.managementDomain.deploymentMode,
+    coresPerSocket: input.managementDomain.coresPerSocket,
+    socketsPerHost: input.managementDomain.socketsPerHost,
+    hostRamGB: input.managementDomain.hostRamGB,
+    hostCount: Math.max(4, Math.ceil(management.value.totalCores / coresPerHost)),
+    vmCount: 0,
+    avgVcpuPerVm: 0,
+    avgVramGbPerVm: 0,
+    cpuOvercommitRatio: 1,
+    ramOvercommitRatio: 1,
+    managementCores: management.value.totalCores,
+    managementRamGB: management.value.totalRamGB,
+  })
+})
+```
+
+This gives the management domain the same `ComputeResult` shape as workload domains, enabling `DomainResultCard`-compatible display in Step 2.
+
+All arithmetic uses existing Decimal.js-powered `calcCompute()`. No new arithmetic patterns are introduced.
+
+#### Engine layer — no changes needed
+
+`calcManagement()`, `calcCompute()`, `calcStorage()` etc. remain unchanged. CALC-01 (zero Vue imports in engine) and CALC-02 (zero `ref()` in calculationStore) are maintained throughout.
+
+---
+
+### 5. What NOT to Do for v3.1
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `vue-form-wizard`, `vue3-form-wizard`, any npm wizard library | Adds bundle weight; opinionated HTML/CSS incompatible with Tailwind v4; contradicts no-external-component-library constraint | Native `<component :is>` + Pinia `uiStore` |
+| PrimeVue Stepper, CoreUI Vue Stepper | Requires adopting a full component library; ~400 KB+; violates project constraints | Hand-crafted `WizardStepIndicator.vue` (~50 lines Tailwind) |
+| Wiring up vue-router | Already explained above; adds `createRouter` + `<RouterView>` + route config for zero benefit | Keep vue-router dormant |
+| `ref()` in `calculationStore.ts` | Violates CALC-02 | New `managementComputeResult` remains `computed()` |
+| Serializing `currentWizardStep` to URL | Session-ephemeral; on reload the wizard should start at Step 1 with hydrated config | Keep step state in-memory only |
+| Changing `calcCompute()` engine signature | Existing tests cover the current signature | Route inputs conditionally in the store; engine stays clean |
+
+---
+
+### 6. Component Map for v3.1
+
+```
+src/stores/uiStore.ts
+  + currentWizardStep: ref<1 | 2 | 3>(1)
+  + goToStep(), nextStep(), prevStep()
+
+src/stores/calculationStore.ts
+  + managementComputeResult: computed<ComputeResult | null>
+  ~ domainResults: conditional mgmtCores/mgmtRamGB routing
+  ~ aggregateTotals: add dedicatedMgmtHostCount to totalRecommendedHosts
+
+src/components/WizardShell.vue  (NEW)
+  <KeepAlive><component :is="stepComponents[step - 1]" /></KeepAlive>
+  next/prev/finish navigation buttons
+
+src/components/WizardStepIndicator.vue  (NEW)
+  Horizontal step node strip with Tailwind v4 data-* variants
+  data-active: / data-completed: / disabled: state classes
+
+src/components/steps/TopologyStep.vue  (NEW)
+  Wraps: DeploymentModelSelector (workload domain topology)
+         ManagementDomainSection architecture toggle only
+
+src/components/steps/ManagementStep.vue  (NEW)
+  Wraps: ManagementDomainSection host specs form
+         ManagementSummary (management result card)
+         New: ManagementComputeCard (if dedicated — shows managementComputeResult)
+
+src/components/steps/WorkloadsStep.vue  (NEW)
+  Wraps: DomainTabStrip + per-domain forms (existing)
+         ResultsPanel (existing)
+         ExportToolbar (existing)
+
+src/App.vue
+  ~ Replace two-pane grid layout with <WizardShell />
+    (or conditionally render wizard/classic based on a feature toggle)
+```
+
+---
+
+### 7. Version Compatibility for v3.1
+
+No new packages installed. All changes are within the existing dependency surface:
+
+| Package | v3.1 Usage | Compatibility Notes |
+|---------|-----------|---------------------|
+| `vue@^3.5.31` | `<KeepAlive>` + `<component :is>` | Vue 3.5 — KeepAlive + dynamic component is a stable, documented pattern |
+| `tailwindcss@^4.2.2` | `data-active:`, `data-completed:`, `not-data-*:`, `disabled:` variants | v4 native — no configuration required; confirmed via tailwindcss.com/blog/tailwindcss-v4 |
+| `pinia@^3.0.4` | New refs in `uiStore.ts` | Pinia 3 setup store — extending return object is additive, no migration |
+| `vue-router@^5.0.4` | Not wired up — remains dormant | Zero bundle impact when not imported |
+| `decimal.js@^10.x` | `calcCompute()` used for management result | No change to library usage |
+| `zod@^4.3.6` | URL state schema unchanged for v3.1 | Wizard step not serialized to URL |
+
+---
+
+### Sources for v3.1 Research
+
+- `/Users/fjacquet/Projects/vcf-sizer/src/stores/calculationStore.ts` — Reviewed directly; confirmed management overhead bug (passed to all domains regardless of architecture) — HIGH confidence
+- `/Users/fjacquet/Projects/vcf-sizer/src/stores/inputStore.ts` — Reviewed directly; confirmed `managementArchitecture` ref and domain array structure — HIGH confidence
+- `/Users/fjacquet/Projects/vcf-sizer/src/engine/compute.ts` — Reviewed directly; confirmed `managementCores`/`managementRamGB` as pass-through inputs; no engine change needed — HIGH confidence
+- `/Users/fjacquet/Projects/vcf-sizer/package.json` — Reviewed directly; confirmed vue-router 5.0.4 installed but not used; Tailwind 4.2.2; no component library present — HIGH confidence
+- [tailwindcss.com/blog/tailwindcss-v4](https://tailwindcss.com/blog/tailwindcss-v4) — Confirmed native `data-*` variants, `not-data-*:` negation, CSS-first config — HIGH confidence (official Tailwind release blog)
+- [vuejs.org/guide/built-ins/keep-alive.html](https://vuejs.org/guide/built-ins/keep-alive.html) — Confirmed KeepAlive + `<component :is>` integration, cache behavior — HIGH confidence (official Vue docs)
+- [monterail.com/blog/understanding-dynamic-components-in-vue-3](https://www.monterail.com/blog/understanding-dynamic-components-in-vue-3) (September 2025) — Confirmed `<component :is>` + external Pinia state as recommended Vue 3 multi-step form pattern — MEDIUM confidence (community article, consistent with official docs)
+- [techdocs.broadcom.com/us/en/vmware-cis/vcf/](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/) — Management domain is foundational sizing; dedicated cluster 4-host minimum; workload domains sized after management — MEDIUM confidence (official Broadcom VCF docs; v4.5 design guide; v9 pages not directly available)
+
+---
+
+*Stack research for: VCF Sizer v3.1 — Wizard UI + Calculation Order Fix*
+*Researched: 2026-03-30*
