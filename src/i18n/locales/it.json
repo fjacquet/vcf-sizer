@@ -149,5 +149,13 @@
     "automation": "VCF Automation (VCFA)",
     "totalCores": "Totale core di gestione",
     "totalRam": "Totale RAM di gestione"
+  },
+  "print": {
+    "header": {
+      "title": "Rapporto di dimensionamento VCF 9.x"
+    },
+    "footer": {
+      "attribution": "Generato da VCF Sizer"
+    }
   }
 }
