@@ -56,7 +56,7 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - [ ] Management domain with independent host specs (decoupled from workload domains)
 - [ ] Tab-based domain UI with unlimited add/remove of named workload domains
 - [ ] Per-domain results + aggregate totals across all domains
-- [ ] Full multi-domain URL state (lz-string/Zod with variable-length domain arrays)
+- ✓ Full multi-domain URL state (lz-string/Zod with variable-length domain arrays), v2.x backward compat, activeTabIndex excluded — Validated in Phase 11: URL State Schema Refactor
 - [ ] Per-domain sections in Markdown and PPTX exports
 
 ### Deferred (post-v3.0)
@@ -81,6 +81,7 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 **Goal:** Support N independent workload domains in a single VCF sizing session, each with its own host specs, workload profile, storage config, and optional features — plus an independent management domain with its own hardware.
 
 **Target features:**
+
 - Tab-based domain UI — unlimited named workload domains, add/remove dynamically
 - Per-domain full independence: host specs, workload profile, storage type/config, NVMe tiering, AI/GPU, stretch topology, vSAN Max
 - Management domain: independent host specs decoupled from workload domains
@@ -96,6 +97,7 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 182 tests passing. 4 locale files (en/fr/de/it). 3 export formats: Markdown, Print/PDF, PowerPoint.
 
 **Architecture patterns established:**
+
 - Engine layer: pure TypeScript, zero Vue imports (CALC-01)
 - State layer: calculationStore exposes only `computed()`, zero `ref()` (CALC-02)
 - URL state: atomic Zod triple-sync (schema + hydrate + serialize)
@@ -140,4 +142,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 — Phase 10 complete (domain data model + store refactor)*
+*Last updated: 2026-03-30 — Phase 11 complete (URL state schema refactor)*
