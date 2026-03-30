@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Multi-Domain Support
-status: executing
-last_updated: "2026-03-30T11:10:35.371Z"
+status: verifying
+last_updated: "2026-03-30T11:38:03.607Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -19,13 +19,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 10 — domain-types-defaults-and-store-refactor
+**Current focus:** Phase 11 — url-state-schema-refactor
 
 ## Current Position
 
-Phase: 11
-Plan: Not started
-Status: Ready to execute
+Phase: 11 (url-state-schema-refactor) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress bar: [----------] 0/5 phases complete
@@ -51,6 +51,7 @@ Progress bar: [----------] 0/5 phases complete
 | Phase 09 P01 | 3min | 1 tasks | 1 files |
 | Phase 09 P02 | 4min | 2 tasks | 1 files |
 | Phase 10 P01 | 6min | 3 tasks | 6 files |
+| Phase 11 P01 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,8 @@ v3.0 decisions:
 - [Roadmap]: i18n new keys accumulated across Phases 12-14 are delivered with their respective phases (not deferred to a separate cleanup phase)
 - [Phase 10]: WorkloadDomainConfig has 26 fields covering all per-domain configuration; inputStore uses ref<WorkloadDomainConfig[]> NOT reactive([]) to avoid storeToRefs() double-wrap bug
 - [Phase 10]: vitest.config.ts extended to include src/stores/**/*.test.ts — was missing from original include list
+- [Phase 11]: Export WorkloadDomainSchema and ManagementDomainSchema from useUrlState.ts for Phase 12+ reuse
+- [Phase 11]: Exclude domain id from generateShareUrl — saves URL bytes; IDs re-generated on hydration via crypto.randomUUID()
 
 ### Pending Todos
 

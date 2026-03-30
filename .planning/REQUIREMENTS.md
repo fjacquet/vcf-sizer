@@ -27,10 +27,10 @@
 
 ### URL State
 
-- [ ] **URL-01**: `useUrlState.ts` Zod schema is restructured to `{ managementDomain: ManagementDomainSchema, workloadDomains: z.array(WorkloadDomainSchema).min(1) }` with `.strip()` on all sub-schemas
-- [ ] **URL-02**: Old flat-schema shared URLs (v2.x format) are not migrated — they fall back to default state on load
-- [ ] **URL-03**: Full multi-domain configuration (N workload domains) serializes to and deserializes from a lz-string compressed URL parameter round-trip losslessly
-- [ ] **URL-04**: The active tab index is NOT serialized to URL state; on hydration, the first domain tab is always active
+- [x] **URL-01**: `useUrlState.ts` Zod schema is restructured to `{ managementDomain: ManagementDomainSchema, workloadDomains: z.array(WorkloadDomainSchema).min(1) }` with `.strip()` on all sub-schemas
+- [x] **URL-02**: Old flat-schema shared URLs (v2.x format) are not migrated — they fall back to default state on load
+- [x] **URL-03**: Full multi-domain configuration (N workload domains) serializes to and deserializes from a lz-string compressed URL parameter round-trip losslessly
+- [x] **URL-04**: The active tab index is NOT serialized to URL state; on hydration, the first domain tab is always active
 
 ### Input Forms (per-domain)
 
