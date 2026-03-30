@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 // Phase 6: Markdown Export tests — all sections, Pinia-backed, node environment
 // Pattern: createPinia() + setActivePinia() in each beforeEach for test isolation
-// Wave 0 purpose: establish RED tests before implementation (TDD gate)
+// Phase 13: Updated mocks to use workloadDomains[0] multi-domain store shape
 
 import { createPinia, setActivePinia } from 'pinia'
 import { useInputStore } from '@/stores/inputStore'
@@ -110,8 +110,8 @@ describe('generateMarkdownReport — MD-04 NVMe Tiering', () => {
 
   it('NVMe section present when nvmeTieringEnabled=true', () => {
     const input = useInputStore()
-    input.nvmeTieringEnabled = true
-    input.activeMemoryPct = 60
+    input.workloadDomains[0].nvmeTieringEnabled = true
+    input.workloadDomains[0].activeMemoryPct = 60
     const report = generateMarkdownReport()
     expect(report).toContain('## NVMe')
   })
@@ -129,16 +129,16 @@ describe('generateMarkdownReport — MD-05 AI/GPU', () => {
 
   it('AI/GPU section present when gpuVmCount=5', () => {
     const input = useInputStore()
-    input.gpuVmCount = 5
-    input.vgpuMemoryGB = 32
+    input.workloadDomains[0].gpuVmCount = 5
+    input.workloadDomains[0].vgpuMemoryGB = 32
     const report = generateMarkdownReport()
     expect(report).toContain('## AI/GPU')
   })
 
   it('AI/GPU section shows GPU VM count row with value 5', () => {
     const input = useInputStore()
-    input.gpuVmCount = 5
-    input.vgpuMemoryGB = 32
+    input.workloadDomains[0].gpuVmCount = 5
+    input.workloadDomains[0].vgpuMemoryGB = 32
     const report = generateMarkdownReport()
     expect(report).toContain('5')
   })
@@ -156,21 +156,21 @@ describe('generateMarkdownReport — MD-06 Stretch Cluster', () => {
 
   it('Stretch section present when deploymentMode=stretch', () => {
     const input = useInputStore()
-    input.deploymentMode = 'stretch'
+    input.workloadDomains[0].deploymentMode = 'stretch'
     const report = generateMarkdownReport()
     expect(report).toContain('## Stretch Cluster')
   })
 
   it('Stretch section contains Min inter-site bandwidth row', () => {
     const input = useInputStore()
-    input.deploymentMode = 'stretch'
+    input.workloadDomains[0].deploymentMode = 'stretch'
     const report = generateMarkdownReport()
     expect(report).toContain('Min inter-site bandwidth')
   })
 
   it('Stretch section contains Witness vCPU and Witness RAM rows', () => {
     const input = useInputStore()
-    input.deploymentMode = 'stretch'
+    input.workloadDomains[0].deploymentMode = 'stretch'
     const report = generateMarkdownReport()
     expect(report).toContain('Witness vCPU')
     expect(report).toContain('Witness RAM')
@@ -189,14 +189,14 @@ describe('generateMarkdownReport — MD-07 vSAN Max', () => {
 
   it('vSAN Max section present when storageType=vsan-max', () => {
     const input = useInputStore()
-    input.storageType = 'vsan-max'
+    input.workloadDomains[0].storageType = 'vsan-max'
     const report = generateMarkdownReport()
     expect(report).toContain('## vSAN Max')
   })
 
   it('vSAN Max section shows ReadyNode profile row', () => {
     const input = useInputStore()
-    input.storageType = 'vsan-max'
+    input.workloadDomains[0].storageType = 'vsan-max'
     const report = generateMarkdownReport()
     expect(report).toContain('ReadyNode profile')
   })
@@ -214,8 +214,8 @@ describe('generateMarkdownReport — MD-08 Validation Warnings', () => {
 
   it('Validation warnings section present when hostCount triggers warning', () => {
     const input = useInputStore()
-    input.hostCount = 1
-    input.deploymentMode = 'ha'
+    input.workloadDomains[0].hostCount = 1
+    input.workloadDomains[0].deploymentMode = 'ha'
     const report = generateMarkdownReport()
     expect(report).toContain('## Validation Warnings')
   })
