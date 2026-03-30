@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Export Quality
-status: defining-requirements
-last_updated: "2026-03-29T00:00:00.000Z"
-last_activity: 2026-03-29
+status: roadmap-ready
+last_updated: "2026-03-30T00:00:00.000Z"
+last_activity: 2026-03-30
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,14 +19,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 05 — vsan-max-storage-cluster
+**Current focus:** Phase 06 — markdown-extraction-and-enrichment
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-29 — Milestone v2.1 started
+Phase: 6 — Markdown Extraction and Enrichment
+Plan: Not started
+Status: Roadmap approved — ready for phase planning
+Last activity: 2026-03-30 — Roadmap v2.1 created (4 phases, 30 requirements mapped)
+
+Progress: [----------] 0/4 phases complete
 
 ## Performance Metrics
 
@@ -76,9 +78,20 @@ v2.0 decisions:
 - [Phase 05]: effectiveBandwidthGbps = Math.min(stretch.minBandwidthGbps, networkSpeedGbE) caps stretch bandwidth display in DeploymentModelSelector
 - [Phase 05]: i18n keys use flat naming (storage.vsanMaxProfile) per PLAN.md spec, consistent with existing project conventions
 
+v2.1 decisions:
+
+- [Roadmap]: generateMarkdownReport() extracted from useUrlState.ts to useMarkdownExport.ts before any enrichment — extraction is a hard prerequisite for MD-02 through MD-09
+- [Roadmap]: Export composables (useMarkdownExport.ts, usePptxExport.ts) live in src/composables/ — they are Vue-layer code, fully compliant with CALC-01/CALC-02
+- [Roadmap]: pptxgenjs loaded via dynamic import() inside export function body — zero impact on initial bundle; Vite code-splits automatically
+- [Roadmap]: Build order enforced: Markdown extraction (Phase 6) → Print/PDF CSS (Phase 7) → PPTX core (Phase 8) → PPTX conditional (Phase 9)
+- [Roadmap]: Print/PDF is pure CSS — zero JavaScript changes required; window.print() call in ExportToolbar.vue unchanged
+- [Roadmap]: Phase 8 (PPTX core) introduces pptxgenjs as the only new production dependency for v2.1
+
 ### Pending Todos
 
 - Verify ReadyNode profile constants (MED/LRG/XL NVMe counts, XS 128 GB RAM minimum) against compatibilityguide.broadcom.com at Phase 5 implementation time
+- Phase 8: Measure actual pptxgenjs gzip bundle size with `npx vite build --report` or rollup-plugin-visualizer after adding dependency
+- Phase 8: Prototype `pres.defineSlideMaster()` option-object mutation behavior before designing master template (pitfall A-2)
 
 ### Blockers/Concerns
 
@@ -88,6 +101,6 @@ v2.0 decisions:
 
 To resume:
 
-1. Read .planning/ROADMAP.md for full phase structure
-2. Read .planning/REQUIREMENTS.md for v2.0 requirement IDs and traceability
-3. Run: `/gsd:execute-phase 4` (Plan 04-02 UI layer is next)
+1. Read .planning/ROADMAP.md for full phase structure (Phases 6-9)
+2. Read .planning/REQUIREMENTS.md for v2.1 requirement IDs (MD-01..09, PRINT-01..06, PPTX-01..15)
+3. Run: `/gsd:plan-phase 6` to begin Markdown Extraction and Enrichment

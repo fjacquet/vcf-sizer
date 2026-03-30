@@ -69,8 +69,35 @@
 
 ## Traceability
 
-_Filled by roadmapper._
-
 | REQ-ID | Phase | Plan |
 |--------|-------|------|
-| (pending roadmap) | | |
+| MD-01 | Phase 6 | TBD |
+| MD-02 | Phase 6 | TBD |
+| MD-03 | Phase 6 | TBD |
+| MD-04 | Phase 6 | TBD |
+| MD-05 | Phase 6 | TBD |
+| MD-06 | Phase 6 | TBD |
+| MD-07 | Phase 6 | TBD |
+| MD-08 | Phase 6 | TBD |
+| MD-09 | Phase 6 | TBD |
+| PRINT-01 | Phase 7 | TBD |
+| PRINT-02 | Phase 7 | TBD |
+| PRINT-03 | Phase 7 | TBD |
+| PRINT-04 | Phase 7 | TBD |
+| PRINT-05 | Phase 7 | TBD |
+| PRINT-06 | Phase 7 | TBD |
+| PPTX-01 | Phase 8 | TBD |
+| PPTX-02 | Phase 8 | TBD |
+| PPTX-03 | Phase 8 | TBD |
+| PPTX-04 | Phase 8 | TBD |
+| PPTX-05 | Phase 8 | TBD |
+| PPTX-06 | Phase 8 | TBD |
+| PPTX-07 | Phase 8 | TBD |
+| PPTX-08 | Phase 8 | TBD |
+| PPTX-09 | Phase 8 | TBD |
+| PPTX-15 | Phase 8 | TBD |
+| PPTX-10 | Phase 9 | TBD |
+| PPTX-11 | Phase 9 | TBD |
+| PPTX-12 | Phase 9 | TBD |
+| PPTX-13 | Phase 9 | TBD |
+| PPTX-14 | Phase 9 | TBD |
