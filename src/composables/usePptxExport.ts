@@ -1,6 +1,7 @@
 // PPTX export composable — generates VCF sizing report as .pptx browser download
 // Plain TypeScript — NO Vue lifecycle hooks (CALC-01/CALC-02 compliant)
 // pptxgenjs is loaded via dynamic import() to keep it out of the main bundle (PPTX-15)
+// Phase 13: Updated to use first-domain bridge (workloadDomains[0] / domainResults[0])
 
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
@@ -52,48 +53,53 @@ function cell(text: string, bold = false): TableCell {
 
 /**
  * buildTitleSlideData — returns { deploymentMode, date } for title slide (PPTX-03)
+ * Phase 13 bridge: reads workloadDomains[0].deploymentMode
  */
 export function buildTitleSlideData(store: ReturnType<typeof useInputStore>): {
   deploymentMode: string
   date: string
 } {
   return {
-    deploymentMode: store.deploymentMode,
+    deploymentMode: store.workloadDomains[0].deploymentMode,
     date: new Date().toISOString().split('T')[0],
   }
 }
 
 /**
  * buildConfigSummaryData — returns 8 label/value rows for config summary slide (PPTX-04)
+ * Phase 13 bridge: reads workloadDomains[0] for per-domain fields
  */
 export function buildConfigSummaryData(
   store: ReturnType<typeof useInputStore>
 ): Array<{ label: string; value: string }> {
+  const domain = store.workloadDomains[0]
   return [
-    { label: 'Hosts', value: String(store.hostCount) },
-    { label: 'Cores per socket', value: String(store.coresPerSocket) },
-    { label: 'Sockets per host', value: String(store.socketsPerHost) },
-    { label: 'RAM per host', value: `${store.hostRamGB} GB` },
-    { label: 'Storage per host', value: `${store.hostStorageTB} TB` },
-    { label: 'Storage type', value: store.storageType },
-    { label: 'Network speed', value: `${store.networkSpeedGbE} GbE` },
+    { label: 'Hosts', value: String(domain.hostCount) },
+    { label: 'Cores per socket', value: String(domain.coresPerSocket) },
+    { label: 'Sockets per host', value: String(domain.socketsPerHost) },
+    { label: 'RAM per host', value: `${domain.hostRamGB} GB` },
+    { label: 'Storage per host', value: `${domain.hostStorageTB} TB` },
+    { label: 'Storage type', value: domain.storageType },
+    { label: 'Network speed', value: `${domain.networkSpeedGbE} GbE` },
     { label: 'Management architecture', value: store.managementArchitecture },
   ]
 }
 
 /**
  * buildWorkloadSlideData — returns 6 label/value rows for workload profile slide (PPTX-05)
+ * Phase 13 bridge: reads workloadDomains[0] for per-domain fields
  */
 export function buildWorkloadSlideData(
   store: ReturnType<typeof useInputStore>
 ): Array<{ label: string; value: string }> {
+  const domain = store.workloadDomains[0]
   return [
-    { label: 'VM count', value: String(store.vmCount) },
-    { label: 'vCPU per VM', value: String(store.avgVcpuPerVm) },
-    { label: 'vRAM per VM', value: `${store.avgVramGbPerVm} GB` },
-    { label: 'Storage per VM', value: `${store.avgStorageGbPerVm} GB` },
-    { label: 'CPU overcommit ratio', value: `${store.cpuOvercommitRatio}:1` },
-    { label: 'RAM overcommit ratio', value: `${store.ramOvercommitRatio}:1` },
+    { label: 'VM count', value: String(domain.vmCount) },
+    { label: 'vCPU per VM', value: String(domain.avgVcpuPerVm) },
+    { label: 'vRAM per VM', value: `${domain.avgVramGbPerVm} GB` },
+    { label: 'Storage per VM', value: `${domain.avgStorageGbPerVm} GB` },
+    { label: 'CPU overcommit ratio', value: `${domain.cpuOvercommitRatio}:1` },
+    { label: 'RAM overcommit ratio', value: `${domain.ramOvercommitRatio}:1` },
   ]
 }
 
@@ -159,58 +165,66 @@ export function buildStorageResultsData(storage: StorageResult): {
 
 /**
  * buildRecommendationsData — returns string[] recommendations for recommendations slide (PPTX-09)
+ * Phase 13 bridge: reads domainResults[0] for per-domain compute/storage results
  */
 export function buildRecommendationsData(
   _store: ReturnType<typeof useInputStore>,
   calc: ReturnType<typeof useCalculationStore>
 ): string[] {
+  const result = calc.domainResults[0]
   const recs: string[] = [
-    `Recommended host count: ${calc.compute.recommendedHostCount}`,
-    `Safe usable storage: ${calc.storage.safeUsableCapacityTB.toFixed(2)} TB`,
-    `CPU utilization: ${calc.compute.coreUtilizationPct.toFixed(1)}%`,
-    `RAM utilization: ${calc.compute.ramUtilizationPct.toFixed(1)}%`,
+    `Recommended host count: ${result.compute.recommendedHostCount}`,
+    `Safe usable storage: ${result.storage.safeUsableCapacityTB.toFixed(2)} TB`,
+    `CPU utilization: ${result.compute.coreUtilizationPct.toFixed(1)}%`,
+    `RAM utilization: ${result.compute.ramUtilizationPct.toFixed(1)}%`,
   ]
-  if (calc.validationErrors.length > 0) {
-    recs.push(`Active warnings: ${calc.validationErrors.length}`)
+  if (calc.aggregateTotals.allValidationErrors.length > 0) {
+    recs.push(`Active warnings: ${calc.aggregateTotals.allValidationErrors.length}`)
   }
   return recs
 }
 
 /**
  * buildAiGpuSlideData — returns label/value rows for AI/GPU workloads slide (PPTX-10)
+ * Phase 13 bridge: reads workloadDomains[0] for per-domain fields
  */
 export function buildAiGpuSlideData(
   store: ReturnType<typeof useInputStore>
 ): Array<{ label: string; value: string }> {
+  const domain = store.workloadDomains[0]
   return [
-    { label: 'GPU VM count', value: String(store.gpuVmCount) },
-    { label: 'vGPU memory per VM', value: `${store.vgpuMemoryGB} GB` },
+    { label: 'GPU VM count', value: String(domain.gpuVmCount) },
+    { label: 'vGPU memory per VM', value: `${domain.vgpuMemoryGB} GB` },
   ]
 }
 
 /**
  * buildNvmeTieringSlideData — returns label/value rows for NVMe memory tiering slide (PPTX-11)
+ * Phase 13 bridge: reads workloadDomains[0] for per-domain fields
  */
 export function buildNvmeTieringSlideData(
   store: ReturnType<typeof useInputStore>
 ): Array<{ label: string; value: string }> {
+  const domain = store.workloadDomains[0]
   return [
     { label: 'Status', value: 'Enabled' },
-    { label: 'Active memory percentage', value: `${store.activeMemoryPct}%` },
+    { label: 'Active memory percentage', value: `${domain.activeMemoryPct}%` },
   ]
 }
 
 /**
  * buildStretchTopologySlideData — returns topology rows + network checklist for stretch slide (PPTX-12)
  * Accepts stretch: StretchResult directly (not full calc store) to keep function pure/testable.
+ * Phase 13 bridge: reads workloadDomains[0] for per-domain fields
  */
 export function buildStretchTopologySlideData(
   store: ReturnType<typeof useInputStore>,
   stretch: StretchResult,
 ): { topology: Array<{ label: string; value: string }>; checklist: string[] } {
+  const domain = store.workloadDomains[0]
   const topology = [
-    { label: 'Preferred site hosts', value: String(store.preferredSiteHosts) },
-    { label: 'Secondary site hosts', value: String(store.secondarySiteHosts) },
+    { label: 'Preferred site hosts', value: String(domain.preferredSiteHosts) },
+    { label: 'Secondary site hosts', value: String(domain.secondarySiteHosts) },
     { label: 'Total hosts', value: String(stretch.totalHosts) },
     { label: 'Min inter-site bandwidth', value: `${stretch.minBandwidthGbps} Gbps` },
     { label: 'Witness vCPU', value: String(stretch.witnessCores) },
@@ -231,13 +245,15 @@ export function buildStretchTopologySlideData(
 /**
  * buildVsanMaxSlideData — returns label/value rows for vSAN Max cluster slide (PPTX-13)
  * Accepts vsanMax: VsanMaxResult directly — caller guards against null.
+ * Phase 13 bridge: reads workloadDomains[0] for per-domain fields
  */
 export function buildVsanMaxSlideData(
   store: ReturnType<typeof useInputStore>,
   vsanMax: VsanMaxResult,
 ): Array<{ label: string; value: string }> {
+  const domain = store.workloadDomains[0]
   return [
-    { label: 'ReadyNode profile', value: store.vsanMaxProfile.toUpperCase() },
+    { label: 'ReadyNode profile', value: domain.vsanMaxProfile.toUpperCase() },
     { label: 'Storage node count', value: String(vsanMax.storageNodeCount) },
     { label: 'Compute node count', value: String(vsanMax.computeNodeCount) },
     { label: 'RAID scheme', value: vsanMax.raidScheme },
@@ -249,11 +265,12 @@ export function buildVsanMaxSlideData(
 /**
  * buildValidationWarningsSlideData — returns severity + messageKey rows for warnings slide (PPTX-14)
  * messageKey rendered as literal string — no i18n resolution in composable (Phase 6 decision).
+ * Phase 13 bridge: reads aggregateTotals.allValidationErrors instead of removed validationErrors
  */
 export function buildValidationWarningsSlideData(
   calc: ReturnType<typeof useCalculationStore>
 ): Array<{ severity: string; messageKey: string }> {
-  return calc.validationErrors.map((w) => ({
+  return calc.aggregateTotals.allValidationErrors.map((w) => ({
     severity: w.severity,
     messageKey: w.messageKey,
   }))
@@ -265,10 +282,15 @@ export function buildValidationWarningsSlideData(
  * generatePptxReport — creates 7-slide VCF sizing report and triggers browser download.
  * pptxgenjs is dynamically imported to avoid including it in the main bundle (PPTX-15).
  * A fresh PptxGenJS instance is created per call — no state carryover (Pitfall 6).
+ * Phase 13 bridge: reads workloadDomains[0] and domainResults[0] for single-domain compat.
  */
 export async function generatePptxReport(): Promise<void> {
   const store = useInputStore()
   const calc = useCalculationStore()
+
+  // Phase 13 first-domain bridge — full multi-domain export is Phase 14
+  const domain = store.workloadDomains[0]
+  const result = calc.domainResults[0]
 
   // Dynamic import — Vite code-splits this automatically (PPTX-15)
   const PptxGenJS = (await import('pptxgenjs')).default
@@ -311,8 +333,8 @@ export async function generatePptxReport(): Promise<void> {
   const configData = buildConfigSummaryData(store)
   const workloadData = buildWorkloadSlideData(store)
   const mgmtData = buildMgmtOverheadData(calc.management)
-  const computeData = buildComputeResultsData(calc.compute)
-  const storageData = buildStorageResultsData(calc.storage)
+  const computeData = buildComputeResultsData(result.compute)
+  const storageData = buildStorageResultsData(result.storage)
   const recsData = buildRecommendationsData(store, calc)
 
   // Slide 1: Title (PPTX-03)
@@ -515,7 +537,7 @@ export async function generatePptxReport(): Promise<void> {
   })
 
   // Conditional Slide: AI/GPU Workloads (PPTX-10)
-  if (store.gpuVmCount > 0) {
+  if (domain.gpuVmCount > 0) {
     const gpuData = buildAiGpuSlideData(store)
     const sGpu = pres.addSlide({ masterName: MASTER_NAME })
     sGpu.addText('AI / GPU Workloads', {
@@ -534,7 +556,7 @@ export async function generatePptxReport(): Promise<void> {
   }
 
   // Conditional Slide: NVMe Memory Tiering (PPTX-11)
-  if (store.nvmeTieringEnabled) {
+  if (domain.nvmeTieringEnabled) {
     const nvmeData = buildNvmeTieringSlideData(store)
     const sNvme = pres.addSlide({ masterName: MASTER_NAME })
     sNvme.addText('NVMe Memory Tiering', {
@@ -553,8 +575,8 @@ export async function generatePptxReport(): Promise<void> {
   }
 
   // Conditional Slide: Stretch Cluster Topology (PPTX-12)
-  if (store.deploymentMode === 'stretch') {
-    const stretchData = buildStretchTopologySlideData(store, calc.stretch)
+  if (domain.deploymentMode === 'stretch') {
+    const stretchData = buildStretchTopologySlideData(store, result.stretch!)
     const sStretch = pres.addSlide({ masterName: MASTER_NAME })
     sStretch.addText('Stretch Cluster Topology', {
       x: 0.5, y: 0.3, w: 12, h: 0.8,
@@ -581,8 +603,8 @@ export async function generatePptxReport(): Promise<void> {
   }
 
   // Conditional Slide: vSAN Max Cluster (PPTX-13)
-  if (store.storageType === 'vsan-max' && calc.vsanMax !== null) {
-    const vmaxData = buildVsanMaxSlideData(store, calc.vsanMax)
+  if (domain.storageType === 'vsan-max' && result.vsanMax !== null) {
+    const vmaxData = buildVsanMaxSlideData(store, result.vsanMax)
     const sVmax = pres.addSlide({ masterName: MASTER_NAME })
     sVmax.addText('vSAN Max Cluster', {
       x: 0.5, y: 0.3, w: 12, h: 0.8,
@@ -600,7 +622,7 @@ export async function generatePptxReport(): Promise<void> {
   }
 
   // Conditional Slide: Validation Warnings (PPTX-14)
-  if (calc.validationErrors.length > 0) {
+  if (calc.aggregateTotals.allValidationErrors.length > 0) {
     const warningsData = buildValidationWarningsSlideData(calc)
     const sWarn = pres.addSlide({ masterName: MASTER_NAME })
     sWarn.addText('Validation Warnings', {

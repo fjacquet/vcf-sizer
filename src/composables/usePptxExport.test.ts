@@ -1,8 +1,7 @@
 /// <reference types="vitest/globals" />
 // Phase 8: PPTX Export tests — data-mapping helpers, Pinia-backed, node environment
 // Pattern: createPinia() + setActivePinia() in each beforeEach for test isolation
-// Wave 0 purpose: establish RED tests before implementation (TDD gate)
-// NOTE: Tests WILL FAIL because usePptxExport.ts does not exist yet — that is expected.
+// Phase 13: Updated mocks to use workloadDomains[0] multi-domain store shape
 
 import { createPinia, setActivePinia } from 'pinia'
 import { useInputStore } from '@/stores/inputStore'
@@ -172,19 +171,19 @@ describe('buildComputeResultsData — PPTX-07', () => {
 
   it('returns recommendedHostCount as a number', () => {
     const calc = useCalculationStore()
-    const result = buildComputeResultsData(calc.compute)
+    const result = buildComputeResultsData(calc.domainResults[0].compute)
     expect(typeof result.recommendedHostCount).toBe('number')
   })
 
   it('returns coreUtilizationPct as a number', () => {
     const calc = useCalculationStore()
-    const result = buildComputeResultsData(calc.compute)
+    const result = buildComputeResultsData(calc.domainResults[0].compute)
     expect(typeof result.coreUtilizationPct).toBe('number')
   })
 
   it('returns ramUtilizationPct as a number', () => {
     const calc = useCalculationStore()
-    const result = buildComputeResultsData(calc.compute)
+    const result = buildComputeResultsData(calc.domainResults[0].compute)
     expect(typeof result.ramUtilizationPct).toBe('number')
   })
 })
@@ -198,31 +197,31 @@ describe('buildStorageResultsData — PPTX-08', () => {
 
   it('returns safeUsableCapacityTB as a number', () => {
     const calc = useCalculationStore()
-    const result = buildStorageResultsData(calc.storage)
+    const result = buildStorageResultsData(calc.domainResults[0].storage)
     expect(typeof result.safeUsableCapacityTB).toBe('number')
   })
 
   it('returns rawCapacityTB as a number', () => {
     const calc = useCalculationStore()
-    const result = buildStorageResultsData(calc.storage)
+    const result = buildStorageResultsData(calc.domainResults[0].storage)
     expect(typeof result.rawCapacityTB).toBe('number')
   })
 
   it('returns lfsOverheadTB as a number', () => {
     const calc = useCalculationStore()
-    const result = buildStorageResultsData(calc.storage)
+    const result = buildStorageResultsData(calc.domainResults[0].storage)
     expect(typeof result.lfsOverheadTB).toBe('number')
   })
 
   it('returns metadataOverheadTB as a number', () => {
     const calc = useCalculationStore()
-    const result = buildStorageResultsData(calc.storage)
+    const result = buildStorageResultsData(calc.domainResults[0].storage)
     expect(typeof result.metadataOverheadTB).toBe('number')
   })
 
   it('returns usableAfterRaidTB as a number', () => {
     const calc = useCalculationStore()
-    const result = buildStorageResultsData(calc.storage)
+    const result = buildStorageResultsData(calc.domainResults[0].storage)
     expect(typeof result.usableAfterRaidTB).toBe('number')
   })
 })
@@ -269,8 +268,8 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
 
   it('returns rows when gpuVmCount > 0', () => {
     const store = useInputStore()
-    store.gpuVmCount = 4
-    store.vgpuMemoryGB = 24
+    store.workloadDomains[0].gpuVmCount = 4
+    store.workloadDomains[0].vgpuMemoryGB = 24
     const result = buildAiGpuSlideData(store)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(2)
@@ -278,8 +277,8 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
 
   it('every row has label and value properties', () => {
     const store = useInputStore()
-    store.gpuVmCount = 4
-    store.vgpuMemoryGB = 24
+    store.workloadDomains[0].gpuVmCount = 4
+    store.workloadDomains[0].vgpuMemoryGB = 24
     const result = buildAiGpuSlideData(store)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
@@ -291,8 +290,8 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
 
   it('a row value contains gpuVmCount when gpuVmCount=4', () => {
     const store = useInputStore()
-    store.gpuVmCount = 4
-    store.vgpuMemoryGB = 24
+    store.workloadDomains[0].gpuVmCount = 4
+    store.workloadDomains[0].vgpuMemoryGB = 24
     const result = buildAiGpuSlideData(store)
     const gpuRow = result.find((r) => String(r.value).includes('4'))
     expect(gpuRow).toBeDefined()
@@ -308,8 +307,8 @@ describe('buildNvmeTieringSlideData — PPTX-11', () => {
 
   it('returns rows when nvmeTieringEnabled is true', () => {
     const store = useInputStore()
-    store.nvmeTieringEnabled = true
-    store.activeMemoryPct = 70
+    store.workloadDomains[0].nvmeTieringEnabled = true
+    store.workloadDomains[0].activeMemoryPct = 70
     const result = buildNvmeTieringSlideData(store)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(2)
@@ -317,8 +316,8 @@ describe('buildNvmeTieringSlideData — PPTX-11', () => {
 
   it('every row has label and value properties', () => {
     const store = useInputStore()
-    store.nvmeTieringEnabled = true
-    store.activeMemoryPct = 70
+    store.workloadDomains[0].nvmeTieringEnabled = true
+    store.workloadDomains[0].activeMemoryPct = 70
     const result = buildNvmeTieringSlideData(store)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
@@ -330,8 +329,8 @@ describe('buildNvmeTieringSlideData — PPTX-11', () => {
 
   it('includes activeMemoryPct value in a row', () => {
     const store = useInputStore()
-    store.nvmeTieringEnabled = true
-    store.activeMemoryPct = 70
+    store.workloadDomains[0].nvmeTieringEnabled = true
+    store.workloadDomains[0].activeMemoryPct = 70
     const result = buildNvmeTieringSlideData(store)
     const pctRow = result.find((r) => String(r.value).includes('70'))
     expect(pctRow).toBeDefined()
@@ -347,9 +346,9 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
 
   it('returns topology array with >= 5 rows', () => {
     const store = useInputStore()
-    store.deploymentMode = 'stretch'
+    store.workloadDomains[0].deploymentMode = 'stretch'
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store, calc.stretch)
+    const result = buildStretchTopologySlideData(store, calc.domainResults[0].stretch!)
     expect(result).toHaveProperty('topology')
     expect(Array.isArray(result.topology)).toBe(true)
     expect(result.topology.length).toBeGreaterThanOrEqual(5)
@@ -357,9 +356,9 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
 
   it('returns checklist array with >= 3 items', () => {
     const store = useInputStore()
-    store.deploymentMode = 'stretch'
+    store.workloadDomains[0].deploymentMode = 'stretch'
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store, calc.stretch)
+    const result = buildStretchTopologySlideData(store, calc.domainResults[0].stretch!)
     expect(result).toHaveProperty('checklist')
     expect(Array.isArray(result.checklist)).toBe(true)
     expect(result.checklist.length).toBeGreaterThanOrEqual(3)
@@ -367,9 +366,9 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
 
   it('topology rows have label and value properties', () => {
     const store = useInputStore()
-    store.deploymentMode = 'stretch'
+    store.workloadDomains[0].deploymentMode = 'stretch'
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store, calc.stretch)
+    const result = buildStretchTopologySlideData(store, calc.domainResults[0].stretch!)
     result.topology.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -378,9 +377,9 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
 
   it('checklist items are strings', () => {
     const store = useInputStore()
-    store.deploymentMode = 'stretch'
+    store.workloadDomains[0].deploymentMode = 'stretch'
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store, calc.stretch)
+    const result = buildStretchTopologySlideData(store, calc.domainResults[0].stretch!)
     result.checklist.forEach((item) => {
       expect(typeof item).toBe('string')
     })
@@ -396,34 +395,34 @@ describe('buildVsanMaxSlideData — PPTX-13', () => {
 
   it('returns rows when vsanMax is not null', () => {
     const store = useInputStore()
-    store.storageType = 'vsan-max'
-    store.vsanMaxProfile = 'lrg'
-    store.vsanMaxStorageNodes = 8
+    store.workloadDomains[0].storageType = 'vsan-max'
+    store.workloadDomains[0].vsanMaxProfile = 'lrg'
+    store.workloadDomains[0].vsanMaxStorageNodes = 8
     const calc = useCalculationStore()
-    expect(calc.vsanMax).not.toBeNull()
-    const result = buildVsanMaxSlideData(store, calc.vsanMax!)
+    expect(calc.domainResults[0].vsanMax).not.toBeNull()
+    const result = buildVsanMaxSlideData(store, calc.domainResults[0].vsanMax!)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(4)
   })
 
   it('includes profile in uppercase in a row value', () => {
     const store = useInputStore()
-    store.storageType = 'vsan-max'
-    store.vsanMaxProfile = 'lrg'
-    store.vsanMaxStorageNodes = 8
+    store.workloadDomains[0].storageType = 'vsan-max'
+    store.workloadDomains[0].vsanMaxProfile = 'lrg'
+    store.workloadDomains[0].vsanMaxStorageNodes = 8
     const calc = useCalculationStore()
-    const result = buildVsanMaxSlideData(store, calc.vsanMax!)
+    const result = buildVsanMaxSlideData(store, calc.domainResults[0].vsanMax!)
     const profileRow = result.find((r) => String(r.value).includes('LRG'))
     expect(profileRow).toBeDefined()
   })
 
   it('every row has label and value properties', () => {
     const store = useInputStore()
-    store.storageType = 'vsan-max'
-    store.vsanMaxProfile = 'lrg'
-    store.vsanMaxStorageNodes = 8
+    store.workloadDomains[0].storageType = 'vsan-max'
+    store.workloadDomains[0].vsanMaxProfile = 'lrg'
+    store.workloadDomains[0].vsanMaxStorageNodes = 8
     const calc = useCalculationStore()
-    const result = buildVsanMaxSlideData(store, calc.vsanMax!)
+    const result = buildVsanMaxSlideData(store, calc.domainResults[0].vsanMax!)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -440,16 +439,16 @@ describe('buildValidationWarningsSlideData — PPTX-14', () => {
 
   it('returns entries matching validationErrors when warnings exist', () => {
     const store = useInputStore()
-    store.hostCount = 1
+    store.workloadDomains[0].hostCount = 1
     const calc = useCalculationStore()
     const result = buildValidationWarningsSlideData(calc)
     expect(Array.isArray(result)).toBe(true)
-    expect(result.length).toBe(calc.validationErrors.length)
+    expect(result.length).toBe(calc.aggregateTotals.allValidationErrors.length)
   })
 
   it('each entry has severity and messageKey properties', () => {
     const store = useInputStore()
-    store.hostCount = 1
+    store.workloadDomains[0].hostCount = 1
     const calc = useCalculationStore()
     const result = buildValidationWarningsSlideData(calc)
     result.forEach((entry) => {
@@ -460,7 +459,7 @@ describe('buildValidationWarningsSlideData — PPTX-14', () => {
 
   it('returns empty array when no warnings (default store state)', () => {
     const calc = useCalculationStore()
-    if (calc.validationErrors.length === 0) {
+    if (calc.aggregateTotals.allValidationErrors.length === 0) {
       const result = buildValidationWarningsSlideData(calc)
       expect(Array.isArray(result)).toBe(true)
       expect(result.length).toBe(0)
