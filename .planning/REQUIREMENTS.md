@@ -10,9 +10,9 @@
 
 ### Engine Correctness
 
-- [ ] **ENGINE-01**: Engine sizes management domain first; in dedicated architecture mode, workload domains receive zero management vCPU/RAM overhead (currently management overhead is unconditionally passed to all domains)
-- [ ] **ENGINE-02**: In colocated architecture mode, engine adds management vCPU/RAM overhead to WLD-1 required resources before computing WLD-1 host count
-- [ ] **ENGINE-03**: Aggregate totals include dedicated management host count in the procurement total (`dedicatedMgmtHostCount` is currently not added to `totalRecommendedHosts`)
+- [x] **ENGINE-01**: Engine sizes management domain first; in dedicated architecture mode, workload domains receive zero management vCPU/RAM overhead (currently management overhead is unconditionally passed to all domains)
+- [x] **ENGINE-02**: In colocated architecture mode, engine adds management vCPU/RAM overhead to WLD-1 required resources before computing WLD-1 host count
+- [x] **ENGINE-03**: Aggregate totals include dedicated management host count in the procurement total (`dedicatedMgmtHostCount` is currently not added to `totalRecommendedHosts`)
 - [ ] **ENGINE-04**: TypeScript compiler errors in `useMarkdownExport.ts`, `usePptxExport.ts`, and `useUrlState.ts` are resolved (missing module imports, implicit `any` types)
 
 ### Wizard UI
@@ -69,9 +69,9 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| ENGINE-01 | Phase 15 | Pending |
-| ENGINE-02 | Phase 15 | Pending |
-| ENGINE-03 | Phase 15 | Pending |
+| ENGINE-01 | Phase 15 | Complete |
+| ENGINE-02 | Phase 15 | Complete |
+| ENGINE-03 | Phase 15 | Complete |
 | ENGINE-04 | Phase 15 | Pending |
 | WIZARD-01 | Phase 16 | Pending |
 | WIZARD-02 | Phase 16 | Pending |

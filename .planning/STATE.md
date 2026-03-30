@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
 status: executing
-stopped_at: Completed 15-02-PLAN.md — engine correctness plans verified
-last_updated: "2026-03-30T19:30:00.000Z"
+stopped_at: Completed 15-01-PLAN.md — ENGINE-01/02/03 TDD tests (retrospective)
+last_updated: "2026-03-30T19:20:08.724Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 9
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 14 — multi-domain-exports
+**Current focus:** Phase 15 — engine-correctness
 
 ## Current Position
 
-Phase: 15
-Plan: 15-02 (plans verified, implementation complete)
-Status: Ready to execute (implementation already done — run /gsd:execute-phase 15 to formalize)
+Phase: 15 (engine-correctness) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
@@ -40,6 +40,7 @@ Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 
 *Updated after each plan completion*
 | Phase 14 P02 | 15min | 2 tasks | 2 files |
+| Phase 15 P01 | 5min | 1 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -56,6 +57,7 @@ v3.1 decisions (pending implementation):
 - [Roadmap]: Export composable updates are mandatory in the same phase as AggregateTotals type changes (avoids UI/export discrepancy)
 - [Phase 14]: buildAggregateSlideData(totals) replaces buildRecommendationsData — summarizes all domains in 4 rows instead of single-domain read
 - [Phase 14]: All PPTX helper functions now accept WorkloadDomainConfig directly — no store bridge pattern in export composable
+- [Phase 15]: Out-of-order TDD accepted: Wave-0 tests and Wave-2 implementation written in same session — tests serve as regression guards
 
 ### Pending Todos
 
@@ -69,7 +71,7 @@ v3.1 decisions (pending implementation):
 
 ## Session Continuity
 
-Last session: 2026-03-30T17:17:47.491Z
-Stopped at: Completed 14-02-PLAN.md — multi-domain PPTX export
+Last session: 2026-03-30T19:20:08.721Z
+Stopped at: Completed 15-01-PLAN.md — ENGINE-01/02/03 TDD tests (retrospective)
 Next action: /gsd:plan-phase 15
 Resume file: None
