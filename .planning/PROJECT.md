@@ -49,6 +49,9 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 
 ### Active
 
+- ✓ Domain data model: WorkloadDomainConfig (26 fields + id/name), ManagementDomainConfig (independent host specs), DomainResult, AggregateTotals — Validated in Phase 10: Domain Types, Defaults, and Store Refactor
+- ✓ inputStore refactored: workloadDomains[] array + managementDomain object, default "WLD-1" domain, CALC-02 maintained — Validated in Phase 10
+- ✓ calculationStore: domainResults computed array + aggregateTotals reducer, zero ref(), dedicatedMgmtHostCount reads managementDomain — Validated in Phase 10
 - [ ] Multiple workload domains with independent host specs, workload profiles, storage configs, and optional features per domain
 - [ ] Management domain with independent host specs (decoupled from workload domains)
 - [ ] Tab-based domain UI with unlimited add/remove of named workload domains
@@ -137,4 +140,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 — v3.0 milestone started*
+*Last updated: 2026-03-30 — Phase 10 complete (domain data model + store refactor)*
