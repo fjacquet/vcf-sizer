@@ -4,13 +4,13 @@ milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
 status: executing
 stopped_at: Completed 15-02-PLAN.md — ENGINE-01/02/03/04 implementation (retrospective)
-last_updated: "2026-03-30T20:38:53.088Z"
-last_activity: 2026-03-30 -- Phase 14 execution started
+last_updated: "2026-03-30T21:00:12.467Z"
+last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: 14 (multi-domain-exports) — EXECUTING
-Plan: 1 of 2
+Phase: 15
+Plan: Not started
 Status: Executing Phase 14
-Last activity: 2026-03-30 -- Phase 14 execution started
+Last activity: 2026-03-30
 
 Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 
@@ -68,7 +68,6 @@ Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 Decisions are logged in PROJECT.md Key Decisions table.
 
 v3.1 decisions (pending implementation):
-
 
 - [Roadmap]: Engine fix is highest-risk change — TDD required: write failing tests for colocated/dedicated aggregate behavior before touching calculationStore.ts
 - [Roadmap]: currentWizardStep belongs in uiStore exclusively — never in InputStateSchema or calculationStore (prevents URL contamination and CALC-02 violation)
