@@ -159,5 +159,23 @@
     "footer": {
       "attribution": "Erstellt mit VCF Sizer"
     }
+  },
+  "wizard": {
+    "step1": {
+      "number": "1",
+      "label": "Topologie"
+    },
+    "step2": {
+      "number": "2",
+      "label": "Verwaltung"
+    },
+    "step3": {
+      "number": "3",
+      "label": "Arbeitslasten"
+    },
+    "nav": {
+      "previous": "Zurueck",
+      "next": "Weiter"
+    }
   }
 }
