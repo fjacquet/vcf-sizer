@@ -274,3 +274,73 @@ describe('generateMarkdownReport — no regression', () => {
     expect(report).toMatch(/\d+\.\d%/)
   })
 })
+
+describe('generateMarkdownReport — multi-domain (EXP-01, EXP-02)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('includes one named section per workload domain', () => {
+    const input = useInputStore()
+    // Add a second domain and rename it
+    input.addDomain()
+    input.updateDomain(input.workloadDomains[1].id, { name: 'WLD-2' })
+    const report = generateMarkdownReport()
+    expect(report).toContain('## Domain: WLD-1')
+    expect(report).toContain('## Domain: WLD-2')
+  })
+
+  it('uses H3 sub-sections within each domain block', () => {
+    const report = generateMarkdownReport()
+    expect(report).toContain('### Host Configuration')
+    expect(report).toContain('### Compute Sizing')
+  })
+
+  it('includes aggregate totals section', () => {
+    const report = generateMarkdownReport()
+    expect(report).toContain('## Aggregate Totals')
+  })
+
+  it('aggregate totals includes total recommended hosts', () => {
+    const report = generateMarkdownReport()
+    expect(report).toContain('Total recommended hosts')
+  })
+
+  it('management architecture appears exactly once', () => {
+    const input = useInputStore()
+    input.addDomain()
+    input.updateDomain(input.workloadDomains[1].id, { name: 'WLD-2' })
+    const report = generateMarkdownReport()
+    const occurrences = report.split('## Management Architecture').length - 1
+    expect(occurrences).toBe(1)
+  })
+
+  it('management domain overhead appears exactly once', () => {
+    const input = useInputStore()
+    input.addDomain()
+    input.updateDomain(input.workloadDomains[1].id, { name: 'WLD-2' })
+    const report = generateMarkdownReport()
+    const occurrences = report.split('## Management Domain Overhead').length - 1
+    expect(occurrences).toBe(1)
+  })
+
+  it('conditional GPU section only in domain that enables it', () => {
+    const input = useInputStore()
+    // Domain 1 (WLD-1): no GPU
+    input.updateDomain(input.workloadDomains[0].id, { gpuVmCount: 0, name: 'WLD-1' })
+    // Add domain 2 (WLD-2): with GPU
+    input.addDomain()
+    input.updateDomain(input.workloadDomains[1].id, { name: 'WLD-2', gpuVmCount: 2, vgpuMemoryGB: 16 })
+    const report = generateMarkdownReport()
+    // GPU section should appear after WLD-2 heading
+    const wld2Pos = report.indexOf('## Domain: WLD-2')
+    const gpuPos = report.indexOf('### AI/GPU Workloads')
+    expect(gpuPos).toBeGreaterThan(wld2Pos)
+    // GPU section should NOT appear between report start and WLD-2 heading
+    const wld1Pos = report.indexOf('## Domain: WLD-1')
+    expect(gpuPos).toBeGreaterThan(wld1Pos)
+    // No GPU section in the part before WLD-2
+    const reportBeforeWld2 = report.substring(0, wld2Pos)
+    expect(reportBeforeWld2).not.toContain('### AI/GPU Workloads')
+  })
+})
