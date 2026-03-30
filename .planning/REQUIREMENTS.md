@@ -79,30 +79,30 @@
 
 | REQ-ID | Phase | Plan |
 |--------|-------|------|
-| DOM-01 | TBD | TBD |
-| DOM-02 | TBD | TBD |
-| DOM-03 | TBD | TBD |
-| DOM-04 | TBD | TBD |
-| DOM-05 | TBD | TBD |
-| DOM-06 | TBD | TBD |
-| UI-01 | TBD | TBD |
-| UI-02 | TBD | TBD |
-| UI-03 | TBD | TBD |
-| UI-04 | TBD | TBD |
-| UI-05 | TBD | TBD |
-| URL-01 | TBD | TBD |
-| URL-02 | TBD | TBD |
-| URL-03 | TBD | TBD |
-| URL-04 | TBD | TBD |
-| FORM-01 | TBD | TBD |
-| FORM-02 | TBD | TBD |
-| FORM-03 | TBD | TBD |
-| FORM-04 | TBD | TBD |
-| FORM-05 | TBD | TBD |
-| RES-01 | TBD | TBD |
-| RES-02 | TBD | TBD |
-| RES-03 | TBD | TBD |
-| EXP-01 | TBD | TBD |
-| EXP-02 | TBD | TBD |
-| EXP-03 | TBD | TBD |
-| EXP-04 | TBD | TBD |
+| DOM-01 | Phase 10 | TBD |
+| DOM-02 | Phase 10 | TBD |
+| DOM-03 | Phase 10 | TBD |
+| DOM-04 | Phase 10 | TBD |
+| DOM-05 | Phase 10 | TBD |
+| DOM-06 | Phase 10 | TBD |
+| URL-01 | Phase 11 | TBD |
+| URL-02 | Phase 11 | TBD |
+| URL-03 | Phase 11 | TBD |
+| URL-04 | Phase 11 | TBD |
+| UI-01 | Phase 12 | TBD |
+| UI-02 | Phase 12 | TBD |
+| UI-03 | Phase 12 | TBD |
+| UI-04 | Phase 12 | TBD |
+| UI-05 | Phase 12 | TBD |
+| FORM-01 | Phase 12 | TBD |
+| FORM-02 | Phase 12 | TBD |
+| FORM-03 | Phase 12 | TBD |
+| FORM-04 | Phase 12 | TBD |
+| FORM-05 | Phase 12 | TBD |
+| RES-01 | Phase 13 | TBD |
+| RES-02 | Phase 13 | TBD |
+| RES-03 | Phase 13 | TBD |
+| EXP-01 | Phase 14 | TBD |
+| EXP-02 | Phase 14 | TBD |
+| EXP-03 | Phase 14 | TBD |
+| EXP-04 | Phase 14 | TBD |

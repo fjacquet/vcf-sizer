@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Multi-Domain Support
 status: planning
-last_updated: "2026-03-30T11:00:00.000Z"
+last_updated: "2026-03-30T12:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -18,14 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** v3.0 Multi-Domain Support — defining requirements
+**Current focus:** v3.0 Multi-Domain Support — roadmap defined, Phase 10 ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 10 — Domain Types, Defaults, and Store Refactor (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-03-30 — Milestone v3.0 started
+Status: Roadmap created, awaiting Phase 10 planning
+Last activity: 2026-03-30 — v3.0 roadmap created (5 phases, Phases 10-14)
+
+Progress bar: [----------] 0/5 phases complete
 
 ## Performance Metrics
 
@@ -117,9 +119,22 @@ v2.1 decisions:
 - [Phase 09]: Validation warnings in PPTX use raw messageKey — no i18n in composable (consistent with Phase 6)
 - [Phase 09]: vSAN Max PPTX guard uses double condition: storageType === 'vsan-max' && calc.vsanMax !== null
 
+v3.0 decisions:
+
+- [Roadmap]: Store structure — Option A: single inputStore with workloadDomains array + managementDomain object (not a separate domainsStore)
+- [Roadmap]: deploymentMode is per-domain — VCF architecture requires stretch topology to be per-domain
+- [Roadmap]: managementArchitecture remains a global field on inputStore — it is a deployment-level toggle, not a per-domain setting
+- [Roadmap]: v2.x URL backward compatibility — silent reset to default state; document in release notes; no migration code
+- [Roadmap]: Zod v4 — use factory .default(() => [createDefaultWorkloadDomain(0)]) for array field, NOT .default([])
+- [Roadmap]: v-for key must always be :key="domain.id" (crypto.randomUUID()) — never array index
+- [Roadmap]: activeTabIndex is ephemeral UI state — never serialized to URL; hydration always activates first tab
+- [Roadmap]: i18n new keys accumulated across Phases 12-14 are delivered with their respective phases (not deferred to a separate cleanup phase)
+
 ### Pending Todos
 
 - Verify ReadyNode profile constants (MED/LRG/XL NVMe counts, XS 128 GB RAM minimum) against compatibilityguide.broadcom.com at Phase 5 implementation time
+- Confirm crypto.randomUUID() availability in Vitest node env as first task of Phase 10
+- Confirm Zod 4 callable .default(() => fn()) works with installed ^4.3.6 as first test of Phase 11
 
 ### Blockers/Concerns
 
@@ -128,3 +143,5 @@ v2.1 decisions:
 ## Session Continuity
 
 v2.1 milestone (Export Quality) is complete. All 4 phases verified. 182 tests passing.
+v3.0 milestone (Multi-Domain Support) roadmap created: 5 phases (Phase 10-14), 27 requirements fully mapped.
+Next action: /gsd:plan-phase 10
