@@ -69,10 +69,9 @@ Plans:
   2. Pasting a v2.x flat-schema URL into the browser resets to default state without an error (no crash, no empty tab UI)
   3. The active tab index is never present in the serialized URL — hydration always activates the first tab
   4. A 5-domain configuration serializes to a URL parameter shorter than 2,048 characters
-**Plans**: 2 plans
+**Plans**: 1 plan
 Plans:
-- [ ] 10-01-PLAN.md — Types, defaults, and inputStore refactor (DOM-01, DOM-02, DOM-03, DOM-04)
-- [ ] 10-02-PLAN.md — calculationStore refactor and integration (DOM-05, DOM-06)
+- [ ] 11-01-PLAN.md — URL state schema refactor with TDD (URL-01, URL-02, URL-03, URL-04)
 
 ### Phase 12: Domain Tab UI and Per-Domain Input Forms
 **Goal**: Users can manage N named workload domains via a tab interface and configure each domain fully independently
@@ -134,7 +133,7 @@ Plans:
 | 8. PPTX Core Slides | v2.1 | 3/3 | Complete | 2026-03-30 |
 | 9. PPTX Conditional Slides and Polish | v2.1 | 2/2 | Complete | 2026-03-30 |
 | 10. Domain Types, Defaults, and Store Refactor | v3.0 | 1/2 | Complete    | 2026-03-30 |
-| 11. URL State Schema Refactor | v3.0 | 0/? | Not started | - |
+| 11. URL State Schema Refactor | v3.0 | 0/1 | Not started | - |
 | 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 0/? | Not started | - |
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 0/? | Not started | - |
 | 14. Multi-Domain Exports | v3.0 | 0/? | Not started | - |
