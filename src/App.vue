@@ -2,7 +2,10 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputStore } from '@/stores/inputStore'
+import { useUiStore } from '@/stores/uiStore'
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher.vue'
+import WizardStepper from '@/components/shared/WizardStepper.vue'
+import TopologySelector from '@/components/shared/TopologySelector.vue'
 import DomainTabStrip from '@/components/shared/DomainTabStrip.vue'
 import DeploymentModelSelector from '@/components/input/DeploymentModelSelector.vue'
 import HostSpecsForm from '@/components/input/HostSpecsForm.vue'
@@ -14,6 +17,7 @@ import ResultsPanel from '@/components/results/ResultsPanel.vue'
 
 const { t } = useI18n()
 const input = useInputStore()
+const ui = useUiStore()
 
 // Derive active domain ID from activeDomainIndex
 // Fallback to first domain if index is somehow out of bounds
@@ -30,22 +34,33 @@ const activeDomainId = computed(
     </header>
 
     <main class="grid grid-cols-1 md:grid-cols-2 min-h-[calc(100vh-56px)] print:grid-cols-1 print:min-h-0">
-      <!-- LEFT PANE: inputs -->
-      <div class="border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-6 space-y-4 overflow-y-auto print:hidden">
-        <!-- Domain tab strip (UI-01, UI-02, UI-03, UI-04) -->
-        <DomainTabStrip />
+      <!-- LEFT PANE: wizard steps -->
+      <div class="border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-6 overflow-y-auto print:hidden">
+        <!-- Wizard stepper — always visible at top of left pane (WIZARD-01) -->
+        <WizardStepper />
 
-        <!-- Per-domain input forms — all receive activeDomainId -->
-        <DeploymentModelSelector :domainId="activeDomainId" />
-        <HostSpecsForm :domainId="activeDomainId" />
-        <WorkloadProfileForm :domainId="activeDomainId" />
-        <StorageConfigForm :domainId="activeDomainId" />
+        <!-- Step 1: Topology (WIZARD-01 step 1) -->
+        <!-- v-show (NOT v-if) — all panels stay mounted, data preserved on back-nav (WIZARD-02) -->
+        <div v-show="ui.currentWizardStep === 1" class="space-y-4">
+          <TopologySelector />
+        </div>
 
-        <!-- Management domain section — independent of workload tabs (UI-05) -->
-        <ManagementDomainSection />
-        <ManagementSummary />
+        <!-- Step 2: Management (WIZARD-01 step 2) -->
+        <div v-show="ui.currentWizardStep === 2" class="space-y-4">
+          <ManagementDomainSection />
+          <ManagementSummary />
+        </div>
+
+        <!-- Step 3: Workloads (WIZARD-01 step 3) -->
+        <div v-show="ui.currentWizardStep === 3" class="space-y-4">
+          <DomainTabStrip />
+          <DeploymentModelSelector :domainId="activeDomainId" />
+          <HostSpecsForm :domainId="activeDomainId" />
+          <WorkloadProfileForm :domainId="activeDomainId" />
+          <StorageConfigForm :domainId="activeDomainId" />
+        </div>
       </div>
-      <!-- RIGHT PANE: results -->
+      <!-- RIGHT PANE: results — always visible regardless of wizard step -->
       <div class="px-4 py-6 bg-gray-50 dark:bg-gray-950 overflow-y-auto print:col-span-2">
         <ResultsPanel />
       </div>
