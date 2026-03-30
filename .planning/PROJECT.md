@@ -52,9 +52,9 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ Domain data model: WorkloadDomainConfig (26 fields + id/name), ManagementDomainConfig (independent host specs), DomainResult, AggregateTotals — Validated in Phase 10: Domain Types, Defaults, and Store Refactor
 - ✓ inputStore refactored: workloadDomains[] array + managementDomain object, default "WLD-1" domain, CALC-02 maintained — Validated in Phase 10
 - ✓ calculationStore: domainResults computed array + aggregateTotals reducer, zero ref(), dedicatedMgmtHostCount reads managementDomain — Validated in Phase 10
-- [ ] Multiple workload domains with independent host specs, workload profiles, storage configs, and optional features per domain
-- [ ] Management domain with independent host specs (decoupled from workload domains)
-- [ ] Tab-based domain UI with unlimited add/remove of named workload domains
+- ✓ Multiple workload domains with independent host specs, workload profiles, storage configs, and optional features per domain — Validated in Phase 12: Domain Tab UI and Per-Domain Input Forms
+- ✓ Management domain with independent host specs (decoupled from workload domains), architecture toggle in dedicated section — Validated in Phase 12
+- ✓ Tab-based domain UI with unlimited add/remove of named workload domains, inline rename, confirmation on delete — Validated in Phase 12
 - [ ] Per-domain results + aggregate totals across all domains
 - ✓ Full multi-domain URL state (lz-string/Zod with variable-length domain arrays), v2.x backward compat, activeTabIndex excluded — Validated in Phase 11: URL State Schema Refactor
 - [ ] Per-domain sections in Markdown and PPTX exports
@@ -142,4 +142,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 — Phase 11 complete (URL state schema refactor)*
+*Last updated: 2026-03-30 — Phase 12 complete (domain tab UI + per-domain input forms)*
