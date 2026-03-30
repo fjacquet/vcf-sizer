@@ -3,7 +3,7 @@ status: partial
 phase: 14-multi-domain-exports
 source: [14-VERIFICATION.md]
 started: 2026-03-30T17:40:00.000Z
-updated: 2026-03-30T17:40:00.000Z
+updated: 2026-03-30T19:20:00.000Z
 ---
 
 ## Current Test

@@ -137,7 +137,7 @@ Plans:
   4. The PPTX includes an aggregate totals slide after all per-domain domain slides
 **Plans**: 2 plans
 - [x] 14-01-PLAN.md — Multi-domain Markdown export (EXP-01, EXP-02)
-- [ ] 14-02-PLAN.md — Multi-domain PPTX export (EXP-03, EXP-04)
+- [x] 14-02-PLAN.md — Multi-domain PPTX export (EXP-03, EXP-04)
 
 ### Phase 15: Engine Correctness
 
