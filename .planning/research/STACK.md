@@ -6,6 +6,500 @@
 
 ---
 
+## MILESTONE v3.0 ADDENDUM: Stack for Multi-Domain Support
+
+**Researched:** 2026-03-30
+**Confidence:** HIGH (Zod v4 API from official docs; Pinia patterns from official docs; tab component from npm registry; URL length limits from cross-referenced browser guidance)
+
+This section answers: what stack additions or changes are needed to support multi-domain arrays in Pinia stores, Zod validation with variable-length domain arrays, and a tab-based multi-domain UI?
+
+### Verdict Summary
+
+| Capability | Action | Rationale |
+|------------|--------|-----------|
+| Pinia multi-domain array store | No new package — use `ref<DomainState[]>([])` + actions | Standard Pinia setup store pattern; already in project |
+| Zod variable-length array schemas | No new package — `z.array(DomainSchema).min(1)` | Zod v4 (already `^4.3.6`) has full array support |
+| Tab-based domain UI | No new package — build custom headless tabs | `@headlessui/vue` is stale (v1.7.23, last published 2 years ago, no v2 for Vue); zero-dependency Vue 3 implementation is cleaner |
+| URL state with domain arrays | No new package — extend existing lz-string + Zod pattern | JSON arrays compress well; URL length risk manageable for practical domain counts |
+| Aggregate computed totals | No new package — `computed()` over domains array in calculationStore | Follows existing CALC-02 constraint |
+
+**No new npm packages are required for v3.0.** The existing stack handles all requirements.
+
+---
+
+### 1. Pinia Store Restructuring for Multi-Domain Arrays
+
+#### Current structure (single flat state)
+
+`inputStore.ts` holds a flat set of `ref()` scalars. This works for one domain. For N domains, each with its own host specs, workload profile, and storage config, the flat model must become an array.
+
+#### Recommended pattern: `domainsStore.ts` as a new setup store
+
+Do not mutate `inputStore.ts` to hold the domains array. Instead, create a dedicated `domainsStore.ts` that owns the array, and keep `inputStore.ts` for global fields that apply to the whole session (deployment mode, network speed, management architecture).
+
+```typescript
+// src/stores/domainsStore.ts
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { createDefaultDomain } from '@/engine/types'
+import type { DomainState } from '@/engine/types'
+
+export const useDomainsStore = defineStore('domains', () => {
+  // One entry per workload domain
+  const domains = ref<DomainState[]>([createDefaultDomain('Domain 1')])
+
+  // Currently active tab index
+  const activeDomainIndex = ref(0)
+
+  // Actions — CALC-01: no engine calculation imports inside store
+  function addDomain(name?: string) {
+    domains.value.push(createDefaultDomain(name ?? `Domain ${domains.value.length + 1}`))
+    activeDomainIndex.value = domains.value.length - 1
+  }
+
+  function removeDomain(index: number) {
+    if (domains.value.length <= 1) return  // must have at least one
+    domains.value.splice(index, 1)
+    activeDomainIndex.value = Math.min(activeDomainIndex.value, domains.value.length - 1)
+  }
+
+  function updateDomain(index: number, patch: Partial<DomainState>) {
+    Object.assign(domains.value[index], patch)
+  }
+
+  function renameDomain(index: number, name: string) {
+    domains.value[index].name = name
+  }
+
+  return { domains, activeDomainIndex, addDomain, removeDomain, updateDomain, renameDomain }
+})
+```
+
+**Why `ref<DomainState[]>` and not `reactive([])`:**
+
+Pinia stores wrap their return values with `reactive()`. Returning a `reactive([])` from a setup store causes Pinia to double-wrap it, making destructuring unreliable. Return `ref<DomainState[]>([])` and access `.value` inside the store; outside, `storeToRefs(domainsStore).domains` unwraps cleanly. This is the official Pinia guidance for array state.
+
+**`createDefaultDomain()` helper — lives in engine layer (pure TypeScript, zero Vue — CALC-01 compliant):**
+
+```typescript
+// src/engine/types.ts (addition)
+export interface DomainState {
+  id: string            // crypto.randomUUID() — stable key for v-for
+  name: string
+  // host specs
+  coresPerSocket: number
+  socketsPerHost: number
+  hostRamGB: number
+  hostStorageTB: number
+  hostCount: number
+  // workload profile
+  vmCount: number
+  avgVcpuPerVm: number
+  avgVramGbPerVm: number
+  avgStorageGbPerVm: number
+  cpuOvercommitRatio: number
+  ramOvercommitRatio: number
+  // optional features
+  nvmeTieringEnabled: boolean
+  activeMemoryPct: number
+  gpuVmCount: number
+  vgpuMemoryGB: number
+  // storage
+  storageType: StorageType
+  fttLevel: FttLevel
+  raidType: RaidType
+  dedupEnabled: boolean
+  dedupRatio: number
+  // deployment per-domain
+  deploymentMode: DeploymentMode
+  preferredSiteHosts: number
+  secondarySiteHosts: number
+  // vSAN Max
+  vsanMaxProfile: VsanMaxProfile
+  vsanMaxStorageNodes: number
+}
+
+export function createDefaultDomain(name: string): DomainState {
+  return {
+    id: crypto.randomUUID(),
+    name,
+    coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTB: 3.84, hostCount: 4,
+    vmCount: 100, avgVcpuPerVm: 4, avgVramGbPerVm: 8, avgStorageGbPerVm: 100,
+    cpuOvercommitRatio: 4, ramOvercommitRatio: 1,
+    nvmeTieringEnabled: false, activeMemoryPct: 50,
+    gpuVmCount: 0, vgpuMemoryGB: 16,
+    storageType: 'vsan-esa', fttLevel: 1, raidType: 'raid5', dedupEnabled: false, dedupRatio: 2,
+    deploymentMode: 'ha', preferredSiteHosts: 3, secondarySiteHosts: 3,
+    vsanMaxProfile: 'med', vsanMaxStorageNodes: 4,
+  }
+}
+```
+
+**`crypto.randomUUID()` availability:** Built into all modern browsers (Chrome 92+, Firefox 95+, Safari 15.4+). No library needed for stable per-domain keys. Do NOT use array indices as Vue `:key` when items can be reordered or removed — indices cause reconciliation bugs.
+
+#### calculationStore changes (CALC-02 compliant)
+
+```typescript
+// src/stores/calculationStore.ts (addition)
+import { useDomainsStore } from './domainsStore'
+
+// Inside the setup function — computed() only, zero ref() — CALC-02:
+const domainsStore = useDomainsStore()
+
+const domainResults = computed(() =>
+  domainsStore.domains.value.map((domain) => ({
+    compute: calcCompute({
+      ...domain,
+      managementCores: mgmtResult.value.totalCores,
+      managementRamGB: mgmtResult.value.totalRamGB,
+    }),
+    storage: calcStorage({ ...domain }),
+    // validation, stretch, vsanMax per existing engine functions
+  }))
+)
+
+const aggregateTotals = computed(() => ({
+  totalRecommendedHosts: domainResults.value.reduce(
+    (sum, r) => sum + r.compute.recommendedHostCount, 0
+  ),
+  totalRawStorageTB: domainResults.value.reduce(
+    (sum, r) => sum + r.storage.rawCapacityTB, 0
+  ),
+  totalEffectiveCapacityTB: domainResults.value.reduce(
+    (sum, r) => sum + r.storage.effectiveCapacityTB, 0
+  ),
+}))
+```
+
+---
+
+### 2. Zod Schema for Variable-Length Domain Arrays
+
+The existing `InputStateSchema` in `useUrlState.ts` is a flat object. For v3.0, the URL state must serialize the `domains` array from `domainsStore` plus the global fields from `inputStore`.
+
+**Zod v4 array syntax (verified against [zod.dev/api](https://zod.dev/api) and [zod.dev/v4](https://zod.dev/v4) changelog):**
+
+```typescript
+// src/composables/useUrlState.ts (updated schema)
+import { z } from 'zod'
+
+const DomainStateSchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  name: z.string().default('Domain 1'),
+  coresPerSocket: z.number().int().min(1).max(256).default(16),
+  socketsPerHost: z.number().int().min(1).max(8).default(2),
+  hostRamGB: z.number().positive().default(512),
+  hostStorageTB: z.number().positive().default(3.84),
+  hostCount: z.number().int().min(1).max(64).default(4),
+  vmCount: z.number().int().min(0).default(100),
+  avgVcpuPerVm: z.number().positive().default(4),
+  avgVramGbPerVm: z.number().positive().default(8),
+  avgStorageGbPerVm: z.number().positive().default(100),
+  cpuOvercommitRatio: z.number().positive().max(20).default(4),
+  ramOvercommitRatio: z.number().positive().max(4).default(1),
+  nvmeTieringEnabled: z.boolean().default(false),
+  activeMemoryPct: z.number().min(0).max(100).default(50),
+  gpuVmCount: z.number().int().min(0).default(0),
+  vgpuMemoryGB: z.number().positive().default(16),
+  storageType: z.enum(['vsan-esa', 'fc', 'nfs', 'vsan-max']).default('vsan-esa'),
+  fttLevel: z.union([z.literal(1), z.literal(2)]).default(1),
+  raidType: z.enum(['raid1', 'raid5', 'raid6']).default('raid5'),
+  dedupEnabled: z.boolean().default(false),
+  dedupRatio: z.number().min(1).max(10).default(2),
+  deploymentMode: z.enum(['simple', 'ha', 'stretch']).default('ha'),
+  preferredSiteHosts: z.number().int().min(1).default(3),
+  secondarySiteHosts: z.number().int().min(1).default(3),
+  vsanMaxProfile: z.enum(['xs', 'sm', 'med', 'lrg', 'xl']).default('med'),
+  vsanMaxStorageNodes: z.number().int().min(4).max(64).default(4),
+})
+// z.object() strips unknown keys by default in Zod v4 — no .strip() call needed
+
+const MultiDomainStateSchema = z.object({
+  // Global fields (remain in inputStore)
+  managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
+  networkSpeedGbE: z.union([z.literal(10), z.literal(25), z.literal(100)]).default(25),
+  // Management domain independent host specs
+  mgmtCoresPerSocket: z.number().int().min(1).max(256).default(16),
+  mgmtSocketsPerHost: z.number().int().min(1).max(8).default(2),
+  mgmtHostRamGB: z.number().positive().default(512),
+  mgmtHostStorageTB: z.number().positive().default(3.84),
+  // Workload domains array — at least 1 required
+  domains: z.array(DomainStateSchema).min(1).default([
+    // Populated by createDefaultDomain() at store init; schema default used only for empty parse
+  ]),
+})
+```
+
+**Zod v4 API notes (confirmed from official changelog):**
+
+- `z.array(schema)` — unchanged from v3
+- `.min(n)` / `.max(n)` / `.length(n)` — unchanged
+- `.default(value)` — triggers only when input is `undefined`, not `null` or an invalid value
+- `.nonempty()` — behavior change in v4: previously inferred `[T, ...T[]]` (non-empty tuple), now infers `T[]`. Use `.min(1)` instead of `.nonempty()` to avoid the type inference change while keeping the runtime constraint
+- `z.object()` strips unknown keys by default in v4 — `.strip()` is still a valid method call but is a no-op since strip is now the default
+- `z.strictObject()` replaces `z.object().strict()`; `z.looseObject()` replaces `z.object().passthrough()`
+
+#### URL state hydration pattern for arrays
+
+The existing hydration loop (`store.field = state.field`) must become:
+
+```typescript
+export function hydrateFromUrl(): void {
+  // ... (same decompression and JSON.parse as existing)
+
+  const result = MultiDomainStateSchema.safeParse(parsed)
+  if (!result.success) {
+    console.warn('[vcf-sizer] URL state: schema validation failed', result.error.issues)
+    return
+  }
+
+  const inputStore = useInputStore()
+  const domainsStore = useDomainsStore()
+  const state = result.data
+
+  // Hydrate global fields
+  inputStore.managementArchitecture = state.managementArchitecture
+  inputStore.networkSpeedGbE = state.networkSpeedGbE
+  inputStore.mgmtCoresPerSocket = state.mgmtCoresPerSocket
+  inputStore.mgmtSocketsPerHost = state.mgmtSocketsPerHost
+  inputStore.mgmtHostRamGB = state.mgmtHostRamGB
+  inputStore.mgmtHostStorageTB = state.mgmtHostStorageTB
+
+  // Hydrate domains array — replace entire array atomically
+  // Direct assignment triggers Pinia reactivity correctly
+  // Do NOT use splice/push in a loop — that creates N reactive updates
+  domainsStore.domains = state.domains
+  domainsStore.activeDomainIndex = 0
+}
+```
+
+---
+
+### 3. URL Length Analysis for Domain Arrays
+
+**Browser URL limit:** Chrome and Firefox support URLs up to ~65,000 characters. The practical interoperability limit is ~8,192 characters (web proxies and load balancers). The IE-era 2,048 character limit is irrelevant for this tool's target audience.
+
+**Per-domain JSON size estimate (conservative):**
+
+A single domain's JSON object with all fields is approximately 400–500 bytes raw. With lz-string's LZ-based compression, repetitive JSON keys (domain key names repeat across all domains) compress well:
+
+| Domain count | Raw JSON | lz-string compressed | URI-encoded characters |
+|-------------|----------|---------------------|----------------------|
+| 1 domain | ~500 B | ~200–300 B | ~280–400 chars |
+| 3 domains | ~1,500 B | ~500–700 B | ~680–950 chars |
+| 10 domains | ~5,000 B | ~1,400–2,000 B | ~1,900–2,700 chars |
+| 20 domains | ~10,000 B | ~2,600–3,800 B | ~3,500–5,100 chars |
+
+**Conclusion:** URL sharing is viable for typical sessions (1–10 domains). For large sessions (>15 domains), URLs approach the safe proxy limit. Add a UI hint when `generateShareUrl()` returns a URL longer than 6,000 characters.
+
+**No alternative compression library is needed.** lz-string's compression ratio for repetitive JSON is adequate. pako (gzip, ~50 KB gzipped) would yield only ~10–20% additional compression for a concern that only materializes beyond 15 domains.
+
+---
+
+### 4. Tab-Based Multi-Domain UI
+
+#### Why not `@headlessui/vue`
+
+`@headlessui/vue` is stuck at **v1.7.23**, last published **over 2 years ago** (confirmed via npm registry as of March 2026). Headless UI v2.0 was released for React in 2024 but the Vue version has received no v2 release, with no committed timeline (open GitHub discussion #3426). The Vue package is effectively in maintenance mode.
+
+Reka UI (formerly Radix Vue) is the current recommended headless primitive library for Vue 3 and has an active Tabs component. However, adding Reka UI as a dependency for a single tabs use case is disproportionate — it pulls in a large tree of primitives unused elsewhere in the project.
+
+#### Recommendation: Zero-dependency custom tabs (~50 lines)
+
+A Vue 3 tab implementation with correct keyboard navigation and ARIA attributes requires roughly 50 lines. This is the right tradeoff for a specialized tool where tab behavior is simple: select, add, remove, rename.
+
+```vue
+<!-- src/components/shared/DomainTabs.vue -->
+<script setup lang="ts">
+const props = defineProps<{
+  tabs: { id: string; name: string }[]
+  activeIndex: number
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:activeIndex', index: number): void
+  (e: 'add'): void
+  (e: 'remove', index: number): void
+}>()
+
+function onKeyDown(event: KeyboardEvent, index: number) {
+  if (event.key === 'ArrowRight') emit('update:activeIndex', (index + 1) % props.tabs.length)
+  if (event.key === 'ArrowLeft') emit('update:activeIndex', (index - 1 + props.tabs.length) % props.tabs.length)
+  if (event.key === 'Home') emit('update:activeIndex', 0)
+  if (event.key === 'End') emit('update:activeIndex', props.tabs.length - 1)
+}
+</script>
+
+<template>
+  <div>
+    <div role="tablist" class="flex gap-1 overflow-x-auto border-b border-gray-200">
+      <button
+        v-for="(tab, i) in tabs"
+        :key="tab.id"
+        role="tab"
+        :aria-selected="i === activeIndex"
+        :tabindex="i === activeIndex ? 0 : -1"
+        @click="emit('update:activeIndex', i)"
+        @keydown="onKeyDown($event, i)"
+        class="px-4 py-2 text-sm font-medium rounded-t-md"
+        :class="i === activeIndex
+          ? 'bg-white border border-b-white text-blue-700'
+          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'"
+      >
+        {{ tab.name }}
+        <span
+          v-if="tabs.length > 1"
+          role="button"
+          :aria-label="`Remove ${tab.name}`"
+          @click.stop="emit('remove', i)"
+          class="ml-1 text-gray-400 hover:text-red-500"
+        >×</span>
+      </button>
+      <button
+        @click="emit('add')"
+        aria-label="Add workload domain"
+        class="px-3 py-2 text-blue-600 hover:text-blue-800 font-bold"
+      >+</button>
+    </div>
+    <div
+      v-for="(tab, i) in tabs"
+      :key="tab.id"
+      role="tabpanel"
+      :hidden="i !== activeIndex"
+      class="pt-4"
+    >
+      <slot :name="`panel-${i}`" :domain-index="i" />
+    </div>
+  </div>
+</template>
+```
+
+**ARIA compliance:** `role="tablist"` on the container, `role="tab"` on each button, `aria-selected` on the active tab, `role="tabpanel"` on each panel, `hidden` attribute hides inactive panels. Arrow key navigation follows WAI-ARIA Tabs Pattern 1.1.
+
+**Overflow strategy:** `overflow-x-auto` on the tablist allows horizontal scroll when many domains are present. This requires zero JS and works correctly across all target browsers.
+
+---
+
+### 5. Management Domain Store
+
+The management domain needs independent host specs decoupled from workload domains. Add management host spec fields directly to `inputStore.ts` — they are global to the session, not per-domain:
+
+```typescript
+// src/stores/inputStore.ts (additions to existing flat store)
+const mgmtCoresPerSocket = ref(16)
+const mgmtSocketsPerHost = ref(2)
+const mgmtHostRamGB = ref(512)
+const mgmtHostStorageTB = ref(3.84)
+```
+
+This is consistent with the existing `managementArchitecture` field already in `inputStore`. A third store is not warranted for four scalar fields.
+
+---
+
+### 6. Per-Domain Export Integration
+
+#### Markdown export
+
+`useMarkdownExport.ts` already assembles a string from store state. For v3.0, the composable iterates over `domainsStore.domains.value` and calls the existing engine section builders per domain, then appends an aggregate totals section. No new library — this is a loop over existing template literal builders.
+
+#### PPTX export
+
+`usePptxExport.ts` uses dynamic `import('pptxgenjs')`. For v3.0, add a per-domain slide group (host spec, compute results, storage results) before the aggregate summary slide. Each domain group follows the existing slide-building pattern. The `defineSlideMaster()` + `addSlide()` ordering constraint (PPTX-15) applies unchanged.
+
+---
+
+### 7. What NOT to Add for v3.0
+
+| Do Not Add | Why | Use Instead |
+|------------|-----|-------------|
+| `@headlessui/vue` | Vue package at v1.7.23 for 2+ years; no v2 Vue release planned | Custom 50-line headless tabs (Section 4) |
+| `reka-ui` / `radix-vue` | Full headless primitive library; disproportionate for a single tabs component in a specialized tool | Custom component |
+| `nanoid` | For generating per-domain stable IDs | `crypto.randomUUID()` — native browser API, no import |
+| `immer` | Immutable state update helper | Direct Pinia reactive array mutation is idiomatic and sufficient |
+| `pako` | Better gzip compression for URL state | lz-string is adequate for practical domain counts (<15); pako adds ~50 KB gzip to initial bundle |
+| `uuid` npm package | UUID generation | `crypto.randomUUID()` — native, no dependency |
+| A second Zod installation | Some v3/v4 dual-install patterns | Use `zod@^4.3.6` already installed; no dual version |
+| Any drag-and-drop library | Tab reordering | Out of scope per PROJECT.md; deferred post-v3.0 |
+
+---
+
+### 8. Version Compatibility for v3.0
+
+No new packages are installed. All changes operate within the existing dependency surface:
+
+| Existing Package | v3.0 Usage | Compatibility Notes |
+|-----------------|------------|---------------------|
+| `pinia@^3.0.4` | `ref<DomainState[]>()` in setup store, `storeToRefs()` for reactive destructuring | Pinia 3 + Vue 3.5 required — already met |
+| `zod@^4.3.6` | `z.array(DomainStateSchema).min(1)` for URL state validation | Zod v4 array API unchanged from v3 for basic usage; `.strip()` is still valid; `.nonempty()` type changed — use `.min(1)` instead |
+| `lz-string@^1.5.0` | Compresses the enlarged JSON (domains array) | No API change; compression ratio improves for repeated domain keys |
+| `vue@^3.5.31` | `v-for` over `domains` array, `:key="domain.id"` | Vue 3.5 stable reactive arrays |
+| `vitest@^4.1.2` | New unit tests for `domainsStore`, updated `useUrlState` tests with array fixtures | No version change needed |
+| `@vueuse/core@^14.2.1` | Existing `useClipboard()` for share URL — no new composables needed | No change |
+
+---
+
+### 9. Integration Points
+
+```
+src/engine/types.ts
+  + DomainState interface
+  + createDefaultDomain(name: string): DomainState  (pure TS, no Vue — CALC-01 compliant)
+  + AggregateResult interface (sum of host counts and storage across domains)
+
+src/stores/domainsStore.ts  (NEW)
+  + domains: ref<DomainState[]>([createDefaultDomain('Domain 1')])
+  + activeDomainIndex: ref(0)
+  + addDomain(), removeDomain(), updateDomain(), renameDomain()
+
+src/stores/inputStore.ts
+  + mgmtCoresPerSocket, mgmtSocketsPerHost, mgmtHostRamGB, mgmtHostStorageTB
+  (existing: managementArchitecture, networkSpeedGbE — remain here as global fields)
+
+src/stores/calculationStore.ts
+  + domainResults: computed() — array of per-domain engine results
+  + aggregateTotals: computed() — summed across all domains
+  (CALC-02: zero new ref())
+
+src/composables/useUrlState.ts
+  + MultiDomainStateSchema replaces InputStateSchema
+  + DomainStateSchema for per-domain validation
+  + hydrateFromUrl() hydrates inputStore (globals) + domainsStore (domains array)
+  + generateShareUrl() serializes both stores to one JSON object
+
+src/components/shared/DomainTabs.vue  (NEW)
+  + role="tablist", role="tab", role="tabpanel"
+  + ArrowLeft/Right/Home/End keyboard nav
+  + overflow-x-auto for many-domain scroll
+
+src/components/input/DomainInputPanel.vue  (NEW)
+  + All per-domain input sections for a single DomainState
+  + Receives domainIndex prop, calls domainsStore.updateDomain(index, patch)
+
+src/composables/useMarkdownExport.ts
+  + Loop over domainsStore.domains, per-domain sections, aggregate totals section
+
+src/composables/usePptxExport.ts
+  + Per-domain slide group loop before aggregate summary slide
+```
+
+---
+
+### Sources for v3.0 Research
+
+- [Zod v4 API — Arrays](https://zod.dev/api) — `z.array()`, `.min()`, `.max()`, `.default()` syntax (HIGH confidence — official docs)
+- [Zod v4 Release Notes / Changelog](https://zod.dev/v4) — `.nonempty()` type change; `.strip()` still valid as method (HIGH confidence — official changelog)
+- [Pinia — State](https://pinia.vuejs.org/core-concepts/state.html) — `ref<T[]>()` in setup stores, `storeToRefs()` (HIGH confidence — official docs)
+- [npm: @headlessui/vue](https://www.npmjs.com/package/@headlessui/vue) — v1.7.23, last published 2 years ago (HIGH confidence — live npm registry, verified March 2026)
+- [Headless UI Discussion #3183](https://github.com/tailwindlabs/headlessui/discussions/3183) and [#3426](https://github.com/tailwindlabs/headlessui/discussions/3426) — Vue v2.0 status: no committed timeline (MEDIUM confidence — open GitHub discussions)
+- [Reka UI Tabs](https://reka-ui.com/docs/components/tabs) — current headless tabs primitive for Vue 3; active in 2025–2026 (MEDIUM confidence — official docs)
+- [WAI-ARIA Authoring Practices — Tabs](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) — keyboard navigation and ARIA roles (HIGH confidence — W3C standard)
+- [Pinia Setup Stores — arrays](https://dev.to/ajinkyax/understanding-vue-reactivity-with-pinia-stores-4ahi) — `ref<Item[]>` pattern in Pinia setup stores (MEDIUM confidence — community article, consistent with official docs)
+- [URL length limits — Stack Overflow](https://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers) — 2,048 chars IE; Chrome/Firefox ~65,000 chars (MEDIUM confidence — cross-referenced empirical data)
+- [lz-string GitHub](https://github.com/pieroxy/lz-string) — LZ compression for URL-safe encoding (HIGH confidence — official repo)
+- [MDN — crypto.randomUUID()](https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID) — Chrome 92+, Firefox 95+, Safari 15.4+ (HIGH confidence — MDN)
+
+---
+
 ## MILESTONE v2.1 ADDENDUM: Stack for Export Quality (PPTX, PDF, Markdown Enrichment)
 
 This section is the **primary output for the v2.1 milestone**. It answers exactly which libraries to add (or not add) for:
@@ -736,4 +1230,4 @@ export default defineConfig({
 ---
 
 *Stack research for: VCF 9.x sizing calculator (client-side SPA)*
-*Researched: 2026-03-28 (v1.0), updated 2026-03-29 (v2.0 addendum), updated 2026-03-29 (v2.1 addendum)*
+*Researched: 2026-03-28 (v1.0), updated 2026-03-29 (v2.0 addendum), updated 2026-03-29 (v2.1 addendum), updated 2026-03-30 (v3.0 addendum)*

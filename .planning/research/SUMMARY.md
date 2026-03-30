@@ -1,219 +1,248 @@
 # Project Research Summary
 
-**Project:** VCF Sizer — v2.1 Export Quality
-**Domain:** Browser-only SPA (Vue 3 + Vite 8) — Infrastructure Sizing Calculator
-**Researched:** 2026-03-29
+**Project:** VCF Sizer v3.0 — Multi-Domain Support
+**Domain:** Client-side SPA infrastructure sizing calculator (Vue 3 + Pinia 3 + Zod 4)
+**Researched:** 2026-03-30
 **Confidence:** HIGH
 
 ## Executive Summary
 
-VCF Sizer v2.1 targets a single milestone objective: replace the minimal, incomplete export outputs shipped in v1.0–v2.0 with professional-grade deliverables that cloud architects can hand directly to customers and procurement. The three export types in scope — enriched Markdown, print/PDF overhaul, and browser-side PPTX generation — share the same underlying data layer (Pinia stores already populated by the existing engine) and require no changes to the calculation engine. The primary new dependency is `pptxgenjs@4.0.1`, the only actively maintained library capable of generating Office Open XML presentations entirely in the browser without a Node.js process.
+VCF Sizer v3.0 adds support for N independent workload domains to the existing single-domain calculator. Each VCF workload domain is a fully isolated pool of hosts with its own vCenter, storage config, and lifecycle — so the calculator must model each domain as a fully independent configuration object. The recommended approach is to refactor `inputStore.ts` from a flat collection of 20+ scalar `ref()` fields into a `workloadDomains: ref<WorkloadDomain[]>` array plus a separate `managementDomain: ref<ManagementDomain>` object. No new npm packages are needed: Pinia 3 array stores, Zod 4 `z.array()`, and a custom 50-line Vue 3 tab component cover all requirements cleanly.
 
-The recommended approach is to implement exports in the order: Markdown enrichment first, then print/PDF CSS, then PPTX. Markdown enrichment establishes the complete data access pattern — mapping all 13 store fields to report sections — which then becomes the specification for PPTX slide content. Print CSS can be done entirely without adding any npm dependency and should be completed before introducing the `pptxgenjs` bundle cost. Both `jspdf` and `html2canvas` are explicitly rejected: their combined bundle cost exceeds 30 MB unpacked and their output quality (rasterized, non-searchable) is inferior to browser native print-to-PDF.
+The key architectural risk is the breadth of the change: the store refactor cascades through `calculationStore.ts` (must map over domains array while staying `computed()`-only per CALC-02), `useUrlState.ts` (Zod schema becomes a nested array schema with a breaking URL format change), every input form component (must receive `domainId` prop instead of reading flat store globals), and both export composables. The correct build order is types first, then store, then URL state, then input UI, then results UI, then exports — each phase gated by a passing test suite before the next begins.
 
-The critical constraint for all implementation work is CALC-01/CALC-02: no Vue imports may enter the engine layer (`src/engine/`), and `calculationStore` must expose only `computed()` values. Export composables live in `src/composables/` and read from Pinia stores — they are Vue-layer code and fully compliant with these constraints. The most dangerous pitfalls involve `pptxgenjs`-specific API quirks (instance reuse causing slide bleed, option object mutation converting values to EMU, color hex strings without `#` prefix) rather than architectural issues.
-
----
+Three decisions need resolution before Phase 1 starts: (1) whether to inline management domain host spec fields directly in `inputStore.ts` or move workload domains to a new `domainsStore.ts` (both architectures are documented in ARCHITECTURE.md and STACK.md — pick one and enforce it uniformly); (2) whether `deploymentMode` lives per-domain (as ARCHITECTURE.md recommends and as VCF architecture demands) or remains a global field; and (3) the backward compatibility strategy for v2.x shared URLs (research consensus: acceptable to silently reset to default state, documented in release notes).
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack requires exactly one new production dependency for v2.1: `pptxgenjs@4.0.1`. Every other export improvement (print/PDF quality, Markdown completeness) is pure TypeScript string assembly and CSS — zero additional packages. This keeps the initial bundle at the current 159 kB gzip; `pptxgenjs` is loaded only as a lazy async chunk when the user triggers PPTX export.
+No new npm packages are required for v3.0. The existing stack fully covers multi-domain needs: Pinia 3 setup stores with `ref<WorkloadDomain[]>()`, Zod 4 `z.array()` with per-field defaults, lz-string for URL compression, and a custom Vue 3 tab component. The `@headlessui/vue` package (the obvious candidate for accessible tabs) is stuck at v1.7.23 with no v2 for Vue, making it a maintenance liability. Reka UI (formerly Radix Vue) is the modern alternative but is disproportionate for a single tabs use case. A zero-dependency custom tab component is the right call.
 
 **Core technologies:**
-- `pptxgenjs@4.0.1` — PPTX generation — only actively maintained browser-native Office Open XML library; v4.0.0 fixed the Vite Node.js detection conflict; ESM build auto-selected by Vite via `exports` field
-- Print CSS (`@media print` + `@page` rules) — PDF quality — zero bundle cost; produces searchable vector-quality text superior to any canvas-rasterization approach
-- Tailwind v4 `print:` variants — print layout utilities — `@custom-variant print` already registered in `src/style.css`; `break-before-page`, `break-inside-avoid`, `print:hidden` available immediately
-- Dynamic `import('pptxgenjs')` via Vite — bundle isolation — keeps initial page load unaffected; Vite code-splits the library into a separate async chunk automatically
-
-**Libraries explicitly rejected:**
-- `jspdf@4.2.1` (28.8 MB unpacked, ~900 kB–1.2 MB gzip, incompatible with Tailwind utilities, rasterized output)
-- `html2canvas@1.4.1` (3.3 MB unpacked, last published 2022-01-22, effectively unmaintained, rasterizes DOM)
-- `officegen` (Node.js only — no browser support)
-- `puppeteer`/`playwright` (server-side — violates zero-infrastructure constraint)
+- `Pinia 3` + `ref<WorkloadDomain[]>()` — array domain store — standard setup store pattern; `ref()` (not `reactive()`) required to avoid double-proxy wrapping
+- `Zod 4 z.array(DomainSchema)` — URL state validation — already at `^4.3.6`; factory default `.default(() => [createDefaultWorkloadDomain(0)])` required (see P2-1 pitfall)
+- Custom `DomainTabs.vue` (~50 lines) — tab UI — zero dependency, ARIA-compliant, keyboard navigable
+- `crypto.randomUUID()` — stable domain IDs — browser-native, no library needed; verify Vitest node env compatibility in Phase 1
+- Existing `lz-string` — URL compression — adequate for up to ~15 domains; UI hint recommended above 6,000-char URL threshold
 
 ### Expected Features
 
-**Must have — P1 (table stakes for a complete export):**
-- Markdown: report header metadata (deployment mode, management architecture, network speed)
-- Markdown: workload profile section (VM count, vCPU/VM, vRAM/VM, overcommit ratios)
-- Markdown: management domain per-component table (vCenter, SDDC Manager, NSX x3, VCF Operations x3, VCF Automation x3)
-- Markdown: conditional sections — stretch cluster topology + network checklist, vSAN Max cluster, AI/GPU workload, NVMe tiering, validation warnings
-- Print/PDF: page break CSS on major sections + `break-inside-avoid` on cards/tables
-- Print/PDF: `print:hidden` on all interactive UI (forms, toolbar, nav, input panel)
-- Print/PDF: `@page` A4 portrait with 0.5in margins in `src/style.css`
-- PPTX: 10 always-present slides (title, agenda, configuration summary, host specs, workload profile, management overhead, compute results, storage results, recommendations, appendix)
-- PPTX: up to 6 conditional slides (AI/GPU, NVMe tiering, stretch topology, stretch network checklist, vSAN Max, validation warnings)
-- PPTX: lazy-loaded via dynamic import — no impact on initial bundle
+**Must have (table stakes):**
+- Tab-per-domain UI with add/remove — users cannot reason about N configs in a single scrolling form
+- Inline tab rename (double-click) — standard pattern in browsers and IDEs; no modal required
+- Per-domain independent full config — host specs, workload profile, storage type, optional features, deployment mode all independent per domain
+- Management domain with independent host specs — decoupled from workload domain specs; feeds `dedicatedMgmtHostCount` calculation
+- Per-domain results display — active tab shows that domain's host count and utilization
+- Aggregate totals panel — total hosts across all domains + management = the procurement number
+- Multi-domain URL state — full config survives lz-string round-trip
+- Per-domain sections in Markdown and PPTX exports
+- Conditional delete confirmation — show modal only when domain has non-default data (`vmCount > 0`); skip for empty/default domains
 
-**Should have — P2 (differentiators, valuable but not blocking):**
-- Print/PDF: running header/footer with page numbers (Chrome 131+ `@page` margin boxes)
-- Print/PDF: print-only summary page (new `<div class="hidden print:block">` component)
-- PPTX: slide master with VMware/Broadcom-style blue color theme
-- PPTX: shareable URL as hyperlink on title slide
+**Should have (competitive differentiators):**
+- Domain duplication ("Copy from...") — common when architects plan multiple similar domains
+- Tab overflow scrolling with gradient fade hint — needed at 5+ domains
+- Per-domain validation warnings with aggregate warnings panel
+- Domain-name-aware export filenames
 
-**Defer to v3+ (anti-features for v2.1):**
-- Server-side PDF generation (Puppeteer/headless) — requires backend, violates zero-infrastructure
-- Embedded Chart.js canvas images in PPTX — pixelated at presentation resolution, high complexity
-- Per-locale export deck content — PPTX/Markdown in French/German/Italian adds full i18n pipeline
-- Fully branded customer-specific PPTX templates — scope creep; single VCF-branded template sufficient
-- Animated/transitions between PPTX slides — no information value, fragile in Keynote/LibreOffice
+**Defer to post-v3.0:**
+- Drag-to-reorder tabs — significant complexity, minimal user benefit
+- Side-by-side domain comparison columns — breaks responsive design, duplicates per-domain tab info
+- localStorage persistence — URL sharing is the persistence model; localStorage adds sync bugs
+- Import from VCF Planning Workbook — separate feature, out of scope
+- Domain color theming — cosmetic, accessibility concerns
 
 ### Architecture Approach
 
-All three export types are implemented as Vue-layer composables that read from Pinia stores without writing back. The key refactor is extracting `generateMarkdownReport()` from `useUrlState.ts` (URL state responsibility) into a dedicated `useMarkdownExport.ts` composable. PPTX generation goes into a new `usePptxExport.ts` with an `async generatePptxReport(): Promise<void>` signature. Print CSS requires no new composable — `window.print()` in `ExportToolbar.vue` remains unchanged; the work is entirely in CSS class additions to existing components plus a `@page` block in `src/style.css`.
+The core pattern is: `inputStore` owns a `ref<WorkloadDomain[]>` with `addDomain`, `removeDomain`, `updateDomain` actions; `calculationStore` maps over it with a single `computed(() => domains.map(...))` returning `DomainResult[]` and a second `computed()` reducing to `AggregateTotals` — both CALC-02 compliant (zero `ref()` in calculationStore). Input form components stop reading from flat store globals and instead accept a `domainId` prop, using writable computed getters/setters that route through `updateDomain(id, patch)`. The `activeDomainIndex` is ephemeral UI state — kept in component `ref()`, never serialized to URL.
 
-**Major components for v2.1:**
+**Major components:**
+1. `src/engine/types.ts` + `src/engine/defaults.ts` — `WorkloadDomain` interface, `ManagementDomain` interface, `createDefaultWorkloadDomain(index)` factory (pure TypeScript, CALC-01 compliant)
+2. `src/stores/inputStore.ts` — refactored to hold `workloadDomains: ref<WorkloadDomain[]>`, `managementDomain: ref<ManagementDomain>`, `managementArchitecture: ref`, domain mutation actions
+3. `src/stores/calculationStore.ts` — `domainResults: computed()` mapping array, `aggregateTotals: computed()` reducing array, `dedicatedMgmtHostCount: computed()` — zero `ref()` maintained (CALC-02)
+4. `src/composables/urlStateSchema.ts` + updated `useUrlState.ts` — Zod schema extracted to own module (prevents test drift), `hydrateFromUrl` / `generateShareUrl` updated for array state
+5. `src/components/input/DomainTabs.vue` + `DomainTabPanel.vue` — custom tab bar with add/remove/rename and one domain's full input form set
+6. `src/components/input/ManagementDomainPanel.vue` — management host specs (separate from workload domain tabs)
+7. `src/components/results/DomainResultCard.vue` + `AggregateCard.vue` — per-domain and aggregate results display
 
-1. `src/composables/useMarkdownExport.ts` (new) — extracted + enriched Markdown generation; reads all 13 data sources from inputStore + calculationStore; conditional sections guarded by feature flags
-2. `src/composables/usePptxExport.ts` (new) — async PPTX generation via dynamic `import('pptxgenjs')`; creates fresh `pptxgen` instance per invocation; reads same store surface as Markdown
-3. `src/style.css` (modified) — `@page` A4 portrait block; `@media print` font size and color rules
-4. Result card components (modified) — `print:break-before-page` and `print:break-inside-avoid` Tailwind classes on section wrappers
-5. `src/components/results/ExportToolbar.vue` (modified) — re-import Markdown from new composable; add PPTX button with async handler; update import chain
-6. `package.json` (modified) — add `pptxgenjs` production dependency
-
-**Files that must not change:**
-- `src/engine/*.ts` — CALC-01 enforced; export is a UI concern, not engine concern
-- `src/stores/calculationStore.ts` — export reads from it, never writes; CALC-02 preserved
-- `src/stores/inputStore.ts` — read-only surface for all exporters
-
-**Export layer target state:**
-```
-ExportToolbar.vue
-    ├── import { generateShareUrl } from 'useUrlState'         (URL state, unchanged)
-    ├── import { generateMarkdownReport } from 'useMarkdownExport'   (extracted + enriched)
-    ├── import { generatePptxReport } from 'usePptxExport'    (new)
-    └── window.print()                                         (unchanged — print CSS handles layout)
-```
+**File change inventory summary:**
+- New files: `defaults.ts`, `urlStateSchema.ts`, `DomainTabs.vue`, `DomainTabPanel.vue`, `ManagementDomainPanel.vue`, `DomainResultCard.vue`, `AggregateCard.vue`
+- Major rewrites: `inputStore.ts`, `calculationStore.ts`, `useUrlState.ts`
+- Moderate modifications: all 4 input form components (add `domainId` prop), `ResultsPanel.vue`, `HostCountCard.vue`, 3 chart components, `useMarkdownExport.ts`, `usePptxExport.ts`
+- Unchanged: all `src/engine/*.ts` pure functions, `uiStore.ts`, shared UI components, 4 locale files (additions only)
 
 ### Critical Pitfalls
 
-The top 5 pitfalls from research — ranked by likelihood of causing a broken release:
+1. **Zod v4 `.default([])` bypasses `.min(1)` (P2-1, HIGH confidence)** — In Zod v4, a `.default()` value is treated as valid by definition, skipping subsequent refinements. `z.array(DomainSchema).min(1).default([])` parses `undefined` to `[]` — an empty array that crashes the tab UI. Fix: use a factory `.default(() => [createDefaultWorkloadDomain(0)])` so the default always contains one domain. Confirmed in Zod GitHub issues #5525 and #4544.
 
-1. **PptxGenJS instance reuse causes slide bleed** (A-1, HIGH confidence) — second export contains slides from previous exports; prevent by constructing `new pptxgen()` inside the export function on every invocation, never at module scope
+2. **Array index as `v-for` key causes stale component state after delete (P3-1, HIGH confidence)** — Using `:key="index"` means Vue reuses DOM nodes by position, bleeding local state (focus, unsaved input, toggle animation) from deleted domains onto surviving ones. Fix: `:key="domain.id"` always. The `id` field must be part of `WorkloadDomain` from Phase 1 type definition, not retrofitted.
 
-2. **PptxGenJS option objects mutated in-place — EMU conversion** (A-2, HIGH confidence) — reusing a style object literal across `addText()`/`addShape()` calls corrupts positioning; prevent with factory functions returning fresh objects per call
+3. **`activeTabIndex` out-of-bounds after domain deletion (P3-2, MEDIUM confidence)** — Deleting the last tab leaves `activeTabIndex` pointing at a non-existent index, causing a silent undefined crash. Fix: clamp after every delete — `activeDomainIndex = Math.min(activeDomainIndex, workloadDomains.length - 1)`. This belongs in the `removeDomain` action in `inputStore.ts`.
 
-3. **Color hex strings must not include `#` prefix** (A-3, HIGH confidence) — `color: '#1F497D'` silently produces invalid PPTX XML; define a `pptxColors.ts` constants file with bare hex strings before writing any slide
+4. **Pinia `$patch` shallow-merges arrays, corrupting partial domain patches (P4-5, HIGH confidence)** — `store.$patch({ workloadDomains: [{ id: '1', vmCount: 200 }] })` replaces the array with a single incomplete domain object. Fix: never use `$patch` for domain mutations; use the `updateDomain(id, patch)` action with `Object.assign(domain, patch)`.
 
-4. **`break-before-page` fails inside flex containers** (A-9, MEDIUM confidence) — CSS fragmentation properties are ignored in flex/grid formatting contexts; report wrapper must switch to block layout in `@media print`
-
-5. **Tailwind v4 `print:hidden` may not override inline display utilities** (A-8, HIGH confidence) — alphabetical class ordering in v4 means `.flex` beats `.hidden` in specificity; use `!important` in a dedicated `print.css` or wrap elements in a structural `print:hidden` container
-
-**Additional PPTX pitfalls to anticipate during implementation:**
-- Chart.js `toBase64Image()` returns blank PNG if animation is running — disable animation on export charts (A-4)
-- `addImage({ data: ... })` expects `'image/png;base64,...'` without `data:` prefix — strip with `.replace(/^data:/, '')` (A-5)
-- CALC-01 violation if chart refs imported into engine layer — extract base64 string in composable, pass plain string to engine (A-11)
-
----
+5. **Schema duplication between `useUrlState.ts` and its test file silently drifts (P2-3, HIGH confidence)** — The test file currently replicates `InputStateSchema`. With the domain array schema, drift on any new field means tests pass against an old schema while production validates against the new one. Fix: extract all Zod schemas to `src/composables/urlStateSchema.ts` with zero browser/Pinia dependencies — both production and test import from that single source.
 
 ## Implications for Roadmap
 
-Based on combined research findings, the recommended phase structure for v2.1 is four phases in strict dependency order:
+Based on the combined research, the dependency chain is rigid: types must precede store, store must precede URL state, URL state and store must precede input UI, input UI must precede results UI, and results UI must precede exports. Six phases follow naturally from this dependency order.
 
-### Phase 1: Markdown Enrichment
+### Phase 1: Foundation — Types, Defaults, and Store Refactor
 
-**Rationale:** Markdown enrichment has zero new dependencies, establishes the complete data access pattern (all 13 store fields mapped to report sections), and produces a testable deliverable. All subsequent work (print CSS and PPTX) benefits from this mapping being validated first. The existing test file `useMarkdownExport.test.ts` already exists as a stub — this phase formalizes it.
-**Delivers:** Complete, professional Markdown report covering all 8 always-present sections and all 7 conditional sections; composable extracted from `useUrlState.ts` into `useMarkdownExport.ts`
-**Addresses features:** All P1 Markdown features (workload profile, per-component management table, all conditional sections, validation warnings, footer with shareable URL)
-**Avoids pitfall:** B-1 (silent omission of conditional sections) — enforced by Vitest tests for each conditional section's presence/absence
-**Research flag:** None — established pattern, well-documented store surface, no third-party API
+**Rationale:** Everything downstream depends on the `WorkloadDomain` type and the new store shape. This is the highest-risk phase because it changes the data contract for every consumer. Must be done first and tested thoroughly before any UI work begins. The `id` field (stable key) and management domain separation must be resolved here — retrofitting either later is costly.
 
-### Phase 2: Print/PDF CSS Overhaul
+**Delivers:** `WorkloadDomain` and `ManagementDomain` interfaces in `types.ts`; `createDefaultWorkloadDomain()` factory in `defaults.ts`; refactored `inputStore.ts` with array state and `addDomain`/`removeDomain`/`updateDomain` actions; refactored `calculationStore.ts` with `domainResults` computed array and `aggregateTotals`; all existing 182 engine tests still passing.
 
-**Rationale:** Zero npm dependencies; only touches CSS and Tailwind class additions to existing components. Completing this before PPTX avoids introducing bundle complexity during print CSS development. Phase 1's enriched Markdown also clarifies which result sections exist in the DOM and need page break treatment.
-**Delivers:** Professional print/PDF output via `window.print()` — A4 page geometry, section page breaks, no interactive UI in print, charts visible with proper sizing, monochrome-safe colors
-**Addresses features:** All P1 Print/PDF features (page breaks, `print:hidden` on controls, `@page` margins, font size adjustment)
-**Avoids pitfalls:** A-8 (`print:hidden` specificity — `!important` in print.css), A-9 (flex container blocking page breaks — block layout in print), A-10 (`@page` rules in `print.css`, not Tailwind utilities)
-**Research flag:** None — CSS print is well-understood; Tailwind v4 specifics are fully documented in PITFALLS.md
+**Addresses:** Per-domain full independence (table stake), management domain independent host specs (table stake)
 
-### Phase 3: PPTX Export — Core Slides
+**Avoids:** P1-1 (array ref replacement pitfall), P3-1 (missing stable ID), P3-2 (clamp in removeDomain action), P4-4 (management host spec separation)
 
-**Rationale:** With the complete store-to-section mapping validated by Phase 1, PPTX slide content can be specified with confidence. Core slides (10 always-present) are implemented first to establish the slide master, color constants, and `usePptxExport.ts` composable skeleton before adding conditional slide complexity.
-**Delivers:** Downloadable `.pptx` file with 10 always-present slides: title (with shareable URL), agenda, configuration summary, host specs, workload profile, management domain overhead table, compute sizing results, storage sizing results, recommendations, appendix/methodology
-**Uses:** `pptxgenjs@4.0.1` via dynamic import; `pptxColors.ts` constants file; `LAYOUT_16x9` (10 x 5.625 in) as the baseline layout
-**Implements:** `usePptxExport.ts` composable + PPTX button in `ExportToolbar.vue`
-**Avoids pitfalls:** A-1 (fresh instance per export), A-2 (factory functions for option objects), A-3 (define `pptxColors.ts` first), A-6 (commit to `LAYOUT_16x9`, document coordinate assumptions), A-7 (Calibri/Calibri Light only — no custom font embedding)
-**Research flag:** Verify `pres.defineSlideMaster()` object mutation behavior before designing the master template — the option-mutation pitfall (A-2) is particularly dangerous for master objects shared across all slides
+**Gate:** `npm run type-check` passes; `npm test` shows 182+ tests passing.
 
-### Phase 4: PPTX Export — Conditional Slides and Polish
+**Research flag:** Standard Pinia/Vue 3 patterns — no additional research needed. Verify `crypto.randomUUID()` in Vitest node env as first task.
 
-**Rationale:** Conditional slides reuse the conditional logic already validated in Phase 1 (Markdown). Phase 4 is lower risk because the composable skeleton from Phase 3 is already working. Polish items (slide master branding, P2 print header/footer) are deferred here to avoid blocking core PPTX delivery.
-**Delivers:** Complete PPTX with up to 6 conditional slides (AI/GPU, NVMe tiering, stretch topology + network checklist, vSAN Max cluster, validation warnings) plus optional slide master branding
-**Addresses features:** All remaining P1 PPTX features (conditional slides) and selected P2 items (slide master, shareable URL on title slide)
-**Avoids pitfalls:** A-4 (Chart.js animation disabled for export), A-5 (`data:` prefix stripped before `addImage()`), A-11 (CALC-01 preserved — chart image data extracted in Vue layer, passed as plain string to engine function)
-**Research flag:** None — conditional logic mirrors Phase 1; chart capture pitfalls are fully documented in PITFALLS.md
+### Phase 2: URL State — Zod Schema Refactor
+
+**Rationale:** URL state must be updated before UI is touched. If hydration breaks, the share-URL persistence model is broken. Easier to isolate and test in a pure TypeScript context before UI complexity is added. Schema extraction to `urlStateSchema.ts` (P2-3 fix) must happen here as the first task in this phase.
+
+**Delivers:** `urlStateSchema.ts` with `WorkloadDomainSchema`, `ManagementDomainSchema`, `InputStateSchema`; updated `hydrateFromUrl()` assigning `store.workloadDomains` from array; updated `generateShareUrl()` serializing domains array with spread (`{...d}`) to avoid proxy serialization artifacts; backward-compat behavior (v2.x URL parse fails gracefully, falls back to single default domain); updated `useUrlState.test.ts` with round-trip tests for 1 domain, 3 domains, and empty-array coercion; URL length test asserting <2,048 chars for 5-domain config.
+
+**Addresses:** Full multi-domain URL state (table stake)
+
+**Avoids:** P2-1 (factory default, not empty default), P2-2 (URL length test), P2-3 (schema in own module), P4-2 (test drift impossible when both import same schema)
+
+**Gate:** `npx vitest run src/composables/useUrlState.test.ts` passes; URL round-trip test for 3 domains passes.
+
+**Research flag:** Standard patterns — no additional research needed. Confirm Zod 4 callable `.default(() => fn())` works with installed `^4.3.6` as first test.
+
+### Phase 3: Input UI — Per-Domain Forms and Tab Component
+
+**Rationale:** Input components must be refactored before results can be exercised end-to-end. The tab infrastructure scaffolds all subsequent UI phases. This phase is lower risk than Phases 1-2 but requires the most component-level changes.
+
+**Delivers:** `DomainTabs.vue` (tab bar with add/remove, ARIA `role="tablist"` / `role="tab"`); `DomainTabPanel.vue` (renders one domain's full form set by `domainId` prop); `ManagementDomainPanel.vue` (management host specs); all four input form components updated with `domainId` prop and writable computed getters/setters routing through `updateDomain(id, patch)`; inline rename (double-click to focus input, blur/Enter commit, Escape cancel, empty-name guard); tab overflow CSS (`overflow-x: auto`, Tailwind `scrollbar-hide`).
+
+**Addresses:** Tab-per-domain UI (table stake), inline tab rename (table stake), add/remove domain (table stake), conditional delete confirmation (differentiator)
+
+**Avoids:** P3-1 (`:key="domain.id"` on all loops), P3-2 (clamp already in store action from Phase 1), P3-3 (no `<KeepAlive>` initially)
+
+**Gate:** Single-domain UI works identically to v2.x. Adding a second domain produces fully independent inputs. Deleting a domain activates left neighbor tab correctly.
+
+**Research flag:** Standard Vue 3 tab pattern — no additional research needed.
+
+### Phase 4: Results UI — Per-Domain and Aggregate Display
+
+**Rationale:** Results components depend on the `domainResults` array shape from Phase 1 and the tab infrastructure from Phase 3. Chart components need a domain-awareness strategy (per-domain chart vs multi-series toggle — decide during implementation).
+
+**Delivers:** `DomainResultCard.vue` (reads `domainResults[i]`, shows host count and utilization per domain); `AggregateCard.vue` (reads `aggregateTotals`, shows total hosts for procurement); `ResultsPanel.vue` updated to iterate over domains; `HostCountCard.vue` updated to accept `ComputeResult` as prop rather than reading store directly; chart components updated for per-domain data.
+
+**Addresses:** Per-domain results (table stake), aggregate totals panel (table stake), per-domain validation warnings (differentiator)
+
+**Avoids:** P4-3 (accept full-array recompute as acceptable for MVP — engine functions are microsecond-fast; optimize only if profiling shows real lag)
+
+**Gate:** Per-domain results display correctly. Aggregate totals match manual sum. Deleting a domain removes it from the results panel immediately.
+
+**Research flag:** Standard Vue 3 computed rendering — no additional research needed.
+
+### Phase 5: Export Refactor — Markdown and PPTX
+
+**Rationale:** Export composables are pure TypeScript with no lifecycle hooks — they are the final consumer layer and must come last. They depend on the stable `domainResults` shape from Phase 1.
+
+**Delivers:** `useMarkdownExport.ts` iterating over `domainResults` for per-domain sections (structure: Overview, Management Domain, Workload Domain 1..N, Summary with shareable URL); `usePptxExport.ts` generating per-domain slide sections (structure: Title, Deployment Overview, Management Domain, Domain 1..N slides, Warnings); composable tests updated with domain-array fixtures; additive overloads preserved to avoid breaking existing test signatures.
+
+**Addresses:** Per-domain sections in Markdown export (table stake), per-domain sections in PPTX export (table stake)
+
+**Avoids:** P5-1 (additive overloads, not signature replacement), P5-2 (new i18n keys added to all 4 locale files in same commit)
+
+**Gate:** Markdown report contains exactly one section per domain. PPTX contains per-domain slides. All 182 baseline tests still pass.
+
+**Research flag:** Standard iteration pattern — no additional research needed.
+
+### Phase 6: i18n Keys and Localization Cleanup
+
+**Rationale:** New UI strings for domain tabs, labels, and section headers accumulate across Phases 3-5. Final cleanup ensures all 4 locales are complete and no raw English strings appear in the UI.
+
+**Delivers:** New i18n keys in all 4 locale files (`en`, `fr-CH`, `de-CH`, `it-CH`): `domains.add`, `domains.remove`, `domains.management`, `domains.workload`, `domains.aggregate`, `domains.rename`, `domains.deleteConfirm.*`; validation message keys for any new domain-level warnings.
+
+**Addresses:** Existing project constraint (all validation warnings use i18n keys, never raw strings)
+
+**Avoids:** P5-2 (missing keys in non-English locales produce raw key strings in UI)
+
+**Gate:** No raw English strings in any new component. All 4 locale files contain identical key sets for new domain-related keys.
+
+**Research flag:** Standard i18n pattern — no research needed.
 
 ### Phase Ordering Rationale
 
-- Markdown must come before PPTX because it forces enumeration of all store fields needed for export — discovered once, specification used twice
-- Print CSS must come before PPTX because it has zero dependencies and should be verified clean before `pptxgenjs` adds build complexity
-- PPTX core slides must come before conditional slides to establish the composable skeleton and guard against the most dangerous pitfalls (A-1, A-2, A-3) in a controlled, testable scope before adding complexity
-- TDD discipline established in v1.0–v2.0 applies throughout: failing tests before implementation, including conditional section presence/absence tests for both Markdown and PPTX
+- Phases 1 and 2 are strictly ordered by dependency: store shape must be stable before URL state can be tested.
+- Phase 3 (input UI) depends on Phase 1 (store actions) and Phase 2 (URL hydration) being stable.
+- Phase 4 (results UI) depends on Phase 3 being complete to exercise the full end-to-end flow.
+- Phase 5 (exports) is the final consumer layer and must come last.
+- Phase 6 (i18n) is parallelizable with Phases 3-5 but is cleanest as a final pass once all new strings are known.
+- The build order directly mirrors the layered architecture: engine types → store → URL state → input UI → results UI → exports.
 
 ### Research Flags
 
-Phases likely needing `/gsd:research-phase` during planning:
-- **Phase 3 (PPTX core):** Verify `pres.defineSlideMaster()` mutation behavior — the option-mutation pitfall (A-2) is especially damaging for master template objects shared across all slides; a quick prototype is warranted before full implementation
+All six phases use standard, well-documented patterns. No `/gsd:research-phase` is needed for any phase. The only open questions are implementation judgments resolvable during execution:
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Markdown):** Pure TypeScript template literals reading established Pinia store surface — no third-party API
-- **Phase 2 (Print CSS):** Standard CSS print specification + Tailwind v4 utilities — all pitfalls documented in PITFALLS.md
-- **Phase 4 (PPTX conditional):** Reuses Phase 3 patterns; conditional logic mirrors Phase 1 — no new API surface
+- **Phase 1:** Verify `crypto.randomUUID()` in Vitest node env — quick one-line test, not a research blocker
+- **Phase 2:** Confirm Zod 4 callable `.default(() => fn())` with installed version — first test in the phase
+- **Phase 4:** Chart multi-domain strategy (per-domain chart vs multi-series toggle) — visual decision during implementation
 
----
+### Key Decisions Needed Before Phase 1 Starts
+
+| Decision | Options | Recommendation |
+|----------|---------|----------------|
+| Store structure | (A) Single `inputStore` with `workloadDomains` array + `managementDomain` (ARCHITECTURE.md) vs (B) Separate `domainsStore` + global fields in `inputStore` (STACK.md) | Option A — fewer stores, simpler URL state serializer to update, consistent with existing store topology |
+| `deploymentMode` scope | Per-domain vs global | Per-domain — VCF architecture requires stretch to be per-domain; FEATURES.md lists `deploymentMode` explicitly as a per-domain field |
+| `managementArchitecture` placement | Global field vs field on `ManagementDomain` object | Global — it is a deployment-level toggle controlling whether management domain has dedicated hardware; it is not a per-domain setting |
+| v2.x URL backward compatibility | (A) Silent reset to default state vs (B) Migrate flat fields to single domain | Option A — acceptable per research; document in release notes; migration code carries field-name mismatch risk |
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified via `npm info` on 2026-03-29; pptxgenjs ESM/Vite compatibility confirmed against official docs and GitHub release notes; rejection of jspdf/html2canvas backed by measured npm registry data |
-| Features | HIGH | Markdown completeness audit based on direct first-party code inspection of `useUrlState.ts`, `calculationStore.ts`, `inputStore.ts`; PPTX slide structure MEDIUM confidence — based on industry conventions, not VCF-specific consulting templates |
-| Architecture | HIGH | All integration points derived from direct code inspection of existing codebase; CALC-01/CALC-02 compatibility matrix explicitly verified; file change list is concrete and complete |
-| Pitfalls | HIGH (A-1, A-2, A-3, A-8, A-10, A-11) / MEDIUM (A-4, A-5, A-6, A-7, A-9) | Critical pptxgenjs pitfalls confirmed against official docs and GitHub issues; print CSS pitfalls confirmed against Tailwind GitHub issues; chart capture pitfalls from official Chart.js docs |
+| Stack | HIGH | All packages are existing; custom tab component pattern is well-documented; Zod v4 `z.array()` API confirmed from official docs |
+| Features | HIGH | VCF workload domain architecture verified against Broadcom TechDocs; tab UX patterns from NN/g; delete confirmation patterns from Cloudscape and UX Movement |
+| Architecture | HIGH | Patterns grounded in direct codebase inspection + Vue 3/Pinia 3 official docs; `computed()` over `ref([])` is confirmed deep-reactive behavior; writable computed for v-model is established |
+| Pitfalls | HIGH (critical pitfalls), MEDIUM (moderate pitfalls) | Critical pitfalls P2-1 (Zod default bypass), P3-1 (index key), P3-2 (out-of-bounds) verified against official docs and GitHub issues; moderate pitfalls are well-understood trade-offs |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **pptxgenjs exact gzip bundle size:** Bundlephobia and npm pages returned 403 during research. Estimate of 300–400 kB gzip is inferred from the 2,544 kB uncompressed size. Actual size should be measured during Phase 3 with `npx vite build --report` or `rollup-plugin-visualizer`.
-- **Chart images in PPTX — include or omit:** Whether to include Chart.js canvas captures in PPTX slides is undecided for v2.1. FEATURES.md documents it as an anti-feature (complexity, pixelation), but STACK.md shows it is technically feasible. Phase 3 should prototype chart capture quickly and drop it if quality is insufficient.
-- **Print running header/footer cross-browser:** Chrome 131+ `@page` margin boxes are confirmed. Safari 18.2+ support is MEDIUM confidence. Phase 2 should implement this as an enhancement with an explicit fallback plan if cross-browser testing fails.
-- **vSAN Max stretch topology is out of scope:** PROJECT.md flags this as deferred beyond v2.1. Conditional sections in Markdown and PPTX cover vSAN Max standalone only; the combined vSAN Max + stretch cluster topology is explicitly excluded.
+- **`crypto.randomUUID()` in Vitest node environment (P5-3):** Confirm during Phase 1 by running a test that calls `createDefaultWorkloadDomain()`. If it throws, mock in `vitest.setup.ts` or switch to a counter-based ID generator.
 
----
+- **Zod 4 callable `.default(() => fn())` exact version compatibility:** ARCHITECTURE.md rates this MEDIUM confidence. Confirm it works with installed `^4.3.6` during Phase 2. Fall back to `.optional().transform(v => v ?? fn())` if needed.
+
+- **Chart multi-domain strategy:** ARCHITECTURE.md flags charts as "multi-series or per-domain toggle" without prescribing an approach. Decide during Phase 4 implementation based on visual output. No blocking research needed.
+
+- **URL length at 5 domains:** Add a Vitest assertion in Phase 2. Research projects ~680–950 chars for 3 domains and ~1,900–2,700 chars for 10 domains. Measure rather than assume.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `src/composables/useUrlState.ts` — existing `generateMarkdownReport()` implementation; direct code inspection
-- `src/stores/calculationStore.ts` — all computed results available; direct code inspection
-- `src/stores/inputStore.ts` — all 27 input fields; direct code inspection
-- `src/engine/types.ts` — all result interfaces; direct code inspection
-- PptxGenJS official docs — https://gitbrent.github.io/PptxGenJS/ — installation, integration, saving API, TypeScript definitions
-- PptxGenJS GitHub releases — v4.0.1 current; v4.0.0 Node detection fix confirmed
-- `npm info pptxgenjs` — version 4.0.1, unpacked 2,544 kB (measured 2026-03-29)
-- `npm info jspdf` — version 4.2.1, unpacked 28,800 kB (measured 2026-03-29)
-- `npm info html2canvas` — version 1.4.1, last published 2022-01-22 (measured 2026-03-29)
-- Tailwind CSS v4 break utilities — https://tailwindcss.com/docs/break-inside — confirmed March 2026
-- CSS `@page` at-rule — https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page — Chrome 131+ / Firefox 95+ / Safari 18.2+
-- Tailwind CSS GitHub issue #16586 — `print:hidden` vs `flex` ordering regression in v4 (Feb 2025)
-- Tailwind CSS GitHub discussion #7973 — `break-before-page` ignored inside flex containers
-- Chart.js API docs — `toBase64Image()` must be called after animation completes
-- PptxGenJS source `gen-objects.ts` — confirms `data:` prefix format and in-place EMU conversion behavior
+
+- Broadcom TechDocs — Workload Domains in VCF 9.x — domain architecture and independence requirements
+- Vue 3 official docs (vuejs.org) — reactivity fundamentals, computed properties, writable computed
+- Pinia 3 official docs (pinia.vuejs.org) — setup stores, `ref()` vs `reactive()`, `storeToRefs()`, `$patch` semantics
+- Zod 4 official docs (zod.dev/api, zod.dev/v4) — `z.array()`, `.default()`, `.min()`, v4 changelog
+- Nielsen Norman Group — Tabs, Used Right — tab UX best practices
+- WAI-ARIA 1.1 specification — Tabs pattern (tablist/tab/tabpanel roles)
+- Cloudscape Design System — delete with additional confirmation patterns
+- Existing VCF Sizer codebase — direct inspection of `inputStore.ts`, `calculationStore.ts`, `useUrlState.ts`, `useUrlState.test.ts`
 
 ### Secondary (MEDIUM confidence)
-- CSS print page styling best practices — https://www.docuseal.com/blog/css-print-page-style
-- Print CSS headers/footers deep dive — https://aaronsaray.com/2025/a-deep-dive-into-print-css-headers-and-footers/
-- vSAN ReadyNode Sizer report structure — https://medium.com/@lubomir-tobek/vsan-readynode-sizer-c46ce1365312
-- Nutanix sizing report sections — https://www.nutanix.com/tech-center/blog/hybrid-cloud-sizing-and-capacity-planning
-- pptxgenjs GitHub issue #406 — `defineSlideMaster()` config object mutation confirmed
 
-### Tertiary (LOW confidence)
-- IT infrastructure assessment presentation templates — https://www.slideteam.net/blog/top-10-it-infrastructure-assessment-templates-with-samples-and-examples — could not extract template details; structural slide order based on general consulting conventions
+- Zod GitHub issues #5525 and #4544 — `.default([])` bypasses `.min(1)` in Zod v4 — behavior confirmed, fix confirmed
+- Pinia Discussion #1448 — `ref()` vs `reactive()` array mutation tracking — community-verified, cross-referenced with official docs
+- lz-string URL length projections — manual calculation; actual compression ratio varies with input entropy
+- Nutanix Sizer multi-workload patterns — community docs, used for UX pattern inspiration only
+
+### Tertiary (LOW confidence / inference)
+
+- `activeTabIndex` out-of-bounds behavior (P3-2) — application-level defensive programming, no official source needed
+- Per-domain computed full-array invalidation performance (P4-3) — accepted as non-issue at 1-10 domains based on microsecond engine timing in v2.x; no profiling data
 
 ---
-*Research completed: 2026-03-29*
-*Milestone: v2.1 Export Quality*
+*Research completed: 2026-03-30*
 *Ready for roadmap: yes*
