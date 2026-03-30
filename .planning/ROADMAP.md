@@ -136,6 +136,7 @@ Plans:
   3. Downloading the PPTX produces a presentation with one slide per workload domain showing the domain name, key inputs, and results summary
   4. The PPTX includes an aggregate totals slide after all per-domain domain slides
 **Plans**: 2 plans
+
 - [x] 14-01-PLAN.md — Multi-domain Markdown export (EXP-01, EXP-02)
 - [x] 14-02-PLAN.md — Multi-domain PPTX export (EXP-03, EXP-04)
 
