@@ -39,7 +39,8 @@
     "architecture": {
       "label": "Management Architecture",
       "shared": "Co-located",
-      "dedicated": "Dedicated Domains"
+      "dedicated": "Dedicated Domains",
+      "dedicatedHosts": "Dedicated Management Hosts"
     }
   },
   "host": {
@@ -154,7 +155,9 @@
   },
   "domain": {
     "addDomain": "Add Domain",
-    "deleteConfirm": "Delete domain \"{name}\"? This cannot be undone."
+    "deleteConfirm": "Delete domain \"{name}\"? This cannot be undone.",
+    "managementSection": "Management Domain",
+    "managementHostSpecs": "Management Host Specifications"
   },
   "print": {
     "header": {

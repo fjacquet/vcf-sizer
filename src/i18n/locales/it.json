@@ -39,7 +39,8 @@
     "architecture": {
       "label": "Architettura di gestione",
       "shared": "Co-locata",
-      "dedicated": "Domini dedicati"
+      "dedicated": "Domini dedicati",
+      "dedicatedHosts": "Host di gestione dedicati"
     }
   },
   "host": {
@@ -154,7 +155,9 @@
   },
   "domain": {
     "addDomain": "Aggiungi dominio",
-    "deleteConfirm": "Eliminare il dominio \"{name}\"? Questa azione è irreversibile."
+    "deleteConfirm": "Eliminare il dominio \"{name}\"? Questa azione è irreversibile.",
+    "managementSection": "Dominio di gestione",
+    "managementHostSpecs": "Specifiche host di gestione"
   },
   "print": {
     "header": {

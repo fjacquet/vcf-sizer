@@ -39,7 +39,8 @@
     "architecture": {
       "label": "Management-Architektur",
       "shared": "Zusammengefasst",
-      "dedicated": "Dedizierte Domanen"
+      "dedicated": "Dedizierte Domanen",
+      "dedicatedHosts": "Dedizierte Management-Hosts"
     }
   },
   "host": {
@@ -154,7 +155,9 @@
   },
   "domain": {
     "addDomain": "Domäne hinzufügen",
-    "deleteConfirm": "Domäne \"{name}\" löschen? Dies kann nicht rückgängig gemacht werden."
+    "deleteConfirm": "Domäne \"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",
+    "managementSection": "Management-Domain",
+    "managementHostSpecs": "Management-Host-Spezifikationen"
   },
   "print": {
     "header": {
