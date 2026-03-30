@@ -11,14 +11,14 @@
 ### Markdown Export
 
 - [x] **MD-01**: User can download a complete Markdown report generated from `src/composables/useMarkdownExport.ts` (function extracted from `useUrlState.ts`)
-- [x] **MD-02**: Report includes a workload profile section (VM count, vCPU per VM, vRAM per VM, storage per VM, CPU and RAM overcommit ratios)
-- [x] **MD-03**: Report includes a management architecture section (shared vs dedicated, dedicated management host count when applicable)
-- [x] **MD-04**: Report includes an NVMe memory tiering section (enabled/disabled state, active memory percentage)
-- [x] **MD-05**: Report includes an AI/GPU workload section (GPU VM count, vGPU memory per VM)
-- [x] **MD-06**: Report includes a stretch cluster topology section (per-site host counts, bandwidth floor, witness specs, network checklist items)
-- [x] **MD-07**: Report includes a vSAN Max cluster section (ReadyNode profile, storage node count, compute node count, raw and usable capacity)
-- [x] **MD-08**: Report includes a validation warnings section listing all active errors and warnings at export time
-- [x] **MD-09**: Report includes a network configuration section (network speed in GbE, dedup eligibility status)
+- [ ] **MD-02**: Report includes a workload profile section (VM count, vCPU per VM, vRAM per VM, storage per VM, CPU and RAM overcommit ratios)
+- [ ] **MD-03**: Report includes a management architecture section (shared vs dedicated, dedicated management host count when applicable)
+- [ ] **MD-04**: Report includes an NVMe memory tiering section (enabled/disabled state, active memory percentage)
+- [ ] **MD-05**: Report includes an AI/GPU workload section (GPU VM count, vGPU memory per VM)
+- [ ] **MD-06**: Report includes a stretch cluster topology section (per-site host counts, bandwidth floor, witness specs, network checklist items)
+- [ ] **MD-07**: Report includes a vSAN Max cluster section (ReadyNode profile, storage node count, compute node count, raw and usable capacity)
+- [ ] **MD-08**: Report includes a validation warnings section listing all active errors and warnings at export time
+- [ ] **MD-09**: Report includes a network configuration section (network speed in GbE, dedup eligibility status)
 
 ### Print / PDF
 

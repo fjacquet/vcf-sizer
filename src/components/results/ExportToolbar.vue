@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { generateShareUrl, generateMarkdownReport } from '@/composables/useUrlState'
+import { generateShareUrl } from '@/composables/useUrlState'
+import { generateMarkdownReport } from '@/composables/useMarkdownExport'
 
 const { t } = useI18n()
 const copied = ref(false)

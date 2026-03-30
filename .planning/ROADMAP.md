@@ -43,8 +43,8 @@ Full details: `.planning/milestones/v2.0-ROADMAP.md`
   5. All nine section types are covered by passing Vitest tests that assert section presence/absence against controlled store state
 **Plans**: 3 plans
 Plans:
-- [x] 06-01-PLAN.md — Rewrite test file with full Pinia-backed failing test suite (Wave 0 TDD gate)
-- [ ] 06-02-PLAN.md — Extract generateMarkdownReport() to useMarkdownExport.ts and update imports (MD-01)
+- [ ] 06-01-PLAN.md — Rewrite test file with full Pinia-backed failing test suite (Wave 0 TDD gate)
+- [x] 06-02-PLAN.md — Extract generateMarkdownReport() to useMarkdownExport.ts and update imports (MD-01)
 - [ ] 06-03-PLAN.md — Enrich with all new sections: Workload Profile, Management Architecture, NVMe, AI/GPU, Stretch, vSAN Max, Validation Warnings, Network Config (MD-02..09)
 **UI hint**: yes
 
