@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Export Quality
 status: executing
-last_updated: "2026-03-30T07:49:09.050Z"
+last_updated: "2026-03-30T08:01:58.041Z"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 08 (pptx-core-slides) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Next: Phase 08 (pptx-core-slides) — NOT STARTED
 Status: Ready to execute
 
@@ -44,6 +44,7 @@ Progress: [##########----------] 2/4 phases complete
 | Phase 07 P02 | 3min | 1 tasks | 5 files |
 | Phase 07 P03 | 2min | 2 tasks | 3 files |
 | Phase 08 P01 | 2min | 1 tasks | 1 files |
+| Phase 08 P02 | 11min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,9 @@ v2.1 decisions:
 - [Phase 07-03]: print:table (not print:block) on table elements preserves semantic table rendering in print media
 - [Phase 07-03]: StorageChart RAID overhead row uses rawCapacityTB - usableAfterRaidTB formula identical to chart dataset
 - [Phase 08]: [08-01]: Wave 0 test file tests 7 data-mapping helpers as pure functions accepting store/calc instances — avoids pptxgenjs browser-API dependency in Node test environment (Pitfall 7)
+- [Phase 08]: [08-02]: pptxgenjs TableCell/TableRow types accessed via PptxGenJS namespace — not named exports — due to export-as-namespace declaration in index.d.ts
+- [Phase 08]: [08-02]: Internal hdrCell() and cell() helpers wrap plain strings into typed TableCell objects to satisfy TS type checker without casting
+- [Phase 08]: [08-02]: type import PptxGenJS used for namespace type access only — runtime dynamic import still inside function body (PPTX-15 compliant)
 
 ### Pending Todos
 
