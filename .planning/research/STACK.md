@@ -6,6 +6,286 @@
 
 ---
 
+## MILESTONE v2.1 ADDENDUM: Stack for Export Quality (PPTX, PDF, Markdown Enrichment)
+
+This section is the **primary output for the v2.1 milestone**. It answers exactly which libraries to add (or not add) for:
+
+1. PPTX generation entirely in-browser (no server)
+2. PDF quality improvements beyond `window.print()`
+3. Markdown report completeness (missing sections)
+
+### Verdict Summary
+
+| Capability | Action | Package |
+|------------|--------|---------|
+| PPTX generation | Add | `pptxgenjs@4.0.1` (dynamic import) |
+| PDF quality | No new package | Print CSS overhaul (`@media print` + `@page`) |
+| Markdown enrichment | No new package | Pure TypeScript string assembly in engine layer |
+| Markdown preview (optional, deferred) | Add only if preview component enters scope | `markdown-it@14.1.1` (dynamic import) |
+
+**Hard rule:** `jspdf` and `html2canvas` must NOT be added. Their unpacked sizes (28.8 MB and 3.3 MB respectively) would double the project's npm footprint and add ~1.2 MB gzip to any chunk they land in — for an output quality (rasterized images, no text selection) that is worse than native print CSS.
+
+---
+
+### PPTX Generation: pptxgenjs
+
+**Package:** `pptxgenjs`
+**Version:** 4.0.1 (latest as of June 2024 — verified via npm registry)
+**npm unpacked size:** 2,544 kB (2.5 MB; Vite tree-shakes the ESM build at build time)
+**Runtime dependencies:** `jszip@^3.10.1`, `image-size@^1.2.1`, `https@^1.0.0`, `@types/node@^22.8.1`
+
+**Why pptxgenjs and not alternatives:**
+
+- It is the only actively maintained library that generates PPTX (Office Open XML) entirely in the browser without a Node.js process. `officegen` is Node.js only — disqualified by the client-only constraint.
+- Ships an ES Module build (`dist/pptxgen.es.js`). Vite selects the ESM build automatically via the `exports` field in `package.json`. Tree-shaking is effective.
+- v4.0.0 (May 2024) fixed the Node.js detection logic that previously caused import errors in Vite dev server. v4.0.1 (June 2024) patches border type bugs and hyperlink repair issues.
+- Browser file save: `writeFile({ fileName: 'vcf-sizing.pptx' })` triggers a browser download dialog with the correct PPTX MIME type (`application/vnd.openxmlformats-officedocument.presentationml.presentation`). No FileSaver.js dependency required.
+- Output formats: `blob`, `base64`, `arraybuffer`, `binarystring`, `uint8array` — enables both download-to-disk and base64 embedding.
+
+**Bundle impact with dynamic import (recommended):**
+
+```typescript
+// src/composables/usePptxExport.ts
+export function usePptxExport() {
+  const generate = async (sizingData: SizingResult) => {
+    // pptxgenjs loaded only when user clicks "Export PPTX"
+    const pptxgen = (await import('pptxgenjs')).default
+    const pptx = new pptxgen()
+    // ... build slides
+    await pptx.writeFile({ fileName: 'vcf-sizing-report.pptx' })
+  }
+  return { generate }
+}
+```
+
+Vite creates a separate async chunk for `pptxgenjs`. The initial bundle (currently 159 kB gzip) is unchanged. The lazy chunk loads only when the user triggers the export.
+
+**Chart integration with existing vue-chartjs:**
+
+The Chart.js instance is accessible via the `ref` on a `vue-chartjs` component. Call `chart.toBase64Image('image/png', 1)` to get a PNG data URL, then pass it to pptxgenjs's `slide.addImage({ data: dataUrl, ... })`:
+
+```typescript
+// In the component that holds a chart ref
+const chartRef = ref<InstanceType<typeof Bar>>()
+// After mount:
+const chartImageDataUrl = chartRef.value?.chart?.toBase64Image('image/png', 1) ?? ''
+```
+
+`toBase64Image()` is a native Chart.js 4.x API (no additional library). The result is a valid `data:image/png;base64,...` string that pptxgenjs accepts directly.
+
+**Each export must use a fresh pptxgen instance** — reuse causes slide/metadata bleed across exports. Create `new pptxgen()` inside the function that generates the file, not at module scope.
+
+---
+
+### PDF Quality: Print CSS (No New Package)
+
+**Approach:** `@media print` stylesheet + `@page` rules. Zero bundle cost. Produces searchable, selectable, vector-quality text.
+
+**Why not jsPDF:**
+- jsPDF@4.2.1 unpacked size: **28.8 MB** (verified via npm registry — font files account for the bulk). Even with dynamic import the gzip transfer is ~900 kB–1.2 MB for a single lazy chunk.
+- `jsPDF.html()` has poor compatibility with Tailwind CSS utility classes. It parses DOM styles via its own renderer; Tailwind's JIT-generated classes are often misinterpreted.
+- When combined with html2canvas (the only way to capture chart canvases), the PDF output is a rasterized image: text is not selectable, file size is large, and output looks blurry at non-100% zoom.
+
+**Why not html2canvas:**
+- html2canvas@1.4.1 unpacked size: **3.3 MB** (verified via npm registry). Last published **2022-01-22** — over 3 years without a release. The project is effectively unmaintained.
+- Rasterizes the entire DOM into a canvas image → embeds as a JPEG/PNG in the PDF. No text selection, no accessibility, no searchability.
+- Browser canvas size limits (max ~16,384×16,384 px depending on browser/OS/hardware) can clip long pages.
+
+**Why print CSS is sufficient:**
+
+The existing `window.print()` export is not broken — it lacks layout CSS. Adding `@media print` rules and `@page` declarations to the project's CSS is sufficient to produce a professional output:
+
+- `@page { margin: 2cm; size: A4; }` — page dimensions and margins
+- `break-before: page` on `.report-section` — forces new page per sizing section
+- `break-after: avoid` on `h2, h3` — prevents widowed headings
+- `display: none` for navigation, export buttons, input forms — hides interactive UI
+- Chart.js 4.x (already in the project) does NOT exhibit the blank-page print bug that plagued Chart.js 2.x. The monitoring div fix (`.chartjs-size-monitor-expand > div { position: fixed !important; }`) is not needed for Chart.js 4.x.
+- For print-quality charts: add `canvas { max-width: 100% !important; height: auto !important; }` inside `@media print`. The canvas renders at device pixel ratio — no quality loss.
+
+**Implementation pattern:**
+
+```css
+/* src/assets/print.css — imported in main.ts or App.vue */
+
+@media print {
+  /* Hide non-report elements */
+  nav,
+  .export-panel,
+  .input-form,
+  .chart-controls,
+  [aria-label="navigation"] {
+    display: none !important;
+  }
+
+  /* Page geometry */
+  @page {
+    size: A4 portrait;
+    margin: 2cm 1.5cm;
+  }
+
+  @page :first {
+    margin-top: 3cm; /* space for cover header */
+  }
+
+  /* Section page breaks */
+  .report-section {
+    break-before: page;
+  }
+  .report-section:first-child {
+    break-before: avoid;
+  }
+
+  /* Prevent orphaned headings */
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* Chart.js canvas sizing */
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Keep warning boxes intact across pages */
+  .validation-warning {
+    break-inside: avoid;
+  }
+}
+```
+
+---
+
+### Markdown Enrichment: Pure TypeScript (No New Package)
+
+The existing Markdown export is string assembly. The missing sections (workload, AI/GPU, NVMe, stretch, vSAN Max, warnings) are all data already present in the Pinia stores. No library is needed — only more complete template literal branches.
+
+Following CALC-01 (engine layer = pure TypeScript, zero Vue imports), the export logic lives in `src/engine/exportMarkdown.ts`:
+
+```typescript
+// Pattern for completeness — not prescriptive of function signatures
+export function buildMarkdownReport(state: SizingState): string {
+  const sections: string[] = [
+    buildSummaryHeader(state),
+    buildDeploymentTopology(state),
+    buildComputeSection(state),
+    buildStorageSection(state),
+  ]
+
+  if (state.workload.vmCount > 0) {
+    sections.push(buildWorkloadSection(state.workload))
+  }
+  if (state.aiGpu.enabled) {
+    sections.push(buildAiGpuSection(state.aiGpu))
+  }
+  if (state.nvmeMemTiering.enabled) {
+    sections.push(buildNvmeSection(state.nvmeMemTiering))
+  }
+  if (state.deployment === 'stretch') {
+    sections.push(buildStretchSection(state.stretch))
+  }
+  if (state.storage.type === 'vsan-max') {
+    sections.push(buildVsanMaxSection(state.vsanMax))
+  }
+  if (state.validationWarnings.length > 0) {
+    sections.push(buildWarningsSection(state.validationWarnings))
+  }
+
+  return sections.join('\n\n---\n\n')
+}
+```
+
+Download pattern (no library):
+
+```typescript
+const blob = new Blob([markdownContent], { type: 'text/markdown; charset=utf-8' })
+const url = URL.createObjectURL(blob)
+const a = document.createElement('a')
+a.href = url
+a.download = 'vcf-sizing-report.md'
+a.click()
+URL.revokeObjectURL(url)
+```
+
+**If a Markdown preview component enters scope (deferred):**
+
+`markdown-it@14.1.1` — 749 kB unpacked, ~40 kB gzip, pure ESM, no dependencies. Use with dynamic import to keep it out of the initial bundle. Do NOT add this unless a preview panel is explicitly in scope for v2.1.
+
+---
+
+### Installation
+
+```bash
+# PPTX generation — the only new runtime dependency for v2.1
+npm install pptxgenjs
+
+# Optional: Markdown preview only — add only if preview panel enters scope
+# npm install markdown-it
+
+# No package install for PDF improvements — print CSS only
+```
+
+---
+
+### What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `jspdf` | 28.8 MB unpacked (mostly bundled font files). Even with dynamic import adds ~900 kB–1.2 MB gzip to the lazy chunk. HTML renderer incompatible with Tailwind utilities. Paired with html2canvas produces rasterized, non-searchable PDF. | Print CSS — zero bundle, searchable text, vector quality |
+| `html2canvas` | 3.3 MB unpacked. Last published 2022-01-22 — unmaintained for 3+ years. Rasterizes DOM: no text selection, large file sizes, canvas size limits on long pages. | No DOM rasterization needed with print CSS approach |
+| `html2pdf.js` | Wrapper around html2canvas + jsPDF 2.x. Inherits both their limitations plus known clone-on-Vue-reactive-DOM bug. vue3-html2pdf wrapper is also stale. | Print CSS |
+| `pdfmake` | 14.6 MB unpacked. Declarative JSON document definition is a fundamentally different programming model — requires rewriting report logic rather than enhancing it. | Print CSS for layout |
+| `officegen` | Node.js only — requires a filesystem API. Does not run in a browser. | `pptxgenjs` |
+| `puppeteer` / `playwright` | Server-side headless browser. Requires Node.js runtime process. Violates the zero-infrastructure constraint. | N/A — out of scope for this architecture |
+| `@react-pdf/renderer` | React-only. Incompatible with Vue 3. | N/A |
+
+---
+
+### Bundle Size Impact
+
+| Addition | npm Unpacked | Gzip Transfer | Load Strategy | Impact on Initial Bundle |
+|----------|-------------|---------------|---------------|--------------------------|
+| `pptxgenjs@4.0.1` | 2,544 kB | ~300–400 kB | Dynamic import (lazy chunk) | 0 kB added to initial 159 kB gzip |
+| Print CSS rules | 0 kB | ~3–5 kB | Included in main Tailwind output | Negligible CSS addition |
+| `markdown-it@14.1.1` (if added later) | 749 kB | ~40 kB | Dynamic import | 0 kB initial; 40 kB on-demand |
+| `jspdf` (NOT recommended) | 28,800 kB | ~900 kB+ | Dynamic import | 0 kB initial; 900 kB+ on-demand |
+| `html2canvas` (NOT recommended) | 3,299 kB | ~350 kB | Dynamic import | 0 kB initial; 350 kB on-demand |
+
+**Current baseline:** 467 kB / 159 kB gzip
+**After v2.1 (pptxgenjs + print CSS only):** 467 kB / 159 kB gzip initial; pptxgenjs in a lazy async chunk of ~300–400 kB gzip loaded only on PPTX export trigger.
+
+---
+
+### Version Compatibility for New Additions
+
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| `pptxgenjs@4.0.1` | `vite@8`, `vue@3.5.31` | ESM build auto-selected by Vite. v4.0.0 fixed the Vite node detection conflict. Dynamic import works with Vite code splitting. |
+| `pptxgenjs@4.0.1` | `chart.js@4.5.1` via `vue-chartjs@5.3.3` | Chart images captured via `chart.toBase64Image()` then passed to `slide.addImage()`. No version conflict. |
+| Print CSS | `tailwindcss@4.2.2`, `vue@3.5.31` | `@media print` coexists with Tailwind. Add as a separate `print.css` file imported in `main.ts`. Tailwind v4 does not generate print utilities by default — define them explicitly. |
+| `markdown-it@14.1.1` (optional) | `vite@8`, `vue@3.5.31` | Pure ESM, zero dependencies. Dynamic import works cleanly. |
+
+---
+
+### Sources for v2.1 Research
+
+- [PptxGenJS official docs — Installation](https://gitbrent.github.io/PptxGenJS/docs/installation/) — browser setup, ESM, jsDelivr bundle (MEDIUM confidence — page last updated May 2025, no explicit version on page)
+- [PptxGenJS official docs — Integration](https://gitbrent.github.io/PptxGenJS/docs/integration.html) — Vite/bundler ESM tree-shaking confirmed (HIGH confidence)
+- [PptxGenJS official docs — Saving](https://gitbrent.github.io/PptxGenJS/docs/usage-saving/) — writeFile(), blob/base64/arraybuffer, MIME type, fresh-instance requirement (HIGH confidence)
+- [PptxGenJS GitHub Releases](https://github.com/gitbrent/PptxGenJS/releases) — v4.0.1 current as of June 2024, v4.0.0 Node detection fix confirmed (HIGH confidence)
+- npm registry direct query `npm info pptxgenjs` — version 4.0.1, unpacked 2,544 kB, jszip dependency (HIGH confidence — measured 2026-03-29)
+- npm registry direct query `npm info jspdf` — version 4.2.1, unpacked 28,800 kB (HIGH confidence — measured 2026-03-29)
+- npm registry direct query `npm info html2canvas` — version 1.4.1, unpacked 3,299 kB, last publish 2022-01-22 (HIGH confidence — measured 2026-03-29)
+- npm registry direct query `npm info markdown-it` — version 14.1.1, unpacked 749 kB (HIGH confidence — measured 2026-03-29)
+- npm registry direct query `npm info pdfmake` — version 0.3.7, unpacked 14,600 kB (HIGH confidence — measured 2026-03-29)
+- [Chart.js GitHub Discussion #10986](https://github.com/chartjs/Chart.js/discussions/10986) — chart.js 3+ does not have blank-page print bug; fix is upgrade to v3+ (MEDIUM confidence — community discussion with resolution)
+- [Chart.js API docs — toBase64Image](https://www.chartjs.org/docs/latest/developers/api.html) — chart instance image capture API (HIGH confidence — official docs)
+- [Joyfill — PDF library comparison 2025](https://joyfill.io/blog/comparing-open-source-pdf-libraries-2025-edition) — qualitative jsPDF vs pdfmake vs pdf-lib (MEDIUM confidence — 2025 article)
+- [print-css.rocks — Chart.js lesson](https://print-css.rocks/lesson/lesson-chart-js) — print CSS with canvas elements (MEDIUM confidence)
+- [Chrome headless --print-to-pdf comparison](https://andre.arko.net/2025/05/25/chrome-headless-print-to-pdf/) — server-side vs browser print-to-PDF differences (informational, 2025)
+
+---
+
 ## MILESTONE v2.0 ADDENDUM: Stack Changes for vSAN Max, Architecture Validation, Stretch Networking
 
 This section is the **primary output for the v2.0 milestone**. It answers whether the existing stack needs any additions or changes to support:
@@ -149,7 +429,7 @@ The following decisions from the original v1.0 research remain valid and are not
 
 ---
 
-## What NOT to Add
+## What NOT to Add (v2.0)
 
 | Do Not Add | Why |
 |------------|-----|
@@ -282,11 +562,11 @@ src/components/
 |---------|---------|---------|-------------|
 | vue-chartjs | 5.3.3 | Chart.js wrapper for Vue 3 | Bar/doughnut charts for compute vs available, storage raw vs usable; reactive computed props via Composition API; Chart.js 4.x is a peer dep — full version control |
 | Chart.js | 4.5.1 | Canvas-based charting engine | Peer dep of vue-chartjs; 11 KB gzipped; Canvas rendering (not SVG) = performant reactive updates on number changes; use for 4-6 charts in this tool |
-| jsPDF | 4.2.1 | Client-side PDF export | Pure browser PDF generation; v4.2.x fixes security vulnerabilities (use no earlier version); combine with `html2canvas` for HTML-to-PDF; produces selectable text if you use the jsPDF text API directly rather than html2canvas |
-| html2canvas | 1.4.1 | HTML-to-canvas capture | Used alongside jsPDF to export the sizing summary view to PDF; screenshot-style (rasterizes DOM); acceptable fidelity for a results summary page |
 | lz-string | 1.5.0 | LZ compression for URL state | Compress JSON sizing config → `compressToEncodedURIComponent()` → URL query param; decompresses client-side on load; keeps URL under typical browser 2048-char limit even for large configs |
 | @vueuse/core | 14.2.1 | Vue Composition utilities | `useClipboard`, `useShare`, `useLocalStorage`, `useUrlSearchParams` — accelerate URL state sync and copy-to-clipboard for share links; requires Vue 3.5+ (matches our stack) |
 | vue-tsc | 2.x | TypeScript type-check for SFCs | Run `vue-tsc --noEmit` in CI; Vite transpiles TypeScript without type checking — vue-tsc fills this gap |
+
+**Note (v2.1 correction):** The v1.0 research listed `jspdf@4.2.1` and `html2canvas@1.4.1` as supporting libraries. These are NOT in the actual `package.json` and should NOT be added. See the v2.1 addendum above for the rationale.
 
 #### Development Tools
 
@@ -313,7 +593,6 @@ cd vcf-sizer
 npm install vue-router@^5.0.4 pinia@^3.0.4
 npm install vue-i18n@^11.3.0
 npm install vue-chartjs@^5.3.3 chart.js@^4.5.1
-npm install jspdf@^4.2.1 html2canvas@^1.4.1
 npm install lz-string@^1.5.0
 npm install @vueuse/core@^14.2.1
 
@@ -368,8 +647,7 @@ export default defineConfig({
 | vue-i18n 11 | react-i18next / i18next | With React only; i18next is framework-agnostic but lacks SFC `<i18n>` block integration and vue-i18n's localized number/datetime composables |
 | Chart.js + vue-chartjs | Recharts | With React; Recharts is SVG-only and React-specific; for Vue use vue-chartjs (Chart.js wrapper) or ApexCharts (heavier but richer) |
 | Chart.js + vue-chartjs | ApexCharts | When you need interactive zooming, richer chart types, or built-in annotations; heavier bundle (~120 KB gzip vs ~40 KB for Chart.js); overkill for 4-6 static bar/doughnut charts |
-| jsPDF 4 + html2canvas | pdfmake | When document is entirely programmatic/data-driven with no need to match screen layout; pdfmake's declarative JSON model is elegant but cannot overlay elements or reproduce complex CSS layouts |
-| jsPDF 4 + html2canvas | html2pdf.js | html2pdf.js wraps html2canvas + jsPDF 2.x; outdated jsPDF dependency (misses security fixes in v4.x); use jsPDF 4 directly instead |
+| Print CSS + pptxgenjs | jsPDF + html2canvas | Never — 28.8 MB + 3.3 MB unpacked, html2canvas unmaintained since 2022, output is rasterized non-searchable images |
 | lz-string | Native btoa/atob | btoa handles JSON state up to ~1 KB cleanly; lz-string needed when config JSON exceeds ~800 bytes after base64 encoding (likely with stretch cluster + AI workload inputs combined) |
 | Vite 8 | Vite 6 | Vite 6 is stable and well-documented; choose it if Vite 8 ecosystem compatibility is a concern (e.g., some plugins not yet updated). Vite 8 is recommended here because Tailwind v4.2.2 explicitly supports it and Rolldown builds are substantially faster |
 | Vitest | Jest + vue-jest | Jest requires heavy transform configuration for Vue SFCs; Vitest shares Vite config with zero extra setup |
@@ -382,7 +660,8 @@ export default defineConfig({
 |-------|-----|-------------|
 | Vuex | Officially superseded by Pinia; verbose mutation/action boilerplate; no TypeScript inference without heavy augmentation; Vue team considers it legacy | Pinia 3 |
 | vue-i18n v9 / v10 | Both entered maintenance mode July 2025; no new features; v8 is EOL | vue-i18n v11 |
-| html2pdf.js | Wraps jsPDF 2.x, missing all security fixes from v3 and v4; last maintained 2021; produces image-only PDFs (non-selectable text) | jsPDF 4 + html2canvas directly |
+| jsPDF + html2canvas | jsPDF 28.8 MB unpacked; html2canvas 3.3 MB + unmaintained (last publish 2022); combined output is rasterized non-searchable images; jsPDF's HTML renderer is incompatible with Tailwind CSS | Print CSS for layout; pptxgenjs for PPTX |
+| html2pdf.js | Wraps jsPDF 2.x, missing all security fixes from v3 and v4; last maintained 2021; produces image-only PDFs (non-selectable text) | Print CSS |
 | Options API (Vue 3) | Harder to share computation logic across components; sizing formulas belong in composables, not component options; Composition API (`<script setup>`) is the 2025 standard | `<script setup>` + Composition API |
 | Vuetify / Quasar / PrimeVue | Full component libraries conflict with Tailwind's utility classes; adds 200–400 KB bundle weight for a single-page tool; heavy override ceremony | Tailwind CSS v4 with custom components |
 | Vue CLI | Deprecated in favor of Vite; last update 2023; slower dev server; no rolldown support | Vite 8 (`npm create vite@latest`) |
@@ -433,8 +712,8 @@ export default defineConfig({
 | vite@8.0.3 | @vitejs/plugin-vue@latest | Use `@vitejs/plugin-vue` v5.x for Vue 3; do not use v4 |
 | chart.js@4.5.1 | vue-chartjs@5.3.3 | Chart.js 4.x required as peer dep; Chart.js 5 not yet released |
 | vue-i18n@11.3.0 | @intlify/unplugin-vue-i18n@6.x | Companion Vite plugin; must match vue-i18n major; v9/v10 plugins incompatible with v11 |
-| jspdf@4.2.1 | html2canvas@1.4.1 | Use together for HTML-to-PDF; jsPDF 4 requires modern browser APIs (all target browsers qualify) |
 | typescript@5.7+ | vue-tsc@2.x | `vue-tsc` 2.x requires TypeScript 5.x; set `moduleResolution: "bundler"` in tsconfig |
+| pptxgenjs@4.0.1 | vite@8, vue@3.5.31 | ESM build; v4.0.0+ required for Vite node detection fix |
 
 ---
 
@@ -448,7 +727,6 @@ export default defineConfig({
 - Vite 8.0.3 — [github.com/vitejs/vite/releases](https://github.com/vitejs/vite/releases) + [vite.dev/blog/announcing-vite8](https://vite.dev/blog/announcing-vite8) — HIGH confidence
 - Chart.js 4.5.1 — [github.com/chartjs/Chart.js/releases](https://github.com/chartjs/Chart.js/releases) — HIGH confidence
 - vue-chartjs 5.3.3 — [github.com/apertureless/vue-chartjs/releases](https://github.com/apertureless/vue-chartjs/releases) — HIGH confidence
-- jsPDF 4.2.1 — [github.com/parallax/jsPDF/releases](https://github.com/parallax/jsPDF/releases) — HIGH confidence; security fixes are why v4.2.x must be used
 - @vueuse/core 14.2.1 — [vueuse.org](https://vueuse.org) + npm metadata — MEDIUM confidence (version from npm; Vue 3.5+ requirement from official docs)
 - lz-string — [pieroxy.net/blog/pages/lz-string](https://pieroxy.net/blog/pages/lz-string/index.html) — MEDIUM confidence (stable library, no major release in years; version 1.5.0 current)
 - Vite 8 + Rolldown announcement — [vite.dev/blog/announcing-vite8](https://vite.dev/blog/announcing-vite8) — HIGH confidence
@@ -458,4 +736,4 @@ export default defineConfig({
 ---
 
 *Stack research for: VCF 9.x sizing calculator (client-side SPA)*
-*v1.0 research: 2026-03-28 | v2.0 addendum: 2026-03-29*
+*Researched: 2026-03-28 (v1.0), updated 2026-03-29 (v2.0 addendum), updated 2026-03-29 (v2.1 addendum)*

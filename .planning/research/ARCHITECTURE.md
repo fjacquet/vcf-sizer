@@ -1,566 +1,475 @@
-# Architecture Research — v2.0 Integration
+# Architecture Research — v2.1 Export Integration
 
-**Domain:** VCF 9.x Sizing Calculator SPA — v2.0 Feature Integration
+**Domain:** VCF 9.x Sizing Calculator SPA — Export Quality (Markdown, Print/PDF, PPTX)
 **Researched:** 2026-03-29
-**Confidence:** HIGH for integration patterns (based on direct code inspection); MEDIUM for vSAN Max specs (WebSearch + official blog, not yet in Context7); HIGH for stretch network requirements (Broadcom TechDocs).
-**Replaces:** Prior ARCHITECTURE.md (v1 research, 2026-03-28)
+**Confidence:** HIGH for integration patterns (direct code inspection); HIGH for pptxgenjs API (official docs); MEDIUM for Tailwind v4 print specifics (WebSearch, no Context7 entry); LOW for exact pptxgenjs bundle size (Bundlephobia 403'd, npm page 403'd)
+**Replaces:** Prior ARCHITECTURE.md (v2.0 research, 2026-03-29)
 
 ---
 
 ## Context: What This Document Covers
 
-This is the v2.0 milestone architecture document. It answers four specific integration questions for the roadmapper:
+This is the v2.1 milestone architecture document. It answers six specific integration questions for the roadmapper:
 
-1. Where does vSAN Max fit — new StorageType or separate engine function?
-2. Where does Standard vs Consolidated fit — new DeploymentMode, a flag, or validation guidance?
-3. Where does the stretch network checklist live?
-4. What is the correct build order for these four features?
+1. Where should `generateMarkdownReport()` live — stay in `useUrlState.ts` or move?
+2. Where should PPTX generation live — new composable? engine function? component handler?
+3. Which stores and engine results does each export type read?
+4. What is the print/PDF CSS approach — Tailwind `print:` variants vs separate stylesheet?
+5. What are the new files to create vs existing files to modify?
+6. What is the correct build order for all three export types?
 
-All answers are grounded in direct inspection of the existing engine code, not assumptions.
+All answers are grounded in direct inspection of the existing codebase.
 
 ---
 
-## Existing Architecture Summary
+## Existing Architecture — Confirmed State
 
-The engine follows a clean unidirectional pattern:
+The engine follows a strict unidirectional pattern that MUST be preserved:
 
 ```
-inputStore (ref() only)
+inputStore (ref() only — CALC-01 enforced)
     ↓
-calculationStore (computed() only — CALC-02 rule)
-    ↓
-engine/*.ts pure functions (ZERO Vue imports — CALC-01 rule)
+calculationStore (computed() only — CALC-02 enforced)
+    ↓ reads
+engine/*.ts — pure TypeScript functions (zero Vue imports — CALC-01)
 ```
 
-Current engine surface:
-- `types.ts` — type definitions, zero logic
-- `management.ts` — `calcManagement(mode: DeploymentMode)`
-- `compute.ts` — `calcCompute(inputs: ComputeInputs)`
-- `storage.ts` — `calcStorage(inputs: StorageInputs)` + `vsanEsaRaidOverhead()`
-- `stretch.ts` — `calcStretch(inputs: StretchInputs)`
-- `validation.ts` — `validateInputs(inputs: ValidationInputs)`
+### Current Export Surface
 
-Current type surface:
-- `DeploymentMode`: `'simple' | 'ha' | 'stretch'`
-- `StorageType`: `'vsan-esa' | 'fc' | 'nfs'`
-- `StretchResult`: 5 fields — no network checklist yet
-- `StorageInputs`: no vSAN Max concept yet
+`ExportToolbar.vue` currently calls three functions all imported from `useUrlState.ts`:
+
+```
+ExportToolbar.vue
+    ├── generateShareUrl()      → reads inputStore → lz-string → returns URL string
+    ├── generateMarkdownReport()→ reads inputStore + calculationStore → returns string
+    └── window.print()          → direct browser API call
+```
+
+**Problem:** `generateMarkdownReport()` is misplaced in `useUrlState.ts`. That file's responsibility is URL state (compress/decompress + Zod validation). The Markdown export is unrelated to URL state. This is the first refactor that must happen.
+
+### Current inputStore fields (all `ref()`)
+
+All deployment configuration: `deploymentMode`, `hostCount`, `coresPerSocket`, `socketsPerHost`, `hostRamGB`, `hostStorageTB`, `nvmeTieringEnabled`, `activeMemoryPct`, `preferredSiteHosts`, `secondarySiteHosts`, `managementArchitecture`, `vmCount`, `avgVcpuPerVm`, `avgVramGbPerVm`, `avgStorageGbPerVm`, `cpuOvercommitRatio`, `ramOvercommitRatio`, `gpuVmCount`, `vgpuMemoryGB`, `storageType`, `fttLevel`, `raidType`, `dedupEnabled`, `dedupRatio`, `vsanMaxProfile`, `vsanMaxStorageNodes`, `networkSpeedGbE`.
+
+### Current calculationStore exports (all `computed()`)
+
+- `management` → `MgmtDomainResult` (per-component overhead + totals)
+- `compute` → `ComputeResult` (host count, utilization pct, vCPU/RAM required/available)
+- `storage` → `StorageResult` (raw TB, usable TB, RAID scheme, overhead breakdown)
+- `stretch` → `StretchResult` (bandwidth, per-site storage, network checklist, witness)
+- `vsanMax` → `VsanMaxResult | null` (storage nodes, usable TB, RAID scheme)
+- `validationErrors` → `ValidationWarning[]` (error/warning severity, i18n key)
+- `dedicatedMgmtHostCount` → `number | null`
 
 ---
 
-## Question 1: vSAN Max — New StorageType or Separate Function?
+## Question 1: Where Should `generateMarkdownReport()` Live?
 
-### Verdict: New StorageType value + new dedicated engine function
+### Verdict: Extract to a new `src/composables/useMarkdownExport.ts`
 
 **Rationale:**
 
-vSAN Max (officially "vSAN Storage Clusters" in VCF 9.0) is architecturally distinct from vSAN ESA HCI in one critical way: **the storage cluster hosts run storage only, and the compute hosts are decoupled**. This means:
+`useUrlState.ts` has a single clear responsibility: URL state serialization (lz-string + Zod). `generateMarkdownReport()` does not compress state, does not touch Zod, and does not interact with the URL. Its presence in `useUrlState.ts` is an accretion from v1 when exports were minimal. The test file `useMarkdownExport.test.ts` already exists (it directly calls engine functions as a workaround — confirming the author anticipated this move).
 
-- `calcStorage()` with `storageType: 'vsan-esa'` models HCI hosts (compute + storage combined).
-- vSAN Max requires sizing **two separate node pools**: storage cluster nodes (vSAN Max ReadyNodes) and compute cluster nodes (plain vSphere hosts, no vSAN requirements).
+The new composable follows the existing pattern exactly: a plain TypeScript module (no Vue lifecycle hooks, just exported functions), reads from `useInputStore()` and `useCalculationStore()`, returns a string.
 
-Adding `'vsan-max'` as a new value to the existing `StorageType` union type is the correct entry point. However, the logic inside `calcStorage()` for vSAN Max is **entirely different** from the vSAN ESA HCI path — it does not share LFS overhead, metadata overhead, or the RAID threshold logic from the HCI path.
+**What moves:** `generateMarkdownReport()` from `useUrlState.ts` → new `useMarkdownExport.ts`.
+**What stays:** `hydrateFromUrl()` and `generateShareUrl()` stay in `useUrlState.ts`.
+**Import change:** `ExportToolbar.vue` import line updates from `useUrlState` to `useMarkdownExport`.
 
-**Recommended split:**
-
-```
-types.ts:
-  StorageType = 'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'   ← add 'vsan-max'
-  VsanMaxInputs { ... }                                    ← new type
-  VsanMaxResult { ... }                                    ← new type
-
-engine/vsanMax.ts:
-  calcVsanMax(inputs: VsanMaxInputs): VsanMaxResult        ← new pure function
-
-storage.ts:
-  calcStorage() gains a guard:
-    if (storageType === 'vsan-max') → delegate to calcVsanMax() or return stub
-  (Option: keep storage.ts as router, vsanMax.ts as implementation)
-```
-
-**Why not extend `calcStorage()` with vSAN Max logic inline?**
-
-`calcStorage()` is already 170 lines; adding a completely different code path for vSAN Max would make it 300+ lines mixing two unrelated models. The existing function's formula stack (rawCapacity, RAID overhead, LFS, metadata, stretch factor) is meaningless for vSAN Max. A dedicated `vsanMax.ts` file is cleaner, independently testable, and consistent with the existing pattern of `stretch.ts` being a separate file.
-
-**What `VsanMaxInputs` needs:**
-
-vSAN Max sizing is based on ReadyNode profiles. The tool should model the storage cluster nodes separately from the compute cluster nodes. Minimum required inputs:
-
-```typescript
-export interface VsanMaxInputs {
-  // Storage cluster (vSAN Max nodes)
-  storageNodeProfile: 'xs' | 'sm' | 'med' | 'lrg' | 'xl'  // maps to ReadyNode profile
-  storageNodeCount: number   // minimum 4
-  // Compute cluster (client hosts — no vSAN requirement)
-  computeNodeCount: number
-  computeNodeRamGB: number
-  computeNodeCoresPerSocket: number
-  computeNodeSocketsPerHost: number
-  // Workload
-  vmCount: number
-  avgStorageGbPerVm: number
-}
-```
-
-**ReadyNode profile constants (sourced from VMware blog, Nov 2025):**
-
-| Profile | Capacity/host | Min Cores | Min RAM | Network |
-|---------|--------------|-----------|---------|---------|
-| vSAN-Max-XS | 20 TB | 24 | — | 10 GbE |
-| vSAN-Max-SM | 50 TB | 32 | 384 GB | 25 GbE |
-| vSAN-Max-MED | 100 TB | 40 | 512 GB | 100 GbE |
-| vSAN-Max-LRG | 150 TB | 48 | 768 GB | 100 GbE |
-| vSAN-Max-XL | 200 TB | 64 | 1 TB | 100 GbE |
-
-These belong as constants inside `vsanMax.ts`, not in the UI.
-
-**What `VsanMaxResult` should return:**
-
-```typescript
-export interface VsanMaxResult {
-  // Storage cluster totals
-  rawStorageCapacityTB: number
-  usableStorageCapacityTB: number   // after RAID-5/6 overhead — same ESA thresholds apply
-  storageNodeMinCount: number        // minimum 4
-  storageNetworkRequired: string     // e.g. '25 GbE' — derived from profile
-  // Compute cluster totals (separate sizing from storage)
-  computeAvailableCores: number
-  computeAvailableRamGB: number
-  computeRecommendedHostCount: number
-  // Combined
-  minStorageNodeCount: number
-}
-```
-
-**Key architectural point:** vSAN Max compute cluster hosts do NOT need to satisfy the VCFA 12-core minimum in `validateInputs()` for vSAN compatibility — they only need to satisfy the VCFA host spec for running VCF management VMs. The RAID overhead math (ESA Adaptive RAID-5 thresholds) still applies to the storage cluster nodes themselves.
-
-**Backward compatibility:** `calcStorage()` callers pass `storageType` from `inputStore.storageType`. Adding `'vsan-max'` to the `StorageType` union requires no changes to existing callers as long as `calcStorage()` routes vSAN Max to the new function. The store will expose a new `vsanMax` computed result alongside existing `storage` computed.
+**CALC-01/CALC-02 compatibility:** Full. The new composable reads Pinia stores (permitted — composables are Vue-layer), calls no engine functions directly (stores already do that via `computed()`).
 
 ---
 
-## Question 2: Standard vs Consolidated Architecture
+## Question 2: Where Should PPTX Generation Live?
 
-### Verdict: Validation guidance + suggested minimum host count — NOT a new DeploymentMode
+### Verdict: New `src/composables/usePptxExport.ts`
 
 **Rationale:**
 
-Standard vs Consolidated is no longer an official VCF 9.0 architectural designation. Broadcom community discussions confirm the terminology was retired to reduce confusion, and VCF 9.0 instead describes a spectrum from single-cluster (management + workload co-located) to multi-domain (dedicated management cluster + separate workload domains).
+PPTX generation is browser-side via `pptxgenjs`. The generation function needs to:
+1. Read current state from `useInputStore()` and `useCalculationStore()`
+2. Construct a `pptxgen` presentation object
+3. Call `pres.writeFile()` which triggers browser download
 
-However, the sizing impact is concrete and must be modelled: a **dedicated management cluster requires a minimum of 4 hosts** when running all management appliances in HA mode (3 active + 1 for N+1 tolerance during rolling maintenance). This is not a binary toggle — it is a constraint that emerges from the management domain compute requirements.
+This is identical in structure to `generateMarkdownReport()` — it reads stores and produces a file download. The composable pattern (plain TypeScript module with exported async function) fits perfectly.
 
-**Recommended approach:**
+**Why not inside `ExportToolbar.vue` directly?**
+- Testability: an exported function in a composable can be unit-tested; a method inside a Vue SFC script block cannot be isolated
+- Reuse: a second export entry point (e.g., a future "Export" menu component) can reuse the composable without duplicating logic
+- Separation: keeps the toolbar a thin button layer, not a business logic container
 
-1. Add a `managementArchitecture` field to `ComputeInputs` (optional, defaults to `'shared'`):
+**Why not in the engine layer?**
+HARD NO. The engine layer (CALC-01) forbids all Vue imports. `pptxgenjs` is a browser library and its usage requires reading Pinia stores. Both constraints disqualify the engine.
 
-   ```typescript
-   export type ManagementArchitecture = 'shared' | 'dedicated'
-   ```
+**CALC-01/CALC-02 compatibility:** Full. `usePptxExport.ts` is a composable (Vue layer), not an engine function. It reads `computed()` values from the calculationStore — it never writes to any store.
 
-   - `'shared'`: Management VMs co-reside with workload VMs on the same cluster. Tool adds management overhead to workload host count as it does today.
-   - `'dedicated'`: Management VMs run on a separate dedicated management cluster. Tool outputs a second host count recommendation specifically for the management cluster.
-
-2. Add a new validation rule in `validateInputs()`:
-
-   ```
-   DEDICATED_MGMT_MIN_HOSTS: when managementArchitecture === 'dedicated' && hostCount < 4
-   → error: 'validation.dedicatedMgmtMinHosts'
-   ```
-
-3. `calcManagement()` already returns the resource totals. For dedicated mode, the calculationStore exposes a `dedicatedMgmtHostCount` computed:
-
-   ```typescript
-   const dedicatedMgmtHostCount = computed(() => {
-     if (input.managementArchitecture !== 'dedicated') return null
-     return Math.max(4, Math.ceil(management.value.totalCores / (input.coresPerSocket * input.socketsPerHost)))
-   })
-   ```
-
-**Why not a new DeploymentMode?**
-
-`DeploymentMode` (`'simple'|'ha'|'stretch'`) models **HA redundancy behavior**, not cluster topology. Adding `'standard'` or `'consolidated'` as DeploymentMode values would cause these to flow through `calcCompute()`, `calcManagement()`, `calcStretch()`, and `validateInputs()` unchanged or incorrectly. The management architecture concept maps cleanly to validation guidance and a secondary host count output — it does not change the core compute, storage, or stretch formulas.
-
-**New type additions to `types.ts`:**
-
+**Function signature:**
 ```typescript
-export type ManagementArchitecture = 'shared' | 'dedicated'
-
-// Add to ComputeInputs (optional — all existing callers unaffected):
-managementArchitecture?: ManagementArchitecture   // default 'shared'
-
-// Add to ValidationInputs:
-managementArchitecture?: ManagementArchitecture   // default 'shared'
-dedicatedMgmtHostCount?: number                  // for min-4 check
-
-// New output field in ComputeResult:
-dedicatedMgmtRecommendedHosts?: number  // null when 'shared'
+// src/composables/usePptxExport.ts
+export async function generatePptxReport(): Promise<void>
 ```
+
+The function is `async` because `pptxgenjs`'s `writeFile()` returns a Promise. The caller in `ExportToolbar.vue` calls it with `await` in an async handler (same pattern as `handleShare` already uses).
 
 ---
 
-## Question 3: Stretch Network Checklist
+## Question 3: Which Stores Does Each Export Type Read?
 
-### Verdict: Extend `StretchResult` type + surface in the stretch output section — no new component
+### Markdown Export — `useMarkdownExport.ts`
+
+| Data needed | Source |
+|-------------|--------|
+| Deployment mode | `inputStore.deploymentMode` |
+| Host configuration | `inputStore.*` (hostCount, cores, RAM, storage) |
+| Workload profile | `inputStore.*` (vmCount, avgVcpu, avgVram, overcommit ratios) |
+| AI/GPU config | `inputStore.gpuVmCount`, `inputStore.vgpuMemoryGB` |
+| NVMe tiering | `inputStore.nvmeTieringEnabled`, `inputStore.activeMemoryPct` |
+| Stretch site config | `inputStore.preferredSiteHosts`, `inputStore.secondarySiteHosts` |
+| vSAN Max config | `inputStore.vsanMaxProfile`, `inputStore.vsanMaxStorageNodes` |
+| Management overhead | `calculationStore.management` |
+| Compute sizing | `calculationStore.compute` |
+| Storage sizing | `calculationStore.storage` |
+| Stretch topology | `calculationStore.stretch` (only when `deploymentMode === 'stretch'`) |
+| vSAN Max results | `calculationStore.vsanMax` (only when `storageType === 'vsan-max'`) |
+| Validation warnings | `calculationStore.validationErrors` |
+
+The current `generateMarkdownReport()` only covers Host Config, Management, Compute, and Storage — missing 7 sections. The enrichment adds all the missing rows.
+
+### PPTX Export — `usePptxExport.ts`
+
+Reads the same store surface as Markdown. PPTX additionally needs conditional logic:
+- Slide 3 (Stretch topology) only rendered when `deploymentMode === 'stretch'`
+- Slide 4 (vSAN Max) only rendered when `storageType === 'vsan-max'`
+- Warnings slide only rendered when `validationErrors.length > 0`
+
+### Print/PDF — CSS only, no composable needed
+
+Print styling is pure CSS. No JavaScript reads stores at print time. `window.print()` in `ExportToolbar.vue` remains unchanged. The work is entirely in CSS: `@page` rules, `break-before`/`break-after`/`break-inside` on the DOM elements that are already rendered.
+
+---
+
+## Question 4: Print/PDF CSS Approach
+
+### Verdict: Tailwind `print:` variants for simple rules + `@page` block in `style.css` for advanced rules
 
 **Rationale:**
 
-The network checklist (MTU 9000, <5ms RTT, <200ms witness RTT, 10 Gbps floor) is **deterministic derived data** from the stretch configuration. It is not user input. It does not require a new engine function. It belongs in `StretchResult` as additional fields, then displayed in the existing stretch output section.
+Tailwind v4 supports the `print:` modifier natively (already active — `src/style.css` has `@custom-variant print (@media print)`). This covers:
+- `print:hidden` on ExportToolbar and interactive controls (already used in `ExportToolbar.vue`)
+- `print:break-before-page` on section boundaries
+- `print:break-inside-avoid` on cards to prevent mid-card splits
 
-**Current `StretchResult` gaps:**
+**Where Tailwind `print:` falls short:** The `@page` at-rule (margins, page size, headers/footers) cannot be expressed as Tailwind utility classes. This goes in `src/style.css` as a raw CSS block.
 
-The existing `calcStretch()` has a critical bug: `minBandwidthGbps` has no floor. Current formula:
-```
-minBandwidthGbps = totalWorkloadStorageTB × 0.1
-```
-For a small workload (e.g. 20 TB), this returns `2 Gbps` — which is below the VCF 9.0 official minimum of 10 Gbps for stretch inter-site links. The bandwidth floor patch is confirmed by Broadcom TechDocs.
+**The `@page` block needed in `src/style.css`:**
+```css
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm 20mm;
+  }
 
-**Extended `StretchResult` fields:**
-
-```typescript
-export interface StretchResult {
-  // Existing fields (unchanged)
-  totalHosts: number
-  witnessCores: number
-  witnessRamGB: number
-  minBandwidthGbps: number         // PATCHED: max(computed, 10.0)
-  effectivePerSiteStorageTB: number
-  storageNote: string
-
-  // New fields (network checklist)
-  bandwidthFloorApplied: boolean   // true when formula result < 10 Gbps
-  networkChecklist: StretchNetworkChecklist  // i18n keys + values
-}
-
-export interface StretchNetworkChecklist {
-  minInterSiteBandwidthGbps: number   // always 10 (Broadcom TechDocs minimum)
-  maxInterSiteLatencyMs: number       // always 5 (RTT)
-  maxWitnessLatencyMs: number         // 200 for ≤10 hosts/site, 100 for 11–15 hosts/site
-  jumboFramesRequired: boolean        // true — MTU 9000 recommended for vSAN traffic
-  witnessMinBandwidthMbps: number     // 2 Mbps per 1000 components; expose raw value
+  @page :first {
+    margin-top: 25mm; /* room for report title */
+  }
 }
 ```
 
-**Why in `StretchResult` and not a separate component?**
+**Chrome 131+ note:** `@page` margin boxes (`@top-center`, `@bottom-center`) for running headers/footers are now supported in Chrome 131+ and Firefox 95+ (confirmed via WebSearch). Safari 18.2+ adds support. This is broadly available as of 2025. However, running headers require `position: running()` which is not standard CSS — it is a Prince/WeasyPrint CSS extension. Browser native print headers require `content: counter(page)` in `@page` margin boxes, which IS standard and available. This can be added to `style.css` without any JavaScript.
 
-The existing `StretchClusterPanel.vue` and the stretch section of the output panel already conditionally render when `deploymentMode === 'stretch'`. Adding network checklist fields to `StretchResult` means the display component can simply iterate the checklist — no new store computed, no new engine function. A dedicated `StretchNetworkChecklist.vue` output component is warranted for the UI (reusable, independently testable) but it reads from `calculationStore.stretch.networkChecklist` — no new store slice needed.
+**Page break strategy for the results panel:**
 
-**The 10 Gbps floor patch to `calcStretch()`:**
+The DOM structure in `ResultsPanel.vue` renders components in this order:
+1. `HostCountCard` — always visible
+2. `VsanMaxClusterCard` — conditional (storageType === 'vsan-max')
+3. `CoresChart` — always visible
+4. `RamChart` — always visible
+5. `StorageChart` — always visible
+6. `StretchNetworkChecklist` — conditional (deploymentMode === 'stretch')
+7. `ExportToolbar` — `print:hidden` already applied
 
-```typescript
-// BEFORE (current — incorrect for small workloads):
-const minBandwidthGbps = new Decimal(totalWorkloadStorageTB).times(0.1).toNumber()
+Recommended page break insertions (as `print:break-before-page` on each card wrapper):
+- Break before `CoresChart` (compute section starts fresh page)
+- Break before `StorageChart` (storage section starts fresh page)
+- `break-inside: avoid` on all card `<section>` elements
 
-// AFTER (correct — floor enforced per Broadcom TechDocs):
-const STRETCH_MIN_BANDWIDTH_GBPS = 10  // VCF 9.0 absolute minimum
-const calculatedBandwidthGbps = new Decimal(totalWorkloadStorageTB).times(0.1).toNumber()
-const minBandwidthGbps = Math.max(calculatedBandwidthGbps, STRETCH_MIN_BANDWIDTH_GBPS)
-const bandwidthFloorApplied = calculatedBandwidthGbps < STRETCH_MIN_BANDWIDTH_GBPS
-```
+The `App.vue` input panel (left column in the two-column layout) should be `print:hidden` or `print:w-full` depending on desired print layout. Inspect `App.vue` to confirm the column layout before implementing.
 
-This is a bug fix, not a new feature. It must happen in the same commit as adding the `bandwidthFloorApplied` field to `StretchResult` so the type change and the behavior change are atomic.
-
----
-
-## Question 4: Build Order
-
-### Verdict: Bandwidth floor → Stretch checklist → Standard/Consolidated → vSAN Max
-
-**Dependency graph:**
-
-```
-Feature A: Bandwidth floor patch (1 function, 1 type change, 1 constant)
-    No dependencies — can go first
-    Risk: LOW (single formula change + new boolean field)
-    Test: calcStretch({ vmCount: 50, avgStorageGbPerVm: 100 }) → minBandwidthGbps === 10
-
-Feature B: Stretch network checklist (extends Feature A's StretchResult)
-    Depends on: Feature A (needs bandwidthFloorApplied + extended StretchResult)
-    Risk: LOW (data derived from inputs already in StretchInputs)
-    Test: calcStretch returns valid StretchNetworkChecklist with all required fields
-
-Feature C: Standard/Consolidated (ManagementArchitecture flag)
-    Depends on: types.ts changes (new type), validation.ts (new rule)
-    No dependency on A or B
-    Risk: LOW (optional field, all existing callers unaffected)
-    Parallel to B after A is done
-
-Feature D: vSAN Max (new StorageType + new engine file)
-    Depends on: types.ts (StorageType union extension, VsanMaxInputs, VsanMaxResult)
-    No dependency on A, B, or C
-    Risk: MEDIUM (new engine file, new store computed, new UI section)
-    Can parallel C after type foundation is laid
-```
-
-**Recommended sequential order:**
-
-```
-Step 1 — types.ts foundation
-  - Add 'vsan-max' to StorageType
-  - Add ManagementArchitecture type
-  - Add VsanMaxInputs, VsanMaxResult interfaces
-  - Extend StretchResult with bandwidthFloorApplied + StretchNetworkChecklist
-  - Extend ComputeInputs + ValidationInputs with optional managementArchitecture
-  All type changes are additive — zero breaking changes to existing callers.
-
-Step 2 — Bandwidth floor patch (smallest, highest safety ratio)
-  - Patch calcStretch() with STRETCH_MIN_BANDWIDTH_GBPS = 10 constant
-  - Add bandwidthFloorApplied to returned StretchResult
-  - Unit test: small workload produces 10 Gbps floor + bandwidthFloorApplied=true
-  Rationale: This is a correctness bug fix. Ship it before any new features.
-
-Step 3 — Stretch network checklist (extends Step 2)
-  - Add StretchNetworkChecklist population to calcStretch()
-  - Derive witness latency threshold from per-site host counts (≤10 hosts → 200ms, 11-15 → 100ms)
-  - Extend calculationStore to expose stretch.networkChecklist
-  - Add StretchNetworkChecklist.vue output component (reads from calculationStore.stretch)
-  - i18n keys for all checklist labels
-
-Step 4 — Standard/Consolidated validation (independent of Steps 2-3)
-  - Add DEDICATED_MGMT_MIN_HOSTS validation rule to validateInputs()
-  - Extend calculationStore with dedicatedMgmtHostCount computed
-  - Add managementArchitecture toggle to DeploymentModePanel or HostSpecPanel
-  - i18n keys for new validation message
-
-Step 5 — vSAN Max engine (independent of Steps 2-4)
-  - Create engine/vsanMax.ts with ReadyNode profile constants + calcVsanMax()
-  - Update calcStorage() to route 'vsan-max' to calcVsanMax()
-  - Extend inputStore with vsanMaxNodeProfile + vsanMaxNodeCount + vsanMaxComputeNodeCount
-  - Extend calculationStore with vsanMax computed
-  - Add VsanMaxPanel.vue input component (visible when storageType === 'vsan-max')
-  - Add VsanMaxResult.vue output component
-  - Validation: vsanMaxNodeCount < 4 → error
-
-Step 6 — Integration + human verification
-  - End-to-end scenario test: stretch cluster with small workload shows 10 Gbps floor
-  - Verify network checklist renders correctly in all 4 locales
-  - Verify dedicated management outputs separate host count recommendation
-  - Verify vSAN Max profile selection changes storage capacity correctly
-```
+**CALC-01/CALC-02 compatibility:** Print CSS has zero interaction with stores or engine. No constraints apply.
 
 ---
 
-## Component Boundary Map for v2.0
+## Question 5: New Files vs Modified Files
 
-### Modified files (existing, no renames)
+### New Files to Create
 
-| File | Change Type | What Changes |
-|------|------------|--------------|
-| `engine/types.ts` | Additive | 4 new types/interfaces, 2 union extensions, optional fields on existing types |
-| `engine/stretch.ts` | Bug fix + additive | Bandwidth floor constant, `bandwidthFloorApplied`, `networkChecklist` in return |
-| `engine/validation.ts` | Additive | 1 new validation rule (DEDICATED_MGMT_MIN_HOSTS) |
-| `engine/storage.ts` | Additive | Guard clause routing `'vsan-max'` to `calcVsanMax()` |
-| `stores/inputStore.ts` | Additive | New refs: `managementArchitecture`, `vsanMaxNodeProfile`, `vsanMaxNodeCount`, `vsanMaxComputeNodeCount` |
-| `stores/calculationStore.ts` | Additive | New computed: `dedicatedMgmtHostCount`, `vsanMax` |
+| File | Purpose | Constraint |
+|------|---------|-----------|
+| `src/composables/useMarkdownExport.ts` | `generateMarkdownReport()` — extracted + enriched | Vue layer; reads stores |
+| `src/composables/usePptxExport.ts` | `generatePptxReport()` — new PPTX generation | Vue layer; reads stores; uses pptxgenjs |
 
-### New files
+### Existing Files to Modify
 
-| File | Purpose |
-|------|---------|
-| `engine/vsanMax.ts` | `calcVsanMax()` pure function, ReadyNode profile constants, `VsanMaxInputs`, `VsanMaxResult` |
-| `components/output/StretchNetworkChecklist.vue` | Network requirements display, reads from `calculationStore.stretch.networkChecklist` |
-| `components/input/VsanMaxPanel.vue` | vSAN Max node profile selector, storage + compute node count inputs |
-| `components/output/VsanMaxResult.vue` | Storage cluster + compute cluster sizing output |
+| File | Change | Risk |
+|------|--------|------|
+| `src/composables/useUrlState.ts` | Remove `generateMarkdownReport()` export | Low — only called from ExportToolbar |
+| `src/components/results/ExportToolbar.vue` | Update import + add PPTX button + async handler | Low |
+| `src/style.css` | Add `@page` block for print margins | Low |
+| `src/components/results/*.vue` (cards) | Add `print:break-before-page` / `break-inside: avoid` Tailwind classes | Low |
+| `package.json` | Add `pptxgenjs` dependency | Low |
+| `.planning/research/STACK.md` | Document pptxgenjs version/rationale | Docs only |
 
-### Files with ZERO changes
+### Files That Do NOT Change
 
 | File | Reason |
 |------|--------|
-| `engine/compute.ts` | No change — vSAN Max compute sizing happens in vsanMax.ts |
-| `engine/management.ts` | No change — management constants are stable |
-| `stores/calculationStore.ts` existing computeds | Existing `management`, `compute`, `storage`, `stretch`, `validationErrors` computeds are unchanged |
+| `src/engine/*.ts` | CALC-01: engine is pure TS, export is UI concern |
+| `src/stores/calculationStore.ts` | Export reads from it, never writes — no change needed |
+| `src/stores/inputStore.ts` | Export reads from it, never writes — no change needed |
+| `src/composables/useUrlState.ts` (schema, hydrate, share) | URL state logic is unaffected by export refactor |
 
 ---
 
-## Data Flow for New Features
+## Question 6: Build Order
 
-### vSAN Max Flow
+### Verdict: Markdown enrichment FIRST, then print CSS, then PPTX
 
-```
-inputStore.storageType === 'vsan-max'
-  + inputStore.vsanMaxNodeProfile (xs|sm|med|lrg|xl)
-  + inputStore.vsanMaxNodeCount
-  + inputStore.vsanMaxComputeNodeCount
-    ↓ (calculationStore)
-calcVsanMax(vsanMaxInputs)
-    ↓
-calculationStore.vsanMax (computed)
-    ↓
-VsanMaxPanel.vue (input) ← v-model → inputStore
-VsanMaxResult.vue (output) ← reads → calculationStore.vsanMax
-```
-
-### Standard/Consolidated Flow
+**Dependency chain:**
 
 ```
-inputStore.managementArchitecture ('shared'|'dedicated')
-    ↓ (calculationStore)
-management.value.totalCores (existing)
-  + input.coresPerSocket × input.socketsPerHost
-  → Math.max(4, Math.ceil(mgmtCores / coresPerHost))
+Step 1: Extract generateMarkdownReport() to useMarkdownExport.ts
+         (prerequisite for all subsequent work — establishes the correct composable home)
     ↓
-calculationStore.dedicatedMgmtHostCount (new computed, null when 'shared')
+Step 2: Enrich Markdown report (add all missing sections: workload, AI/GPU, NVMe, stretch, vSAN Max, warnings)
+         (establishes the complete data access pattern — which store fields map to which report sections)
     ↓
-SummaryCard or new DedicatedMgmtCard reads it
+Step 3: Print/PDF CSS
+         (independent of Markdown; only touches CSS + Tailwind classes on existing components)
+    ↓
+Step 4: PPTX export
+         (reads same store surface as enriched Markdown — benefits from Step 2's data mapping work;
+          can reuse field lists and conditional logic patterns already validated in Markdown)
 ```
 
-### Stretch Network Checklist Flow
+**Why Markdown before PPTX?**
+The enriched Markdown implementation forces the developer to enumerate every store field needed for a complete export (all 13 data sources listed in Question 3). This enumeration becomes the specification for PPTX slide content. Implementing PPTX first would require discovering the same field mapping twice.
 
-```
-inputStore.preferredSiteHosts + secondarySiteHosts (existing)
-inputStore.vmCount + avgStorageGbPerVm (existing)
-    ↓ (calcStretch — patched)
-StretchResult.bandwidthFloorApplied (new)
-StretchResult.networkChecklist (new)
-    ↓
-calculationStore.stretch (existing computed — now returns extended result)
-    ↓
-StretchNetworkChecklist.vue reads calculationStore.stretch.networkChecklist
-```
+**Why print CSS before PPTX?**
+Print CSS can be done entirely without adding any npm dependency. PPTX adds `pptxgenjs` (~600 kB uncompressed, confirmed via npm's dist file browsing). It is better practice to complete the zero-dependency work before adding the bundle cost.
+
+**Can print CSS and Markdown enrichment be done in parallel?**
+Yes — they have no shared files. But sequencing Markdown first is still recommended because a developer doing print CSS needs to know what sections exist in the rendered DOM to place page breaks correctly. The enriched Markdown development also exercises the stretch/vSAN Max conditional rendering paths that the print CSS will need to handle.
 
 ---
 
-## Backward Compatibility Analysis
+## Architecture Diagrams
 
-All four changes are **additive-only** to existing types. No existing call site requires modification:
+### Export Layer — Current vs Target
 
-| Change | Additive? | Breaking? | Mitigation |
-|--------|-----------|-----------|------------|
-| `StorageType` union + `'vsan-max'` | Yes | NO — TypeScript will require exhaustive switch updates only in places that already switch on StorageType | Add `'vsan-max'` branch to all existing switches; `calcStorage()` already handles non-vsan-esa via early return |
-| `ManagementArchitecture` optional field | Yes | NO — optional with `? =` default | All existing callers pass no `managementArchitecture` → default `'shared'` → existing behavior preserved |
-| `StretchResult` new fields | Yes | NO — new fields added to interface | Existing consumers only destructure fields they need; new fields are ignored |
-| `ComputeInputs` optional field | Yes | NO — optional field pattern already established (see `nvmeTieringEnabled?`) | Same pattern used for Phase 3 additions |
+**Current (v2.0):**
+```
+ExportToolbar.vue
+    ├── import { generateShareUrl, generateMarkdownReport } from 'useUrlState'
+    └── window.print()
+```
 
----
+**Target (v2.1):**
+```
+ExportToolbar.vue
+    ├── import { generateShareUrl } from 'useUrlState'         (URL state, unchanged)
+    ├── import { generateMarkdownReport } from 'useMarkdownExport'   (extracted + enriched)
+    ├── import { generatePptxReport } from 'usePptxExport'    (new)
+    └── window.print()                                         (unchanged — print CSS handles layout)
+```
 
-## Pitfalls Specific to v2.0 Integration
-
-### Pitfall A: vSAN Max RAID overhead reuse confusion
-
-**Risk:** Developer assumes vSAN Max uses the same `vsanEsaRaidOverhead()` function as HCI vSAN ESA. This is partially correct — vSAN Max storage cluster nodes also use ESA Adaptive RAID-5 thresholds — but the input is the **storage node count** not the HCI host count.
-
-**Prevention:** `calcVsanMax()` must call `vsanEsaRaidOverhead(storageNodeCount, ...)`, not the HCI `hostCount`. These are different cluster sizes.
-
-### Pitfall B: Management architecture flag affecting existing stretch logic
-
-**Risk:** If `ManagementArchitecture` is threaded through `calcCompute()` it could accidentally interact with the `stretchMultiplier` (which doubles management overhead for stretch). For dedicated mode, the management cluster is a separate entity and should NOT be doubled.
-
-**Prevention:** `managementArchitecture` must NOT be passed to `calcCompute()` or `calcManagement()`. It only affects `validateInputs()` and the new `dedicatedMgmtHostCount` computed in `calculationStore`. The existing management cost doubling in `calcCompute()` represents the second site's full management stack — this is correct for stretch and must remain unchanged.
-
-### Pitfall C: Bandwidth floor shown as a new feature rather than a bug fix
-
-**Risk:** If the bandwidth floor patch ships in a UI-visible way that suggests the tool previously recommended < 10 Gbps (which it did), it may cause confusion or erode trust in existing shared URLs.
-
-**Prevention:** The patch should be atomic: fix the formula AND add `bandwidthFloorApplied` simultaneously. Display `bandwidthFloorApplied: true` with an info note: "Minimum 10 Gbps floor applied per VCF 9.0 specification." This communicates the correction transparently.
-
-### Pitfall D: StretchNetworkChecklist witness latency thresholds
-
-**Risk:** The witness latency threshold is not constant — it is 200ms for ≤10 hosts/site and 100ms for 11–15 hosts/site. Hardcoding 200ms always is wrong for larger deployments.
-
-**Prevention:** `calcStretch()` must derive `maxWitnessLatencyMs` from `Math.max(preferredSiteHosts, secondarySiteHosts)`:
-- ≤ 10 hosts/site → 200ms
-- 11–15 hosts/site → 100ms
-- > 15 hosts/site → document as "contact VMware" (out of range)
-
----
-
-## Updated System Diagram
+### PPTX Data Flow
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                        Browser SPA (No Backend)                     │
-├───────────────────────────────┬────────────────────────────────────┤
-│         INPUT PANEL           │           OUTPUT PANEL             │
-│  ┌────────────────────────┐   │  ┌─────────────────────────────┐   │
-│  │  DeploymentModePanel   │   │  │ SummaryCard / DedicatedMgmt │   │
-│  │  + MgmtArchToggle (v2) │   │  │ CoreResult / RAMResult      │   │
-│  │  HostSpecPanel         │   │  │ StorageResult / VsanMaxResult│   │
-│  │  WorkloadPanel         │   │  │ StretchNetworkChecklist (v2) │   │
-│  │  StoragePanel          │   │  └─────────────────────────────┘   │
-│  │  + VsanMaxPanel   (v2) │   │  ┌─────────────────────────────┐   │
-│  │  StretchClusterPanel   │   │  │      ChartPanel              │   │
-│  └────────────────────────┘   │  └─────────────────────────────┘   │
-├───────────────────────────────┴────────────────────────────────────┤
-│                        STATE LAYER (Pinia)                          │
-│  ┌──────────────────┐  ┌───────────────────────────────────────┐   │
-│  │  inputStore      │  │  calculationStore                     │   │
-│  │  + mgmtArch (v2) │  │  + dedicatedMgmtHostCount (v2)        │   │
-│  │  + vsanMaxProfile│  │  + vsanMax (v2)                       │   │
-│  │  + vsanMaxNodes  │  │  stretch.networkChecklist (v2)        │   │
-│  └──────────────────┘  └───────────────────────────────────────┘   │
-├────────────────────────────────────────────────────────────────────┤
-│                     CALCULATION ENGINE (Pure TS)                    │
-│  ┌──────────────┐  ┌────────────┐  ┌──────────┐  ┌────────────┐   │
-│  │ management   │  │ compute    │  │ storage  │  │ stretch    │   │
-│  │ (unchanged)  │  │ (unchanged)│  │ (+ route)│  │ (patched)  │   │
-│  └──────────────┘  └────────────┘  └──────────┘  └────────────┘   │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │ vsanMax.ts (NEW v2) — ReadyNode profiles + calcVsanMax()      │ │
-│  └───────────────────────────────────────────────────────────────┘ │
-│  ┌──────────────┐                                                   │
-│  │ validation   │  ← +DEDICATED_MGMT_MIN_HOSTS rule (v2)           │
-│  └──────────────┘                                                   │
-└────────────────────────────────────────────────────────────────────┘
+usePptxExport.ts
+    ├── useInputStore()         → deploymentMode, host spec, workload, GPU, NVMe, stretch, vSAN Max config
+    ├── useCalculationStore()   → management, compute, storage, stretch, vsanMax, validationErrors
+    └── pptxgenjs
+         ├── new pptxgen()                   → pres
+         ├── pres.layout = 'LAYOUT_WIDE'     → 16:9 widescreen
+         ├── pres.addSlide()                 → slide 1: Executive Summary
+         ├── pres.addSlide()                 → slide 2: Host Configuration + Compute
+         ├── pres.addSlide()                 → slide 3: Storage Sizing
+         ├── [conditional] pres.addSlide()   → slide 4: Stretch Topology (only if stretch)
+         ├── [conditional] pres.addSlide()   → slide 5: vSAN Max Cluster (only if vsan-max)
+         ├── [conditional] pres.addSlide()   → slide 6: Warnings (only if validationErrors > 0)
+         └── pres.writeFile({ fileName: 'vcf-sizing.pptx' })  → triggers browser download
+```
+
+### Markdown Composable Data Flow
+
+```
+useMarkdownExport.ts (extracted from useUrlState.ts)
+    ├── useInputStore()         → all config fields
+    ├── useCalculationStore()   → all computed results
+    └── template literals       → sections (conditional on deploymentMode + storageType)
+         ├── ## Host Configuration       (always)
+         ├── ## Workload Profile         (always)
+         ├── ## AI/GPU Workloads         (only if gpuVmCount > 0)
+         ├── ## NVMe Memory Tiering      (only if nvmeTieringEnabled)
+         ├── ## Management Domain        (always)
+         ├── ## Compute Sizing           (always)
+         ├── ## Storage Sizing           (always)
+         ├── ## Stretch Topology         (only if deploymentMode === 'stretch')
+         ├── ## vSAN Max Cluster         (only if storageType === 'vsan-max')
+         └── ## Validation Warnings      (only if validationErrors.length > 0)
 ```
 
 ---
 
-## Phase Structure Recommendation for Roadmapper
+## pptxgenjs Integration Notes
 
-Based on the dependency graph and risk analysis above, the four features should map to two phases:
+### Installation
 
-**Phase v2.0-A: Correctness (low risk, bug fixes + additive types)**
-- types.ts foundation (all additive changes)
-- Bandwidth floor patch in calcStretch() — correctness bug
-- Stretch network checklist in StretchResult + StretchNetworkChecklist.vue
-- Standard/Consolidated: ManagementArchitecture flag + validation rule + dedicatedMgmtHostCount computed
-- i18n keys for new content
+```bash
+npm install pptxgenjs
+```
 
-**Phase v2.0-B: vSAN Max (medium risk, new engine file + new UI)**
-- engine/vsanMax.ts — new pure function, ReadyNode constants
-- calcStorage() routing guard
-- inputStore new refs, calculationStore new computed
-- VsanMaxPanel.vue + VsanMaxResult.vue
-- Validation: min 4 storage nodes
-- i18n keys
+Zero runtime dependencies (confirmed: dual ESM/CJS builds, no peer deps). Vite automatically selects the ES module build (`dist/pptxgen.es.js`) via the `exports` field in its `package.json`.
 
-**Rationale for split:** Phase v2.0-A contains only patches and additive type extensions to existing code — it is safe to ship without vSAN Max. Phase v2.0-B introduces a fully new engine subsystem with new UI. Separating them means v2.0-A can be verified and deployed while v2.0-B is still being built without blocking correctness improvements.
+### Bundle Size Impact
+
+Exact gzip size could not be confirmed (Bundlephobia returned 403). From npm's dist directory browsing, `pptxgen.bundle.js` is ~450-600 kB uncompressed. This is significant relative to the current 159 kB gzip bundle. **Use dynamic import** to load pptxgenjs only on PPTX button click, avoiding any impact on initial page load:
+
+```typescript
+// src/composables/usePptxExport.ts
+export async function generatePptxReport(): Promise<void> {
+  const { default: pptxgen } = await import('pptxgenjs')  // dynamic import
+  const pres = new pptxgen()
+  // ... build slides ...
+  await pres.writeFile({ fileName: 'vcf-sizing.pptx' })
+}
+```
+
+Vite will automatically code-split `pptxgenjs` into a separate chunk. It will not appear in the main bundle. Initial page load performance is unaffected.
+
+### TypeScript Support
+
+pptxgenjs ships with full TypeScript definitions (`types/index.d.ts`). No `@types/` package needed. Key types: `pptxgen.TextProps`, `pptxgen.ShapeProps`, `pptxgen.TableProps`.
+
+### Positioning Model
+
+pptxgenjs uses inches for all positioning (`x`, `y`, `w`, `h`). Standard slide is 10" × 7.5" (LAYOUT_16x9) or 13.33" × 7.5" (LAYOUT_WIDE). All coordinates must be numeric inches — not CSS pixels or percentages.
+
+### writeFile vs write
+
+Use `writeFile({ fileName: 'vcf-sizing.pptx' })` for browser download. The `write({ outputType: 'blob' })` alternative is only needed if you want to attach the file to a FormData for upload — not the case here.
 
 ---
 
-## Confidence Assessment
+## Tailwind v4 Print Integration Notes
 
-| Topic | Confidence | Source |
-|-------|------------|--------|
-| Integration pattern (additive types) | HIGH | Direct code inspection of all 6 engine files |
-| vSAN Max ReadyNode profiles | MEDIUM | VMware blog post (Nov 2025) + search results; not yet verified in Context7 |
-| vSAN Max minimum 4 hosts | HIGH | Multiple VMware sources agree |
-| 10 Gbps stretch floor | HIGH | Broadcom TechDocs VCF 9.0 bandwidth requirements + independent Medium article |
-| Witness latency thresholds | HIGH | Broadcom TechDocs (200ms ≤10 hosts, 100ms 11-15 hosts) |
-| Standard vs Consolidated retirement in VCF 9 | MEDIUM | Broadcom community forum + search results; no official TechDocs confirmation found |
-| ManagementArchitecture 4-host minimum | MEDIUM | Derived from management overhead math; no explicit "4 dedicated hosts" rule found in VCF 9 official docs |
-| Build order (steps 1-6) | HIGH | Derived from dependency analysis of actual code |
+### Custom Variant Already Registered
+
+`src/style.css` already contains:
+```css
+@custom-variant print (@media print);
+```
+
+This means all `print:` prefixed Tailwind classes work already. No configuration change needed.
+
+### Recommended Class Additions
+
+**On `ExportToolbar.vue`** (already done):
+```html
+<div class="... print:hidden">
+```
+
+**On card wrapper `<section>` elements** (to add):
+```html
+<section class="... print:break-inside-avoid">
+```
+
+**On major section boundaries** (to add):
+```html
+<div class="... print:break-before-page">  <!-- before Compute section -->
+<div class="... print:break-before-page">  <!-- before Storage section -->
+```
+
+**On App.vue input panel** (to investigate — add `print:hidden` if only results should print):
+```html
+<aside class="... print:hidden">  <!-- hides the input form when printing -->
+```
+
+### @page Rules (in `src/style.css`)
+
+Standard `@page` rules cannot be Tailwind utilities. Add as a raw CSS block. Browser support as of 2025: Chrome 131+, Firefox 95+, Safari 18.2+ for full margin box support.
+
+---
+
+## CALC-01 / CALC-02 Constraint Compatibility Matrix
+
+| Component | Accesses inputStore | Accesses calculationStore | Creates ref() | Creates computed() | CALC-01 OK | CALC-02 OK |
+|-----------|--------------------|--------------------------|--------------|--------------------|-----------|-----------|
+| `useMarkdownExport.ts` | YES (read-only) | YES (read-only) | NO | NO | YES | YES |
+| `usePptxExport.ts` | YES (read-only) | YES (read-only) | NO | NO | YES | YES |
+| Print CSS changes | NO | NO | NO | NO | YES | YES |
+| `ExportToolbar.vue` changes | YES (calls composable) | NO (via composable) | YES (ref for loading state) | NO | YES | YES |
+
+CALC-01 constraint applies to `src/engine/*.ts` only. Composables are in `src/composables/` — they are Vue-layer code and are permitted to import Pinia stores.
+
+CALC-02 constraint applies to `src/stores/calculationStore.ts` only — it must expose only `computed()`. Export composables read from it, never define new `ref()` inside it.
+
+---
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Putting PPTX Logic in ExportToolbar.vue
+
+**What people do:** Write the entire `pres.addSlide()` sequence directly inside the `<script setup>` of `ExportToolbar.vue`.
+**Why it's wrong:** The toolbar becomes a 200+ line component mixing UI (button styling, click handlers) with business logic (slide content, data mapping). Untestable. Violates single-responsibility principle.
+**Do this instead:** `ExportToolbar.vue` calls `generatePptxReport()` from `usePptxExport.ts`. The toolbar contains zero pptxgenjs calls.
+
+### Anti-Pattern 2: Calling Engine Functions Directly in Export Composables
+
+**What people do:** Import `calcCompute()`, `calcStorage()`, etc. directly into `useMarkdownExport.ts` and re-pass all inputStore values.
+**Why it's wrong:** This duplicates what `calculationStore.ts` already does — creating a second code path that can drift from the canonical calculation. The test file `useMarkdownExport.test.ts` already does this as a workaround because `generateMarkdownReport()` currently can't be tested with Pinia. After extraction to its own file with proper Pinia test setup, this workaround is eliminated.
+**Do this instead:** Read `calculationStore.management.value`, `calculationStore.compute.value`, etc. All calculation results are already in the store.
+
+### Anti-Pattern 3: Eager Import of pptxgenjs
+
+**What people do:** `import pptxgen from 'pptxgenjs'` at the top of `usePptxExport.ts`.
+**Why it's wrong:** Adds ~150-200 kB to the main bundle (even with tree-shaking, pptxgenjs is not tree-shakeable — it's a class-based library). Increases initial page load time for 100% of users who may never click the PPTX button.
+**Do this instead:** `const { default: pptxgen } = await import('pptxgenjs')` inside the `generatePptxReport()` function. Vite code-splits this into a separate chunk loaded on demand.
+
+### Anti-Pattern 4: Using Pixel Values for pptxgenjs Positioning
+
+**What people do:** Copy CSS px/rem values into pptxgenjs `x`, `y`, `w`, `h` properties.
+**Why it's wrong:** pptxgenjs uses inches. `x: 100` means 100 inches off-screen, not 100 pixels.
+**Do this instead:** Design slide layout in inches. A standard 16:9 slide is 10" × 7.5". Use decimals: `x: 0.5, y: 0.5, w: 9, h: 1.5`.
+
+### Anti-Pattern 5: Synchronous PPTX Button Handler
+
+**What people do:** `function handleExportPptx() { generatePptxReport() }` (synchronous, no await).
+**Why it's wrong:** `generatePptxReport()` is async (dynamic import + pptxgenjs `writeFile()`). Without `await`, errors are silently swallowed and there is no loading feedback.
+**Do this instead:** `async function handleExportPptx() { await generatePptxReport() }` with optional loading state ref for button disabled/spinner feedback.
+
+---
+
+## Integration Points Summary
+
+| Export Type | Reads From | Writes To | New File | Modified Files |
+|-------------|------------|-----------|----------|----------------|
+| Markdown (enriched) | inputStore + calculationStore | `.md` download via Blob | `useMarkdownExport.ts` | `useUrlState.ts` (remove fn), `ExportToolbar.vue` (re-import) |
+| Print/PDF | DOM (rendered already) | Browser print dialog | none | `style.css` (@page rules), card components (print: classes) |
+| PPTX | inputStore + calculationStore | `.pptx` download via pptxgenjs | `usePptxExport.ts` | `ExportToolbar.vue` (add button + handler), `package.json` |
 
 ---
 
 ## Sources
 
-- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/types.ts`
-- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/stretch.ts`
-- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/storage.ts`
-- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/compute.ts`
-- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/validation.ts`
-- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/engine/management.ts`
-- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/stores/calculationStore.ts`
-- Direct inspection: `/Users/fjacquet/Projects/vcf-sizer/src/stores/inputStore.ts`
-- [Broadcom TechDocs — Bandwidth and Latency Requirements, VCF 9.0](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/vsan-deployment-administration-and-monitoring/vsan-network-design/understanding-vsan-networking/network-requirements-for-vsan/bandwidth-and-latency-requirements.html) — HIGH confidence
-- [vSAN HCI or Storage Clusters — VMware Cloud Foundation Blog (2024)](https://blogs.vmware.com/cloud-foundation/2024/01/22/vsan-hci-or-storage-clusters-which-deployment-option-is-right-for-you/) — HIGH confidence
-- [Greater Flexibility with vSAN Max through Lower Hardware and Cluster Requirements — VMware Blog (2024)](https://blogs.vmware.com/cloud-foundation/2024/03/13/greater-flexibility-with-vsan-max-through-lower-hardware-and-cluster-requirements/) — MEDIUM confidence (pre-VCF-9.0 article; specs confirmed consistent with Nov 2025 search results)
-- [ReadyNode Profiles Certified for vSAN Max — VMware Blog (2023)](https://blogs.vmware.com/cloud-foundation/2023/10/02/readynode-profiles-certified-for-vsan-max/) — MEDIUM confidence
-- [Driving Down Storage Costs with Lower Hardware Requirements for vSAN — VMware Blog (Nov 2025)](https://blogs.vmware.com/cloud-foundation/2025/11/14/driving-down-storage-costs-with-lower-hardware-requirements-for-vsan/) — HIGH confidence (current)
-- [Strategic Bandwidth Sizing for vSAN Stretched Clusters in VCF 9.0 — Medium (Lubomir Tobek)](https://medium.com/@lubomir-tobek/strategic-bandwidth-sizing-for-vsan-stretched-clusters-in-vcf-9-0-a-roadmap-to-resilience-ce55545b96a2) — MEDIUM confidence (community, consistent with TechDocs)
-- [VCF Consolidated/Standard Architecture discussion — Broadcom Community](https://community.broadcom.com/vmware-cloud-foundation/discussion/vcf-consolidatedstandard-architecure) — MEDIUM confidence (community forum, VCF 4.x framing)
+- Direct code inspection: `src/composables/useUrlState.ts`, `src/stores/calculationStore.ts`, `src/stores/inputStore.ts`, `src/engine/types.ts`, `src/components/results/ExportToolbar.vue`, `src/components/results/ResultsPanel.vue`, `src/style.css`
+- pptxgenjs official docs: https://gitbrent.github.io/PptxGenJS/docs/integration/ and https://gitbrent.github.io/PptxGenJS/docs/usage-saving/ — confirmed browser ESM support, `writeFile()` API, TypeScript definitions, zero runtime dependencies
+- Tailwind v4 print: https://www.mailslurp.com/blog/tailwind-print-styles-custom-media-query/ and https://github.com/tailwindlabs/tailwindcss/discussions/17457 — confirmed `print:` modifier and `break-*` utilities work in v4
+- CSS @page rules: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page — confirmed Chrome 131+ / Firefox 95+ / Safari 18.2+ margin box support
+- Vite dynamic import code splitting: Vite docs (standard behavior, HIGH confidence from training data)
 
 ---
 
-*Architecture research for: VCF Sizer v2.0 — vSAN Max + Standard/Consolidated + Stretch Fixes*
+*Architecture research for: VCF 9.x Sizing Calculator SPA — v2.1 Export Quality milestone*
 *Researched: 2026-03-29*
-*Scope: Integration architecture for milestone v2.0 — subsequent milestone on existing codebase*
