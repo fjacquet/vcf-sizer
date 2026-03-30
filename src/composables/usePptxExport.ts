@@ -5,11 +5,23 @@
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
 import type { MgmtDomainResult, ComputeResult, StorageResult } from '@/engine/types'
-import type PptxGenJS from 'pptxgenjs'
-
-// Type aliases for pptxgenjs table types (accessed via namespace)
-type TableCell = PptxGenJS.TableCell
-type TableRow = PptxGenJS.TableRow
+// Local type definitions matching pptxgenjs TableCell/TableRow shapes.
+// We use local types rather than importing from pptxgenjs to avoid
+// namespace resolution issues with the dynamic-import-only pattern (PPTX-15).
+interface TableCell {
+  text: string
+  options?: {
+    bold?: boolean
+    fill?: { color: string }
+    color?: string
+    colspan?: number
+    rowspan?: number
+    align?: 'left' | 'center' | 'right'
+    valign?: 'top' | 'middle' | 'bottom'
+    fontSize?: number
+  }
+}
+type TableRow = TableCell[]
 
 // ─── Exported color constants ──────────────────────────────────────────────────
 // All hex values WITHOUT # prefix — pptxgenjs uses bare 6-digit hex (Pitfall 1)
