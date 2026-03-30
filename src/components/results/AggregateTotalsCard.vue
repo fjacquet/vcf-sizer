@@ -1,0 +1,69 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import type { AggregateTotals } from '@/engine/types'
+
+const props = defineProps<{ totals: AggregateTotals; managementHostCount: number | null }>()
+const { t } = useI18n()
+
+const grandTotal = computed(() =>
+  props.totals.totalRecommendedHosts + (props.managementHostCount ?? 0)
+)
+</script>
+
+<template>
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 break-inside-avoid">
+    <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      {{ t('results.aggregate.title') }}
+    </h2>
+
+    <!-- Grand total hero row -->
+    <div class="flex items-center gap-4 mb-4">
+      <div class="flex flex-col items-center">
+        <span class="text-5xl font-bold leading-none text-blue-600 dark:text-blue-400">
+          {{ grandTotal }}
+        </span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
+          {{ t('results.aggregate.grandTotal') }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Data grid -->
+    <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
+      <span>{{ t('results.aggregate.totalHosts') }}</span>
+      <span class="font-mono text-right font-semibold">{{ totals.totalRecommendedHosts }}</span>
+
+      <template v-if="managementHostCount !== null">
+        <span>{{ t('results.aggregate.managementHosts') }}</span>
+        <span class="font-mono text-right font-semibold">{{ managementHostCount }}</span>
+      </template>
+
+      <span>{{ t('results.aggregate.totalVms') }}</span>
+      <span class="font-mono text-right">{{ totals.totalVmCount }}</span>
+
+      <span>{{ t('results.aggregate.totalRawStorage') }}</span>
+      <span class="font-mono text-right">{{ totals.totalRawStorageTB.toFixed(2) }} TB</span>
+
+      <span>{{ t('results.aggregate.totalEffectiveStorage') }}</span>
+      <span class="font-mono text-right">{{ totals.totalEffectiveStorageTB.toFixed(2) }} TB</span>
+    </div>
+
+    <!-- Aggregate validation warnings -->
+    <div v-if="totals.allValidationErrors.length > 0" class="mt-3 space-y-2">
+      <div
+        v-for="w in totals.allValidationErrors"
+        :key="w.code"
+        :class="[
+          'p-3 rounded border text-xs font-semibold',
+          w.severity === 'error'
+            ? 'bg-red-50 dark:bg-red-900/30 border-red-400 dark:border-red-700 text-red-800 dark:text-red-300'
+            : 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600 text-yellow-800 dark:text-yellow-300'
+        ]"
+        role="alert"
+      >
+        {{ t(w.messageKey) }}
+      </div>
+    </div>
+  </div>
+</template>

@@ -20,17 +20,20 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const { t } = useI18n()
 const calc = useCalculationStore()
-const { compute } = storeToRefs(calc)
+const { domainResults } = storeToRefs(calc)
 const isDark = usePreferredDark()
+
+// First-domain bridge — charts show first domain until Phase 14 multi-domain export
+const compute = computed(() => domainResults.value[0]?.compute)
 
 const chartData = computed((): ChartData<'bar'> => ({
   labels: [t('results.charts.required'), t('results.charts.available')],
   datasets: [
     {
       label: t('results.charts.ram'),
-      data: [compute.value.totalRamRequiredGB, compute.value.availableRamGB],
+      data: [compute.value?.totalRamRequiredGB ?? 0, compute.value?.availableRamGB ?? 0],
       backgroundColor: [
-        compute.value.totalRamRequiredGB > compute.value.availableRamGB
+        (compute.value?.totalRamRequiredGB ?? 0) > (compute.value?.availableRamGB ?? 0)
           ? 'rgba(239,68,68,0.75)'
           : 'rgba(20,184,166,0.75)',
         'rgba(100,116,139,0.4)',
@@ -82,8 +85,8 @@ const chartOptions = computed((): ChartOptions<'bar'> => {
       <tbody>
         <tr>
           <td class="py-1">{{ t('results.charts.ram') }}</td>
-          <td class="text-right font-mono">{{ compute.totalRamRequiredGB }} GB</td>
-          <td class="text-right font-mono">{{ compute.availableRamGB }} GB</td>
+          <td class="text-right font-mono">{{ compute?.totalRamRequiredGB }} GB</td>
+          <td class="text-right font-mono">{{ compute?.availableRamGB }} GB</td>
         </tr>
       </tbody>
     </table>

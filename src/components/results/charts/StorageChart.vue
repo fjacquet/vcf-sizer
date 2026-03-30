@@ -20,30 +20,33 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const { t } = useI18n()
 const calc = useCalculationStore()
-const { storage } = storeToRefs(calc)
+const { domainResults } = storeToRefs(calc)
 const isDark = usePreferredDark()
+
+// First-domain bridge — charts show first domain until Phase 14 multi-domain export
+const storage = computed(() => domainResults.value[0]?.storage)
 
 const chartData = computed((): ChartData<'bar'> => ({
   labels: [t('results.charts.storage')],
   datasets: [
     {
       label: t('results.charts.storageUsable'),
-      data: [storage.value.safeUsableCapacityTB],
+      data: [storage.value?.safeUsableCapacityTB ?? 0],
       backgroundColor: 'rgba(20,184,166,0.75)',
     },
     {
       label: t('results.charts.storageLfs'),
-      data: [storage.value.lfsOverheadTB],
+      data: [storage.value?.lfsOverheadTB ?? 0],
       backgroundColor: 'rgba(251,191,36,0.75)',
     },
     {
       label: t('results.charts.storageMetadata'),
-      data: [storage.value.metadataOverheadTB],
+      data: [storage.value?.metadataOverheadTB ?? 0],
       backgroundColor: 'rgba(148,163,184,0.75)',
     },
     {
       label: t('results.charts.storageRaid'),
-      data: [storage.value.rawCapacityTB - storage.value.usableAfterRaidTB],
+      data: [(storage.value?.rawCapacityTB ?? 0) - (storage.value?.usableAfterRaidTB ?? 0)],
       backgroundColor: 'rgba(239,68,68,0.75)',
     },
   ],
@@ -98,19 +101,19 @@ const chartOptions = computed((): ChartOptions<'bar'> => {
       <tbody>
         <tr>
           <td class="py-1">{{ t('results.charts.storageUsable') }}</td>
-          <td class="text-right font-mono">{{ storage.safeUsableCapacityTB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ storage?.safeUsableCapacityTB.toFixed(2) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageLfs') }}</td>
-          <td class="text-right font-mono">{{ storage.lfsOverheadTB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ storage?.lfsOverheadTB.toFixed(2) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageMetadata') }}</td>
-          <td class="text-right font-mono">{{ storage.metadataOverheadTB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ storage?.metadataOverheadTB.toFixed(2) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageRaid') }}</td>
-          <td class="text-right font-mono">{{ (storage.rawCapacityTB - storage.usableAfterRaidTB).toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ ((storage?.rawCapacityTB ?? 0) - (storage?.usableAfterRaidTB ?? 0)).toFixed(2) }}</td>
         </tr>
       </tbody>
     </table>

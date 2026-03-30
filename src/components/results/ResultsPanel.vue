@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import HostCountCard from './HostCountCard.vue'
-import VsanMaxClusterCard from './VsanMaxClusterCard.vue'
-import CoresChart from './charts/CoresChart.vue'
-import RamChart from './charts/RamChart.vue'
-import StorageChart from './charts/StorageChart.vue'
-import StretchNetworkChecklist from './StretchNetworkChecklist.vue'
+import { storeToRefs } from 'pinia'
+import { useCalculationStore } from '@/stores/calculationStore'
+import DomainResultCard from './DomainResultCard.vue'
+import AggregateTotalsCard from './AggregateTotalsCard.vue'
 import ExportToolbar from './ExportToolbar.vue'
 
 const { t } = useI18n()
+const calc = useCalculationStore()
+const { domainResults, aggregateTotals, dedicatedMgmtHostCount } = storeToRefs(calc)
+
 const reportDate = computed(() => new Date().toLocaleDateString())
 </script>
 
@@ -26,13 +27,20 @@ const reportDate = computed(() => new Date().toLocaleDateString())
       <span>{{ t('print.footer.attribution') }}</span>
     </div>
 
-    <!-- Existing result components (unchanged order) -->
-    <HostCountCard />
-    <VsanMaxClusterCard />
-    <CoresChart />
-    <RamChart />
-    <StorageChart />
-    <StretchNetworkChecklist />
+    <!-- Per-domain result cards -->
+    <DomainResultCard
+      v-for="result in domainResults"
+      :key="result.id"
+      :result="result"
+    />
+
+    <!-- Aggregate totals card -->
+    <AggregateTotalsCard
+      :totals="aggregateTotals"
+      :management-host-count="dedicatedMgmtHostCount"
+    />
+
+    <!-- Export toolbar -->
     <ExportToolbar />
   </div>
 </template>
