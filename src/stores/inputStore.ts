@@ -35,6 +35,15 @@ export const useInputStore = defineStore('input', () => {
     if (domain) Object.assign(domain, patch)
   }
 
+  function renameDomain(id: string, name: string) {
+    const trimmed = name.trim()
+    if (trimmed) updateDomain(id, { name: trimmed })
+  }
+
+  function updateManagementDomain(patch: Partial<ManagementDomainConfig>) {
+    Object.assign(managementDomain.value, patch)
+  }
+
   return {
     managementArchitecture,
     managementDomain,
@@ -43,5 +52,7 @@ export const useInputStore = defineStore('input', () => {
     addDomain,
     removeDomain,
     updateDomain,
+    renameDomain,
+    updateManagementDomain,
   }
 })

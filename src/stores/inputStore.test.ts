@@ -98,3 +98,47 @@ describe('inputStore — domain mutations (DOM-01)', () => {
     expect(store.workloadDomains[0].coresPerSocket).toBe(16)
   })
 })
+
+describe('inputStore — renameDomain (UI-04)', () => {
+  it('renames domain with trimmed non-empty string', () => {
+    const store = useInputStore()
+    const id = store.workloadDomains[0].id
+    store.renameDomain(id, '  Production  ')
+    expect(store.workloadDomains[0].name).toBe('Production')
+  })
+
+  it('ignores rename with empty/whitespace-only string', () => {
+    const store = useInputStore()
+    const id = store.workloadDomains[0].id
+    store.renameDomain(id, '   ')
+    expect(store.workloadDomains[0].name).toBe('WLD-1')
+  })
+
+  it('ignores rename for non-existent domain id', () => {
+    const store = useInputStore()
+    store.renameDomain('non-existent-id', 'NewName')
+    expect(store.workloadDomains[0].name).toBe('WLD-1')
+  })
+})
+
+describe('inputStore — updateManagementDomain (UI-05)', () => {
+  it('patches a single management field', () => {
+    const store = useInputStore()
+    store.updateManagementDomain({ coresPerSocket: 32 })
+    expect(store.managementDomain.coresPerSocket).toBe(32)
+  })
+
+  it('does not overwrite unpatched management fields', () => {
+    const store = useInputStore()
+    store.updateManagementDomain({ hostRamGB: 1024 })
+    expect(store.managementDomain.coresPerSocket).toBe(16)
+    expect(store.managementDomain.hostRamGB).toBe(1024)
+  })
+
+  it('patches multiple management fields at once', () => {
+    const store = useInputStore()
+    store.updateManagementDomain({ coresPerSocket: 32, socketsPerHost: 4 })
+    expect(store.managementDomain.coresPerSocket).toBe(32)
+    expect(store.managementDomain.socketsPerHost).toBe(4)
+  })
+})
