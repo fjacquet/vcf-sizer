@@ -4,7 +4,7 @@ milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
 status: executing
 stopped_at: Completed 14-02-PLAN.md — multi-domain PPTX export
-last_updated: "2026-03-30T17:17:47.494Z"
+last_updated: "2026-03-30T17:41:33.989Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: 14 (multi-domain-exports) — EXECUTING
-Plan: 2 of 2
+Phase: 15
+Plan: Not started
 Status: Ready to execute
 Last activity: 2026-03-30
 

@@ -200,7 +200,7 @@ Plans:
 | 11. URL State Schema Refactor | v3.0 | 1/1 | Complete | 2026-03-30 |
 | 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | Complete | 2026-03-30 |
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete | 2026-03-30 |
-| 14. Multi-Domain Exports | v3.0 | 1/2 | In Progress|  |
+| 14. Multi-Domain Exports | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 15. Engine Correctness | v3.1 | 0/? | Not started | - |
 | 16. Wizard Scaffold and State | v3.1 | 0/? | Not started | - |
 | 17. Wizard Step Content and Export Accuracy | v3.1 | 0/? | Not started | - |
