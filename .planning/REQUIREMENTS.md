@@ -22,9 +22,9 @@
 
 ### Print / PDF
 
-- [ ] **PRINT-01**: User can print the results panel only — input panel is hidden in print mode via Tailwind `print:hidden`
-- [ ] **PRINT-02**: Print output applies proper page margins and paper size via `@page` CSS rule in `style.css`
-- [ ] **PRINT-03**: Result cards avoid mid-card page breaks (`break-inside-avoid` applied to all result section containers)
+- [x] **PRINT-01**: User can print the results panel only — input panel is hidden in print mode via Tailwind `print:hidden`
+- [x] **PRINT-02**: Print output applies proper page margins and paper size via `@page` CSS rule in `style.css`
+- [x] **PRINT-03**: Result cards avoid mid-card page breaks (`break-inside-avoid` applied to all result section containers)
 - [ ] **PRINT-04**: Printed pages include a running header with the report title and generation date
 - [ ] **PRINT-05**: Printed pages include a footer with VCF Sizer attribution
 - [ ] **PRINT-06**: Chart.js canvas elements are hidden in print mode; a plain data table is shown as fallback for each chart
