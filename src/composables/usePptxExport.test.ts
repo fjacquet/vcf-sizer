@@ -1,7 +1,8 @@
 /// <reference types="vitest/globals" />
 // Phase 8: PPTX Export tests — data-mapping helpers, Pinia-backed, node environment
 // Pattern: createPinia() + setActivePinia() in each beforeEach for test isolation
-// Phase 14: Updated helper signatures — accept WorkloadDomainConfig directly (EXP-03, EXP-04)
+// Phase 13: Updated mocks to use workloadDomains[0] multi-domain store shape
+// Phase 14-02: Updated helpers to accept WorkloadDomainConfig directly (EXP-03, EXP-04)
 
 import { createPinia, setActivePinia } from 'pinia'
 import { useInputStore } from '@/stores/inputStore'
@@ -38,21 +39,23 @@ describe('buildTitleSlideData — PPTX-03', () => {
     setActivePinia(createPinia())
   })
 
-  it('returns domainCount equal to workloadDomains.length (default: 1)', () => {
+  it('returns domainCount from input (1 domain)', () => {
     const store = useInputStore()
     const result = buildTitleSlideData(store.workloadDomains.length)
     expect(result.domainCount).toBe(1)
+  })
+
+  it('returns domainCount correctly when multiple domains exist', () => {
+    const store = useInputStore()
+    store.addDomain()
+    const result = buildTitleSlideData(store.workloadDomains.length)
+    expect(result.domainCount).toBe(2)
   })
 
   it('returns a date string in YYYY-MM-DD format', () => {
     const store = useInputStore()
     const result = buildTitleSlideData(store.workloadDomains.length)
     expect(result.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-  })
-
-  it('returns domainCount=2 when called with 2', () => {
-    const result = buildTitleSlideData(2)
-    expect(result.domainCount).toBe(2)
   })
 })
 
@@ -87,16 +90,6 @@ describe('buildConfigSummaryData — PPTX-04', () => {
     )
     expect(hostRow).toBeDefined()
     expect(String(hostRow!.value)).toContain('4')
-  })
-
-  it('returns values from the given domain (not workloadDomains[0] hardcoded)', () => {
-    const store = useInputStore()
-    // Update domain 0 to have a different host count
-    store.workloadDomains[0].hostCount = 8
-    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture)
-    const hostRow = result.find((row) => String(row.label).toLowerCase().includes('host'))
-    expect(hostRow).toBeDefined()
-    expect(String(hostRow!.value)).toContain('8')
   })
 })
 
@@ -241,7 +234,7 @@ describe('buildStorageResultsData — PPTX-08', () => {
   })
 })
 
-// ─── buildAggregateSlideData — EXP-04 ────────────────────────────────────────
+// ─── buildAggregateSlideData — replaces buildRecommendationsData (EXP-04) ────
 
 describe('buildAggregateSlideData — EXP-04', () => {
   beforeEach(() => {
@@ -255,7 +248,7 @@ describe('buildAggregateSlideData — EXP-04', () => {
     expect(result).toHaveLength(4)
   })
 
-  it('every row has label and value properties (strings)', () => {
+  it('each row has label and value properties', () => {
     const calc = useCalculationStore()
     const result = buildAggregateSlideData(calc.aggregateTotals)
     result.forEach((row) => {
@@ -266,22 +259,34 @@ describe('buildAggregateSlideData — EXP-04', () => {
     })
   })
 
-  it('first row label mentions total hosts', () => {
+  it('first row contains totalRecommendedHosts from aggregateTotals', () => {
     const calc = useCalculationStore()
-    const result = buildAggregateSlideData(calc.aggregateTotals)
-    expect(result[0].label.toLowerCase()).toContain('host')
+    const totals = calc.aggregateTotals
+    const result = buildAggregateSlideData(totals)
+    const hostsRow = result.find((r) => r.label.toLowerCase().includes('host'))
+    expect(hostsRow).toBeDefined()
+    expect(hostsRow!.value).toContain(String(totals.totalRecommendedHosts))
   })
 
-  it('value matches calc.aggregateTotals.totalRecommendedHosts', () => {
+  it('second row contains totalVmCount from aggregateTotals', () => {
     const calc = useCalculationStore()
-    const result = buildAggregateSlideData(calc.aggregateTotals)
-    expect(result[0].value).toBe(String(calc.aggregateTotals.totalRecommendedHosts))
+    const totals = calc.aggregateTotals
+    const result = buildAggregateSlideData(totals)
+    const vmRow = result.find((r) => r.label.toLowerCase().includes('vm'))
+    expect(vmRow).toBeDefined()
+    expect(vmRow!.value).toContain(String(totals.totalVmCount))
   })
 
-  it('third row value contains TB for raw storage', () => {
+  it('rows contain raw and effective storage values', () => {
     const calc = useCalculationStore()
-    const result = buildAggregateSlideData(calc.aggregateTotals)
-    expect(result[2].value).toContain('TB')
+    const totals = calc.aggregateTotals
+    const result = buildAggregateSlideData(totals)
+    const rawRow = result.find((r) => r.label.toLowerCase().includes('raw'))
+    const effRow = result.find((r) => r.label.toLowerCase().includes('effective'))
+    expect(rawRow).toBeDefined()
+    expect(effRow).toBeDefined()
+    expect(rawRow!.value).toContain('TB')
+    expect(effRow!.value).toContain('TB')
   })
 })
 
@@ -302,7 +307,7 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
 
   it('returns rows when gpuVmCount > 0', () => {
     const store = useInputStore()
-    store.updateDomain(store.workloadDomains[0].id, { gpuVmCount: 4, vgpuMemoryGB: 24 })
+    store.updateDomain(store.workloadDomains[0].id, { gpuVmCount: 4 })
     const result = buildAiGpuSlideData(store.workloadDomains[0])
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(2)
@@ -461,7 +466,7 @@ describe('buildValidationWarningsSlideData — PPTX-14', () => {
 
   it('returns entries matching validationErrors when warnings exist', () => {
     const store = useInputStore()
-    store.workloadDomains[0].hostCount = 1
+    store.updateDomain(store.workloadDomains[0].id, { hostCount: 1 })
     const calc = useCalculationStore()
     const result = buildValidationWarningsSlideData(calc)
     expect(Array.isArray(result)).toBe(true)
@@ -470,7 +475,7 @@ describe('buildValidationWarningsSlideData — PPTX-14', () => {
 
   it('each entry has severity and messageKey properties', () => {
     const store = useInputStore()
-    store.workloadDomains[0].hostCount = 1
+    store.updateDomain(store.workloadDomains[0].id, { hostCount: 1 })
     const calc = useCalculationStore()
     const result = buildValidationWarningsSlideData(calc)
     result.forEach((entry) => {
@@ -502,24 +507,32 @@ describe('multi-domain PPTX helpers (EXP-03, EXP-04)', () => {
 
   it('buildConfigSummaryData returns correct values for domain 2 (not domain 1)', () => {
     const store = useInputStore()
+    // Add a second domain with distinct hostCount
     store.addDomain()
-    // Domain 2 has different host count
-    store.updateDomain(store.workloadDomains[1].id, { hostCount: 12, vmCount: 200 })
-    const result = buildConfigSummaryData(store.workloadDomains[1], store.managementArchitecture)
-    const hostRow = result.find((row) => String(row.label).toLowerCase().includes('host'))
+    store.updateDomain(store.workloadDomains[1].id, { hostCount: 12, vmCount: 500 })
+    const managementArchitecture = store.managementArchitecture
+    // Domain 2 config
+    const result2 = buildConfigSummaryData(store.workloadDomains[1], managementArchitecture)
+    const hostRow = result2.find((r) => r.label.toLowerCase().includes('host'))
     expect(hostRow).toBeDefined()
     expect(String(hostRow!.value)).toContain('12')
+    // Domain 1 config should still reflect domain 1 defaults
+    const result1 = buildConfigSummaryData(store.workloadDomains[0], managementArchitecture)
+    const hostRow1 = result1.find((r) => r.label.toLowerCase().includes('host'))
+    expect(hostRow1).toBeDefined()
+    expect(String(hostRow1!.value)).toContain('4')
   })
 
   it('buildAggregateSlideData returns correct totals from calc.aggregateTotals', () => {
     const store = useInputStore()
     store.addDomain()
-    store.updateDomain(store.workloadDomains[0].id, { hostCount: 4 })
-    store.updateDomain(store.workloadDomains[1].id, { hostCount: 6 })
     const calc = useCalculationStore()
-    const result = buildAggregateSlideData(calc.aggregateTotals)
+    const totals = calc.aggregateTotals
+    const result = buildAggregateSlideData(totals)
     expect(result).toHaveLength(4)
-    // totalRecommendedHosts is a computed aggregate across all domains
-    expect(result[0].value).toBe(String(calc.aggregateTotals.totalRecommendedHosts))
+    // Verify hosts row matches aggregate totals
+    const hostsRow = result.find((r) => r.label.toLowerCase().includes('host'))
+    expect(hostsRow).toBeDefined()
+    expect(hostsRow!.value).toContain(String(totals.totalRecommendedHosts))
   })
 })

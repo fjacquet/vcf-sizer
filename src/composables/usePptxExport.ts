@@ -1,18 +1,11 @@
 // PPTX export composable — generates VCF sizing report as .pptx browser download
 // Plain TypeScript — NO Vue lifecycle hooks (CALC-01/CALC-02 compliant)
 // pptxgenjs is loaded via dynamic import() to keep it out of the main bundle (PPTX-15)
+// Phase 14-02: Full multi-domain loop — per-domain slide groups + aggregate totals slide
 
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
-import type {
-  MgmtDomainResult,
-  ComputeResult,
-  StorageResult,
-  StretchResult,
-  VsanMaxResult,
-  WorkloadDomainConfig,
-  AggregateTotals,
-} from '@/engine/types'
+import type { MgmtDomainResult, ComputeResult, StorageResult, StretchResult, VsanMaxResult, WorkloadDomainConfig, AggregateTotals } from '@/engine/types'
 // Local type definitions matching pptxgenjs TableCell/TableRow shapes.
 // We use local types rather than importing from pptxgenjs to avoid
 // namespace resolution issues with the dynamic-import-only pattern (PPTX-15).
@@ -60,7 +53,6 @@ function cell(text: string, bold = false): TableCell {
 
 /**
  * buildTitleSlideData — returns { domainCount, date } for title slide (PPTX-03)
- * Phase 14: accepts domainCount directly instead of reading store.workloadDomains[0].deploymentMode
  */
 export function buildTitleSlideData(domainCount: number, date?: string): {
   domainCount: number
@@ -74,7 +66,7 @@ export function buildTitleSlideData(domainCount: number, date?: string): {
 
 /**
  * buildConfigSummaryData — returns 8 label/value rows for config summary slide (PPTX-04)
- * Phase 14: accepts WorkloadDomainConfig directly instead of reading store.workloadDomains[0]
+ * Accepts domain: WorkloadDomainConfig directly — no store bridge (EXP-03)
  */
 export function buildConfigSummaryData(
   domain: WorkloadDomainConfig,
@@ -94,7 +86,7 @@ export function buildConfigSummaryData(
 
 /**
  * buildWorkloadSlideData — returns 6 label/value rows for workload profile slide (PPTX-05)
- * Phase 14: accepts WorkloadDomainConfig directly instead of reading store.workloadDomains[0]
+ * Accepts domain: WorkloadDomainConfig directly — no store bridge (EXP-03)
  */
 export function buildWorkloadSlideData(
   domain: WorkloadDomainConfig
@@ -170,12 +162,10 @@ export function buildStorageResultsData(storage: StorageResult): {
 }
 
 /**
- * buildAggregateSlideData — returns 4 label/value rows for aggregate totals slide (EXP-04)
- * Replaces buildRecommendationsData — summarizes all workload domains.
+ * buildAggregateSlideData — returns 4 metric rows from AggregateTotals (EXP-04)
+ * Replaces buildRecommendationsData — summarizes all domains in 4 rows.
  */
-export function buildAggregateSlideData(
-  totals: AggregateTotals
-): Array<{ label: string; value: string }> {
+export function buildAggregateSlideData(totals: AggregateTotals): Array<{ label: string; value: string }> {
   return [
     { label: 'Total recommended hosts (all domains)', value: String(totals.totalRecommendedHosts) },
     { label: 'Total VM count', value: String(totals.totalVmCount) },
@@ -186,7 +176,7 @@ export function buildAggregateSlideData(
 
 /**
  * buildAiGpuSlideData — returns label/value rows for AI/GPU workloads slide (PPTX-10)
- * Phase 14: accepts WorkloadDomainConfig directly instead of reading store.workloadDomains[0]
+ * Accepts domain: WorkloadDomainConfig directly — no store bridge (EXP-03)
  */
 export function buildAiGpuSlideData(
   domain: WorkloadDomainConfig
@@ -199,7 +189,7 @@ export function buildAiGpuSlideData(
 
 /**
  * buildNvmeTieringSlideData — returns label/value rows for NVMe memory tiering slide (PPTX-11)
- * Phase 14: accepts WorkloadDomainConfig directly instead of reading store.workloadDomains[0]
+ * Accepts domain: WorkloadDomainConfig directly — no store bridge (EXP-03)
  */
 export function buildNvmeTieringSlideData(
   domain: WorkloadDomainConfig
@@ -212,8 +202,7 @@ export function buildNvmeTieringSlideData(
 
 /**
  * buildStretchTopologySlideData — returns topology rows + network checklist for stretch slide (PPTX-12)
- * Phase 14: accepts WorkloadDomainConfig directly instead of reading store.workloadDomains[0]
- * Accepts stretch: StretchResult directly (not full calc store) to keep function pure/testable.
+ * Accepts domain: WorkloadDomainConfig directly and stretch: StretchResult — no store bridge (EXP-03)
  */
 export function buildStretchTopologySlideData(
   domain: WorkloadDomainConfig,
@@ -241,8 +230,7 @@ export function buildStretchTopologySlideData(
 
 /**
  * buildVsanMaxSlideData — returns label/value rows for vSAN Max cluster slide (PPTX-13)
- * Phase 14: accepts WorkloadDomainConfig directly instead of reading store.workloadDomains[0]
- * Accepts vsanMax: VsanMaxResult directly — caller guards against null.
+ * Accepts domain: WorkloadDomainConfig and vsanMax: VsanMaxResult — no store bridge (EXP-03)
  */
 export function buildVsanMaxSlideData(
   domain: WorkloadDomainConfig,
@@ -261,7 +249,7 @@ export function buildVsanMaxSlideData(
 /**
  * buildValidationWarningsSlideData — returns severity + messageKey rows for warnings slide (PPTX-14)
  * messageKey rendered as literal string — no i18n resolution in composable (Phase 6 decision).
- * Uses aggregateTotals.allValidationErrors for multi-domain aggregation.
+ * Reads aggregateTotals.allValidationErrors (flattened across all domains).
  */
 export function buildValidationWarningsSlideData(
   calc: ReturnType<typeof useCalculationStore>
@@ -278,7 +266,7 @@ export function buildValidationWarningsSlideData(
  * generatePptxReport — creates multi-domain VCF sizing report and triggers browser download.
  * pptxgenjs is dynamically imported to avoid including it in the main bundle (PPTX-15).
  * A fresh PptxGenJS instance is created per call — no state carryover (Pitfall 6).
- * Phase 14: full multi-domain loop — one slide group per workload domain + aggregate totals slide.
+ * Phase 14-02: Full multi-domain loop — one slide group per workload domain + aggregate totals.
  */
 export async function generatePptxReport(): Promise<void> {
   const store = useInputStore()
@@ -290,7 +278,7 @@ export async function generatePptxReport(): Promise<void> {
   const pres = new PptxGenJS()
   pres.layout = 'LAYOUT_WIDE' // 13.33 x 7.5 inches
 
-  // MUST call defineSlideMaster() ONCE BEFORE any addSlide() (Pitfall 2)
+  // MUST call defineSlideMaster() BEFORE any addSlide() (Pitfall 2)
   pres.defineSlideMaster({
     title: MASTER_NAME,
     background: { color: PPTX_MASTER_COLOR },
@@ -321,7 +309,9 @@ export async function generatePptxReport(): Promise<void> {
     slideNumber: { x: 12.5, y: 6.9, color: PPTX_LIGHT_TEXT, fontSize: 9 },
   })
 
-  // ── Global slide 1: Title ────────────────────────────────────────────────────
+  // ── Global slides (before domain loop) ──────────────────────────────────────
+
+  // Slide 1: Title (PPTX-03)
   const titleData = buildTitleSlideData(store.workloadDomains.length)
   const s1 = pres.addSlide({ masterName: MASTER_NAME })
   s1.addText('VCF 9.x Sizing Report', {
@@ -350,10 +340,10 @@ export async function generatePptxReport(): Promise<void> {
     color: PPTX_LIGHT_TEXT,
   })
 
-  // ── Global slide 2: Management Domain Overhead ───────────────────────────────
+  // Slide 2: Management Domain Overhead (PPTX-06)
   const mgmtData = buildMgmtOverheadData(calc.management)
-  const s2 = pres.addSlide({ masterName: MASTER_NAME })
-  s2.addText('Management Domain Overhead', {
+  const sMgmt = pres.addSlide({ masterName: MASTER_NAME })
+  sMgmt.addText('Management Domain Overhead', {
     x: 0.5,
     y: 0.3,
     w: 12,
@@ -370,7 +360,7 @@ export async function generatePptxReport(): Promise<void> {
       cell(String(r.ramGB), r.label === 'Total'),
     ]),
   ]
-  s2.addTable(mgmtRows, {
+  sMgmt.addTable(mgmtRows, {
     x: 0.5,
     y: 1.3,
     w: 12,
@@ -381,51 +371,76 @@ export async function generatePptxReport(): Promise<void> {
     border: { type: 'solid', pt: 1, color: '444444' },
   })
 
-  // ── Per-domain slide groups ──────────────────────────────────────────────────
+  // ── Per-domain loop ──────────────────────────────────────────────────────────
   for (const domain of store.workloadDomains) {
     const result = calc.domainResults.find(r => r.id === domain.id)!
 
-    // Domain: Configuration Summary
-    const configData = buildConfigSummaryData(domain, store.managementArchitecture)
-    const sCfg = pres.addSlide({ masterName: MASTER_NAME })
-    sCfg.addText(`Domain: ${domain.name}`, {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
+    // Domain header + config slide
+    const sConfig = pres.addSlide({ masterName: MASTER_NAME })
+    sConfig.addText(`Domain: ${domain.name}`, {
+      x: 0.5,
+      y: 0.3,
+      w: 12,
+      h: 0.8,
+      fontSize: 24,
+      bold: true,
+      color: PPTX_WHITE,
     })
+    const configData = buildConfigSummaryData(domain, store.managementArchitecture)
     const configRows: TableRow[] = [
       [hdrCell('Parameter'), hdrCell('Value')],
       ...configData.map((r): TableRow => [cell(r.label), cell(r.value)]),
     ]
-    sCfg.addTable(configRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
+    sConfig.addTable(configRows, {
+      x: 0.5,
+      y: 1.3,
+      w: 12,
+      colW: [6, 6],
+      rowH: 0.45,
+      fontSize: 13,
+      color: 'F0F0F0',
       border: { type: 'solid', pt: 1, color: '444444' },
     })
 
-    // Domain: Workload Profile
-    const workloadData = buildWorkloadSlideData(domain)
+    // Workload profile slide
     const sWkld = pres.addSlide({ masterName: MASTER_NAME })
     sWkld.addText(`${domain.name} — Workload Profile`, {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
+      x: 0.5,
+      y: 0.3,
+      w: 12,
+      h: 0.8,
+      fontSize: 24,
+      bold: true,
+      color: PPTX_WHITE,
     })
+    const workloadData = buildWorkloadSlideData(domain)
     const wkldRows: TableRow[] = [
       [hdrCell('Parameter'), hdrCell('Value')],
       ...workloadData.map((r): TableRow => [cell(r.label), cell(r.value)]),
     ]
     sWkld.addTable(wkldRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
+      x: 0.5,
+      y: 1.3,
+      w: 12,
+      colW: [6, 6],
+      rowH: 0.45,
+      fontSize: 13,
+      color: 'F0F0F0',
       border: { type: 'solid', pt: 1, color: '444444' },
     })
 
-    // Domain: Compute Results
-    const computeData = buildComputeResultsData(result.compute)
+    // Compute results slide
     const sComp = pres.addSlide({ masterName: MASTER_NAME })
     sComp.addText(`${domain.name} — Compute Results`, {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
+      x: 0.5,
+      y: 0.3,
+      w: 12,
+      h: 0.8,
+      fontSize: 24,
+      bold: true,
+      color: PPTX_WHITE,
     })
+    const computeData = buildComputeResultsData(result.compute)
     const compRows: TableRow[] = [
       [hdrCell('Metric'), hdrCell('Value')],
       [cell('Recommended Host Count'), cell(String(computeData.recommendedHostCount), true)],
@@ -437,18 +452,28 @@ export async function generatePptxReport(): Promise<void> {
       [cell('RAM Utilization'), cell(`${computeData.ramUtilizationPct.toFixed(1)}%`)],
     ]
     sComp.addTable(compRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
+      x: 0.5,
+      y: 1.3,
+      w: 12,
+      colW: [6, 6],
+      rowH: 0.45,
+      fontSize: 13,
+      color: 'F0F0F0',
       border: { type: 'solid', pt: 1, color: '444444' },
     })
 
-    // Domain: Storage Results
-    const storageData = buildStorageResultsData(result.storage)
+    // Storage results slide
     const sStor = pres.addSlide({ masterName: MASTER_NAME })
     sStor.addText(`${domain.name} — Storage Results`, {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
+      x: 0.5,
+      y: 0.3,
+      w: 12,
+      h: 0.8,
+      fontSize: 24,
+      bold: true,
+      color: PPTX_WHITE,
     })
+    const storageData = buildStorageResultsData(result.storage)
     const storRows: TableRow[] = [
       [hdrCell('Metric'), hdrCell('Value')],
       [cell('RAID Scheme'), cell(storageData.raidScheme)],
@@ -462,12 +487,17 @@ export async function generatePptxReport(): Promise<void> {
       ],
     ]
     sStor.addTable(storRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
+      x: 0.5,
+      y: 1.3,
+      w: 12,
+      colW: [6, 6],
+      rowH: 0.45,
+      fontSize: 13,
+      color: 'F0F0F0',
       border: { type: 'solid', pt: 1, color: '444444' },
     })
 
-    // Domain: Conditional Slide — AI/GPU Workloads (PPTX-10)
+    // Conditional: AI/GPU Workloads (PPTX-10)
     if (domain.gpuVmCount > 0) {
       const gpuData = buildAiGpuSlideData(domain)
       const sGpu = pres.addSlide({ masterName: MASTER_NAME })
@@ -486,7 +516,7 @@ export async function generatePptxReport(): Promise<void> {
       })
     }
 
-    // Domain: Conditional Slide — NVMe Memory Tiering (PPTX-11)
+    // Conditional: NVMe Memory Tiering (PPTX-11)
     if (domain.nvmeTieringEnabled) {
       const nvmeData = buildNvmeTieringSlideData(domain)
       const sNvme = pres.addSlide({ masterName: MASTER_NAME })
@@ -505,7 +535,7 @@ export async function generatePptxReport(): Promise<void> {
       })
     }
 
-    // Domain: Conditional Slide — Stretch Cluster Topology (PPTX-12)
+    // Conditional: Stretch Cluster Topology (PPTX-12)
     if (domain.deploymentMode === 'stretch') {
       const stretchData = buildStretchTopologySlideData(domain, result.stretch!)
       const sStretch = pres.addSlide({ masterName: MASTER_NAME })
@@ -533,7 +563,7 @@ export async function generatePptxReport(): Promise<void> {
       })
     }
 
-    // Domain: Conditional Slide — vSAN Max Cluster (PPTX-13)
+    // Conditional: vSAN Max Cluster (PPTX-13)
     if (domain.storageType === 'vsan-max' && result.vsanMax !== null) {
       const vmaxData = buildVsanMaxSlideData(domain, result.vsanMax)
       const sVmax = pres.addSlide({ masterName: MASTER_NAME })
@@ -551,26 +581,38 @@ export async function generatePptxReport(): Promise<void> {
         border: { type: 'solid', pt: 1, color: '444444' },
       })
     }
-  } // end per-domain loop
+  }
 
-  // ── After domain loop: Aggregate Totals slide ────────────────────────────────
-  const aggData = buildAggregateSlideData(calc.aggregateTotals)
+  // ── After domain loop ────────────────────────────────────────────────────────
+
+  // Aggregate Totals slide (EXP-04)
+  const aggregateData = buildAggregateSlideData(calc.aggregateTotals)
   const sAgg = pres.addSlide({ masterName: MASTER_NAME })
   sAgg.addText('Aggregate Totals', {
-    x: 0.5, y: 0.3, w: 12, h: 0.8,
-    fontSize: 24, bold: true, color: PPTX_WHITE,
+    x: 0.5,
+    y: 0.3,
+    w: 12,
+    h: 0.8,
+    fontSize: 24,
+    bold: true,
+    color: PPTX_WHITE,
   })
   const aggRows: TableRow[] = [
     [hdrCell('Metric'), hdrCell('Value')],
-    ...aggData.map((r): TableRow => [cell(r.label), cell(r.value)]),
+    ...aggregateData.map((r): TableRow => [cell(r.label), cell(r.value)]),
   ]
   sAgg.addTable(aggRows, {
-    x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-    fontSize: 13, color: 'F0F0F0',
+    x: 0.5,
+    y: 1.3,
+    w: 12,
+    colW: [6, 6],
+    rowH: 0.45,
+    fontSize: 13,
+    color: 'F0F0F0',
     border: { type: 'solid', pt: 1, color: '444444' },
   })
 
-  // ── Conditional Slide: Validation Warnings (PPTX-14) — always last ───────────
+  // Conditional Slide: Validation Warnings (PPTX-14) — always last slide
   if (calc.aggregateTotals.allValidationErrors.length > 0) {
     const warningsData = buildValidationWarningsSlideData(calc)
     const sWarn = pres.addSlide({ masterName: MASTER_NAME })
