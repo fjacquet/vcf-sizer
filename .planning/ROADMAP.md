@@ -61,7 +61,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 07-01-PLAN.md — Global @page CSS, print color fidelity, card break-inside-avoid, grid layout collapse (PRINT-01, PRINT-02, PRINT-03)
-- [ ] 07-02-PLAN.md — Print header/footer in ResultsPanel.vue with i18n keys in 4 locales (PRINT-04, PRINT-05)
+- [x] 07-02-PLAN.md — Print header/footer in ResultsPanel.vue with i18n keys in 4 locales (PRINT-04, PRINT-05)
 - [ ] 07-03-PLAN.md — Chart fallback data tables for CoresChart, RamChart, StorageChart (PRINT-06)
 
 ### Phase 8: PPTX Core Slides
@@ -101,6 +101,6 @@ Plans:
 | 4. Correctness and Architecture Validation | v2.0 | 2/2 | Complete | 2026-03-29 |
 | 5. vSAN Max Storage Cluster | v2.0 | 2/2 | Complete | 2026-03-29 |
 | 6. Markdown Extraction and Enrichment | v2.1 | 3/3 | Complete   | 2026-03-30 |
-| 7. Print/PDF CSS Overhaul | v2.1 | 0/3 | Planned | - |
+| 7. Print/PDF CSS Overhaul | v2.1 | 2/3 | In Progress|  |
 | 8. PPTX Core Slides | v2.1 | 0/? | Not started | - |
 | 9. PPTX Conditional Slides and Polish | v2.1 | 0/? | Not started | - |
