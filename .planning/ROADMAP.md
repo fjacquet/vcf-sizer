@@ -94,7 +94,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 12-01-PLAN.md — Store mutations, tab component, and form props refactor (UI-01, UI-02, UI-03, UI-04, FORM-01, FORM-02, FORM-03, FORM-04, FORM-05)
+- [x] 12-01-PLAN.md — Store mutations, tab component, and form props refactor (UI-01, UI-02, UI-03, UI-04, FORM-01, FORM-02, FORM-03, FORM-04, FORM-05)
 - [ ] 12-02-PLAN.md — Management domain section, App integration, and i18n (UI-05)
 
 ### Phase 13: Per-Domain Results and Aggregate Totals
@@ -148,6 +148,6 @@ Plans:
 | 9. PPTX Conditional Slides and Polish | v2.1 | 2/2 | Complete | 2026-03-30 |
 | 10. Domain Types, Defaults, and Store Refactor | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 11. URL State Schema Refactor | v3.0 | 1/1 | Complete    | 2026-03-30 |
-| 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 0/2 | Planned    |  |
+| 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | In Progress|  |
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 0/? | Not started | - |
 | 14. Multi-Domain Exports | v3.0 | 0/? | Not started | - |
