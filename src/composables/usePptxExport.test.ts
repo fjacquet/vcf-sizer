@@ -17,6 +17,11 @@ import {
   buildStorageResultsData,
   buildRecommendationsData,
   generatePptxReport,
+  buildAiGpuSlideData,
+  buildNvmeTieringSlideData,
+  buildStretchTopologySlideData,
+  buildVsanMaxSlideData,
+  buildValidationWarningsSlideData,
 } from './usePptxExport'
 
 // ─── PPTX_MASTER_COLOR constant — PPTX-02 ────────────────────────────────────
@@ -252,5 +257,217 @@ describe('buildRecommendationsData — PPTX-09', () => {
 describe('generatePptxReport — PPTX-01', () => {
   it('is a function', () => {
     expect(typeof generatePptxReport).toBe('function')
+  })
+})
+
+// ─── buildAiGpuSlideData — PPTX-10 ───────────────────────────────────────────
+
+describe('buildAiGpuSlideData — PPTX-10', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('returns rows when gpuVmCount > 0', () => {
+    const store = useInputStore()
+    store.gpuVmCount = 4
+    store.vgpuMemoryGB = 24
+    const result = buildAiGpuSlideData(store)
+    expect(Array.isArray(result)).toBe(true)
+    expect(result.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('every row has label and value properties', () => {
+    const store = useInputStore()
+    store.gpuVmCount = 4
+    store.vgpuMemoryGB = 24
+    const result = buildAiGpuSlideData(store)
+    result.forEach((row) => {
+      expect(row).toHaveProperty('label')
+      expect(row).toHaveProperty('value')
+      expect(typeof row.label).toBe('string')
+      expect(typeof row.value).toBe('string')
+    })
+  })
+
+  it('a row value contains gpuVmCount when gpuVmCount=4', () => {
+    const store = useInputStore()
+    store.gpuVmCount = 4
+    store.vgpuMemoryGB = 24
+    const result = buildAiGpuSlideData(store)
+    const gpuRow = result.find((r) => String(r.value).includes('4'))
+    expect(gpuRow).toBeDefined()
+  })
+})
+
+// ─── buildNvmeTieringSlideData — PPTX-11 ─────────────────────────────────────
+
+describe('buildNvmeTieringSlideData — PPTX-11', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('returns rows when nvmeTieringEnabled is true', () => {
+    const store = useInputStore()
+    store.nvmeTieringEnabled = true
+    store.activeMemoryPct = 70
+    const result = buildNvmeTieringSlideData(store)
+    expect(Array.isArray(result)).toBe(true)
+    expect(result.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('every row has label and value properties', () => {
+    const store = useInputStore()
+    store.nvmeTieringEnabled = true
+    store.activeMemoryPct = 70
+    const result = buildNvmeTieringSlideData(store)
+    result.forEach((row) => {
+      expect(row).toHaveProperty('label')
+      expect(row).toHaveProperty('value')
+      expect(typeof row.label).toBe('string')
+      expect(typeof row.value).toBe('string')
+    })
+  })
+
+  it('includes activeMemoryPct value in a row', () => {
+    const store = useInputStore()
+    store.nvmeTieringEnabled = true
+    store.activeMemoryPct = 70
+    const result = buildNvmeTieringSlideData(store)
+    const pctRow = result.find((r) => String(r.value).includes('70'))
+    expect(pctRow).toBeDefined()
+  })
+})
+
+// ─── buildStretchTopologySlideData — PPTX-12 ─────────────────────────────────
+
+describe('buildStretchTopologySlideData — PPTX-12', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('returns topology array with >= 5 rows', () => {
+    const store = useInputStore()
+    store.deploymentMode = 'stretch'
+    const calc = useCalculationStore()
+    const result = buildStretchTopologySlideData(store, calc.stretch)
+    expect(result).toHaveProperty('topology')
+    expect(Array.isArray(result.topology)).toBe(true)
+    expect(result.topology.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('returns checklist array with >= 3 items', () => {
+    const store = useInputStore()
+    store.deploymentMode = 'stretch'
+    const calc = useCalculationStore()
+    const result = buildStretchTopologySlideData(store, calc.stretch)
+    expect(result).toHaveProperty('checklist')
+    expect(Array.isArray(result.checklist)).toBe(true)
+    expect(result.checklist.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('topology rows have label and value properties', () => {
+    const store = useInputStore()
+    store.deploymentMode = 'stretch'
+    const calc = useCalculationStore()
+    const result = buildStretchTopologySlideData(store, calc.stretch)
+    result.topology.forEach((row) => {
+      expect(row).toHaveProperty('label')
+      expect(row).toHaveProperty('value')
+    })
+  })
+
+  it('checklist items are strings', () => {
+    const store = useInputStore()
+    store.deploymentMode = 'stretch'
+    const calc = useCalculationStore()
+    const result = buildStretchTopologySlideData(store, calc.stretch)
+    result.checklist.forEach((item) => {
+      expect(typeof item).toBe('string')
+    })
+  })
+})
+
+// ─── buildVsanMaxSlideData — PPTX-13 ─────────────────────────────────────────
+
+describe('buildVsanMaxSlideData — PPTX-13', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('returns rows when vsanMax is not null', () => {
+    const store = useInputStore()
+    store.storageType = 'vsan-max'
+    store.vsanMaxProfile = 'lrg'
+    store.vsanMaxStorageNodes = 8
+    const calc = useCalculationStore()
+    expect(calc.vsanMax).not.toBeNull()
+    const result = buildVsanMaxSlideData(store, calc.vsanMax!)
+    expect(Array.isArray(result)).toBe(true)
+    expect(result.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('includes profile in uppercase in a row value', () => {
+    const store = useInputStore()
+    store.storageType = 'vsan-max'
+    store.vsanMaxProfile = 'lrg'
+    store.vsanMaxStorageNodes = 8
+    const calc = useCalculationStore()
+    const result = buildVsanMaxSlideData(store, calc.vsanMax!)
+    const profileRow = result.find((r) => String(r.value).includes('LRG'))
+    expect(profileRow).toBeDefined()
+  })
+
+  it('every row has label and value properties', () => {
+    const store = useInputStore()
+    store.storageType = 'vsan-max'
+    store.vsanMaxProfile = 'lrg'
+    store.vsanMaxStorageNodes = 8
+    const calc = useCalculationStore()
+    const result = buildVsanMaxSlideData(store, calc.vsanMax!)
+    result.forEach((row) => {
+      expect(row).toHaveProperty('label')
+      expect(row).toHaveProperty('value')
+    })
+  })
+})
+
+// ─── buildValidationWarningsSlideData — PPTX-14 ──────────────────────────────
+
+describe('buildValidationWarningsSlideData — PPTX-14', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('returns entries matching validationErrors when warnings exist', () => {
+    const store = useInputStore()
+    store.hostCount = 1
+    const calc = useCalculationStore()
+    const result = buildValidationWarningsSlideData(calc)
+    expect(Array.isArray(result)).toBe(true)
+    expect(result.length).toBe(calc.validationErrors.length)
+  })
+
+  it('each entry has severity and messageKey properties', () => {
+    const store = useInputStore()
+    store.hostCount = 1
+    const calc = useCalculationStore()
+    const result = buildValidationWarningsSlideData(calc)
+    result.forEach((entry) => {
+      expect(entry).toHaveProperty('severity')
+      expect(entry).toHaveProperty('messageKey')
+    })
+  })
+
+  it('returns empty array when no warnings (default store state)', () => {
+    const calc = useCalculationStore()
+    if (calc.validationErrors.length === 0) {
+      const result = buildValidationWarningsSlideData(calc)
+      expect(Array.isArray(result)).toBe(true)
+      expect(result.length).toBe(0)
+    } else {
+      // Default store already has warnings — skip assertion and verify shape only
+      const result = buildValidationWarningsSlideData(calc)
+      expect(Array.isArray(result)).toBe(true)
+    }
   })
 })
