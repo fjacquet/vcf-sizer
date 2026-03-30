@@ -144,4 +144,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 — Milestone v3.1 started (Sizing Correctness & Guided Workflow)*
+*Last updated: 2026-03-30 — Phase 14 complete (multi-domain Markdown + PPTX exports)*
