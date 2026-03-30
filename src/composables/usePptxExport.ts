@@ -514,6 +514,113 @@ export async function generatePptxReport(): Promise<void> {
     lineSpacingMultiple: 1.5,
   })
 
+  // Conditional Slide: AI/GPU Workloads (PPTX-10)
+  if (store.gpuVmCount > 0) {
+    const gpuData = buildAiGpuSlideData(store)
+    const sGpu = pres.addSlide({ masterName: MASTER_NAME })
+    sGpu.addText('AI / GPU Workloads', {
+      x: 0.5, y: 0.3, w: 12, h: 0.8,
+      fontSize: 24, bold: true, color: PPTX_WHITE,
+    })
+    const gpuRows: TableRow[] = [
+      [hdrCell('Parameter'), hdrCell('Value')],
+      ...gpuData.map((r): TableRow => [cell(r.label), cell(r.value)]),
+    ]
+    sGpu.addTable(gpuRows, {
+      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
+      fontSize: 13, color: 'F0F0F0',
+      border: { type: 'solid', pt: 1, color: '444444' },
+    })
+  }
+
+  // Conditional Slide: NVMe Memory Tiering (PPTX-11)
+  if (store.nvmeTieringEnabled) {
+    const nvmeData = buildNvmeTieringSlideData(store)
+    const sNvme = pres.addSlide({ masterName: MASTER_NAME })
+    sNvme.addText('NVMe Memory Tiering', {
+      x: 0.5, y: 0.3, w: 12, h: 0.8,
+      fontSize: 24, bold: true, color: PPTX_WHITE,
+    })
+    const nvmeRows: TableRow[] = [
+      [hdrCell('Parameter'), hdrCell('Value')],
+      ...nvmeData.map((r): TableRow => [cell(r.label), cell(r.value)]),
+    ]
+    sNvme.addTable(nvmeRows, {
+      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
+      fontSize: 13, color: 'F0F0F0',
+      border: { type: 'solid', pt: 1, color: '444444' },
+    })
+  }
+
+  // Conditional Slide: Stretch Cluster Topology (PPTX-12)
+  if (store.deploymentMode === 'stretch') {
+    const stretchData = buildStretchTopologySlideData(store, calc.stretch)
+    const sStretch = pres.addSlide({ masterName: MASTER_NAME })
+    sStretch.addText('Stretch Cluster Topology', {
+      x: 0.5, y: 0.3, w: 12, h: 0.8,
+      fontSize: 24, bold: true, color: PPTX_WHITE,
+    })
+    const topoRows: TableRow[] = [
+      [hdrCell('Parameter'), hdrCell('Value')],
+      ...stretchData.topology.map((r): TableRow => [cell(r.label), cell(r.value)]),
+    ]
+    sStretch.addTable(topoRows, {
+      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.35,
+      fontSize: 11, color: 'F0F0F0',
+      border: { type: 'solid', pt: 1, color: '444444' },
+    })
+    sStretch.addText('Network Checklist', {
+      x: 0.5, y: 4.3, w: 12, h: 0.5,
+      fontSize: 16, bold: true, color: PPTX_WHITE,
+    })
+    const checkText = stretchData.checklist.map((c) => `  \u2022  ${c}`).join('\n')
+    sStretch.addText(checkText, {
+      x: 0.5, y: 4.9, w: 12, h: 1.8,
+      fontSize: 11, color: PPTX_WHITE, valign: 'top', lineSpacingMultiple: 1.3,
+    })
+  }
+
+  // Conditional Slide: vSAN Max Cluster (PPTX-13)
+  if (store.storageType === 'vsan-max' && calc.vsanMax !== null) {
+    const vmaxData = buildVsanMaxSlideData(store, calc.vsanMax)
+    const sVmax = pres.addSlide({ masterName: MASTER_NAME })
+    sVmax.addText('vSAN Max Cluster', {
+      x: 0.5, y: 0.3, w: 12, h: 0.8,
+      fontSize: 24, bold: true, color: PPTX_WHITE,
+    })
+    const vmaxRows: TableRow[] = [
+      [hdrCell('Parameter'), hdrCell('Value')],
+      ...vmaxData.map((r): TableRow => [cell(r.label), cell(r.value)]),
+    ]
+    sVmax.addTable(vmaxRows, {
+      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
+      fontSize: 13, color: 'F0F0F0',
+      border: { type: 'solid', pt: 1, color: '444444' },
+    })
+  }
+
+  // Conditional Slide: Validation Warnings (PPTX-14)
+  if (calc.validationErrors.length > 0) {
+    const warningsData = buildValidationWarningsSlideData(calc)
+    const sWarn = pres.addSlide({ masterName: MASTER_NAME })
+    sWarn.addText('Validation Warnings', {
+      x: 0.5, y: 0.3, w: 12, h: 0.8,
+      fontSize: 24, bold: true, color: PPTX_WHITE,
+    })
+    const warnRows: TableRow[] = [
+      [hdrCell('Severity'), hdrCell('Message')],
+      ...warningsData.map((w): TableRow => [
+        cell(`[${w.severity.toUpperCase()}]`),
+        cell(w.messageKey),
+      ]),
+    ]
+    sWarn.addTable(warnRows, {
+      x: 0.5, y: 1.3, w: 12, colW: [3, 9], rowH: 0.45,
+      fontSize: 13, color: 'F0F0F0',
+      border: { type: 'solid', pt: 1, color: '444444' },
+    })
+  }
+
   // Trigger browser download — MUST await (Pitfall 5)
   await pres.writeFile({ fileName: 'vcf-sizing-report.pptx' })
 }
