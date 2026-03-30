@@ -49,21 +49,45 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 
 ### Active
 
-- [ ] Chart images embedded in PPTX slides (rasterized from Chart.js canvas)
-- [ ] Localized PPTX and Markdown exports (EN-only for v2.1; localization pipeline deferred)
-- [ ] In-app Markdown preview panel before download
-- [ ] Dark mode print stylesheet
+- ✓ Domain data model: WorkloadDomainConfig (26 fields + id/name), ManagementDomainConfig (independent host specs), DomainResult, AggregateTotals — Validated in Phase 10: Domain Types, Defaults, and Store Refactor
+- ✓ inputStore refactored: workloadDomains[] array + managementDomain object, default "WLD-1" domain, CALC-02 maintained — Validated in Phase 10
+- ✓ calculationStore: domainResults computed array + aggregateTotals reducer, zero ref(), dedicatedMgmtHostCount reads managementDomain — Validated in Phase 10
+- ✓ Multiple workload domains with independent host specs, workload profiles, storage configs, and optional features per domain — Validated in Phase 12: Domain Tab UI and Per-Domain Input Forms
+- ✓ Management domain with independent host specs (decoupled from workload domains), architecture toggle in dedicated section — Validated in Phase 12
+- ✓ Tab-based domain UI with unlimited add/remove of named workload domains, inline rename, confirmation on delete — Validated in Phase 12
+- [ ] Per-domain results + aggregate totals across all domains
+- ✓ Full multi-domain URL state (lz-string/Zod with variable-length domain arrays), v2.x backward compat, activeTabIndex excluded — Validated in Phase 11: URL State Schema Refactor
+- [ ] Per-domain sections in Markdown and PPTX exports
+
+### Deferred (post-v3.0)
+
+- Chart images embedded in PPTX slides (rasterized from Chart.js canvas)
+- Localized PPTX and Markdown exports (EN-only; localization pipeline deferred)
+- In-app Markdown preview panel before download
+- Dark mode print stylesheet
 
 ### Out of Scope
 
 - Backend/server-side logic — client-only SPA for zero-infrastructure hosting
 - User accounts or saved sessions (URL sharing covers persistence)
 - vSphere 7.x or VCF 5.x calculations — VCF 9.x only
-- vSAN Max stretched topology — disaggregated vSAN-SC + stretch is a separate feature; defer to v2.2
 - vSAN OSA legacy calculations — out of scope for VCF 9.x focus
-- Side-by-side configuration comparison, localStorage saves, dark mode — UI backlog
-- Per-locale export file naming (e.g., `rapport-vcf.md` for FR) — deferred
+- Side-by-side comparison columns, localStorage saves — UI backlog
+- Per-locale export file naming — deferred
 - Server-side PDF rendering — `jsPDF`/`html2canvas` rejected: bundle cost and quality
+
+## Current Milestone: v3.0 Multi-Domain Support
+
+**Goal:** Support N independent workload domains in a single VCF sizing session, each with its own host specs, workload profile, storage config, and optional features — plus an independent management domain with its own hardware.
+
+**Target features:**
+
+- Tab-based domain UI — unlimited named workload domains, add/remove dynamically
+- Per-domain full independence: host specs, workload profile, storage type/config, NVMe tiering, AI/GPU, stretch topology, vSAN Max
+- Management domain: independent host specs decoupled from workload domains
+- Results: per-domain host count + utilization + aggregate totals
+- URL state: full multi-domain config (lz-string/Zod with variable-length domain arrays)
+- Exports: per-domain sections in Markdown and PPTX
 
 ## Context
 
@@ -73,6 +97,7 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 182 tests passing. 4 locale files (en/fr/de/it). 3 export formats: Markdown, Print/PDF, PowerPoint.
 
 **Architecture patterns established:**
+
 - Engine layer: pure TypeScript, zero Vue imports (CALC-01)
 - State layer: calculationStore exposes only `computed()`, zero `ref()` (CALC-02)
 - URL state: atomic Zod triple-sync (schema + hydrate + serialize)
@@ -117,4 +142,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 after v2.1 milestone*
+*Last updated: 2026-03-30 — Phase 12 complete (domain tab UI + per-domain input forms)*

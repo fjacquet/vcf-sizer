@@ -3,26 +3,54 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
-import { storeToRefs } from 'pinia'
+import { createDefaultWorkloadDomain } from '@/engine/defaults'
+import type { WorkloadDomainConfig } from '@/engine/types'
 import WarningBanner from '@/components/shared/WarningBanner.vue'
 import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
 
 const { t } = useI18n()
+const props = defineProps<{ domainId: string }>()
 const input = useInputStore()
 const calc = useCalculationStore()
-const { storageType, fttLevel, raidType, dedupEnabled, dedupRatio, deploymentMode, vsanMaxProfile, vsanMaxStorageNodes } = storeToRefs(input)
-const { validationErrors, storage, vsanMax } = storeToRefs(calc)
+
+function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
+  return computed({
+    get: () => {
+      const d = input.workloadDomains.find(d => d.id === props.domainId)
+      return (d ?? createDefaultWorkloadDomain(0))[key]
+    },
+    set: (val: WorkloadDomainConfig[K]) => {
+      input.updateDomain(props.domainId, { [key]: val } as Partial<WorkloadDomainConfig>)
+    },
+  })
+}
+
+const storageType = domainField('storageType')
+const fttLevel = domainField('fttLevel')
+const raidType = domainField('raidType')
+const dedupEnabled = domainField('dedupEnabled')
+const dedupRatio = domainField('dedupRatio')
+const deploymentMode = domainField('deploymentMode')
+const vsanMaxProfile = domainField('vsanMaxProfile')
+const vsanMaxStorageNodes = domainField('vsanMaxStorageNodes')
+
+const domainResult = computed(() =>
+  calc.domainResults.find(r => r.id === props.domainId)
+)
+const storage = computed(() => domainResult.value?.storage)
+const vsanMax = computed(() => domainResult.value?.vsanMax ?? null)
+const validationErrors = computed(() => domainResult.value?.validationErrors ?? [])
 
 const dedupExclusionError = computed(() =>
-  validationErrors.value.find(e => e.code === 'DEDUP_STRETCH_EXCLUSION')
+  validationErrors.value.find(e => e.code === 'DEDUP_STRETCH_EXCLUSION') ?? null
 )
 const isStretch = computed(() => deploymentMode.value === 'stretch')
 
 const vsanMaxMinNodesError = computed(() =>
-  validationErrors.value.find(e => e.code === 'VSAN_MAX_MIN_NODES')
+  validationErrors.value.find(e => e.code === 'VSAN_MAX_MIN_NODES') ?? null
 )
 const dedupNetworkSpeedError = computed(() =>
-  validationErrors.value.find(e => e.code === 'DEDUP_NETWORK_SPEED')
+  validationErrors.value.find(e => e.code === 'DEDUP_NETWORK_SPEED') ?? null
 )
 
 const storageTypes = [
@@ -82,8 +110,8 @@ const storageTypes = [
 
       <!-- RAID scheme badge -->
       <div class="text-xs text-gray-500 dark:text-gray-400">
-        {{ t('storage.raidType') }}: <span class="font-mono text-blue-700 dark:text-blue-400">{{ storage.raidScheme }}</span>
-        ({{ t('storage.minHosts', { count: storage.minHostsRequired }) }})
+        {{ t('storage.raidType') }}: <span class="font-mono text-blue-700 dark:text-blue-400">{{ storage?.raidScheme ?? '—' }}</span>
+        ({{ t('storage.minHosts', { count: storage?.minHostsRequired ?? 0 }) }})
       </div>
 
       <!-- Global Deduplication (STOR-05, STOR-06, STRCH-04) -->
@@ -167,14 +195,14 @@ const storageTypes = [
     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
       <span>{{ t('storage.rawCapacity') }}</span>
       <span class="font-mono text-right">
-        {{ storageType === 'vsan-max' && vsanMax ? vsanMax.rawCapacityTB.toFixed(2) : storage.rawCapacityTB.toFixed(2) }} TB
+        {{ storageType === 'vsan-max' && vsanMax ? vsanMax.rawCapacityTB.toFixed(2) : (storage?.rawCapacityTB ?? 0).toFixed(2) }} TB
       </span>
       <template v-if="storageType === 'vsan-esa'">
         <span>{{ t('storage.raidOverhead') }}</span>
-        <span class="font-mono text-right">{{ storage.raidMultiplier }}x</span>
+        <span class="font-mono text-right">{{ storage?.raidMultiplier ?? 0 }}x</span>
         <span>{{ t('storage.netUsable') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ storage.safeUsableCapacityTB.toFixed(2) }} TB
+          {{ (storage?.safeUsableCapacityTB ?? 0).toFixed(2) }} TB
         </span>
       </template>
       <template v-else-if="storageType === 'vsan-max' && vsanMax">
@@ -188,7 +216,7 @@ const storageTypes = [
       <template v-else>
         <span>{{ t('storage.netUsablePassthrough') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ storage.rawCapacityTB.toFixed(2) }} TB
+          {{ (storage?.rawCapacityTB ?? 0).toFixed(2) }} TB
         </span>
       </template>
     </div>

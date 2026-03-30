@@ -140,3 +140,59 @@ export interface VsanMaxResult {
   computeNodeCount: number
   belowMinNodes: boolean
 }
+
+export interface WorkloadDomainConfig {
+  id: string
+  name: string
+  coresPerSocket: number
+  socketsPerHost: number
+  hostRamGB: number
+  hostStorageTB: number
+  hostCount: number
+  nvmeTieringEnabled: boolean
+  activeMemoryPct: number
+  preferredSiteHosts: number
+  secondarySiteHosts: number
+  vmCount: number
+  avgVcpuPerVm: number
+  avgVramGbPerVm: number
+  avgStorageGbPerVm: number
+  cpuOvercommitRatio: number
+  ramOvercommitRatio: number
+  gpuVmCount: number
+  vgpuMemoryGB: number
+  storageType: StorageType
+  fttLevel: FttLevel
+  raidType: RaidType
+  dedupEnabled: boolean
+  dedupRatio: number
+  vsanMaxProfile: VsanMaxProfile
+  vsanMaxStorageNodes: number
+  networkSpeedGbE: 10 | 25 | 100
+  deploymentMode: DeploymentMode
+}
+
+export interface ManagementDomainConfig {
+  coresPerSocket: number
+  socketsPerHost: number
+  hostRamGB: number
+  hostStorageTB: number
+}
+
+export interface DomainResult {
+  id: string
+  name: string
+  compute: ComputeResult
+  storage: StorageResult
+  stretch: StretchResult | null
+  vsanMax: VsanMaxResult | null
+  validationErrors: ValidationWarning[]
+}
+
+export interface AggregateTotals {
+  totalRecommendedHosts: number
+  totalVmCount: number
+  totalRawStorageTB: number
+  totalEffectiveStorageTB: number
+  allValidationErrors: ValidationWarning[]
+}

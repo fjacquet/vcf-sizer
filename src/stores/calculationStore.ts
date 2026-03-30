@@ -11,104 +11,115 @@ import { calcStorage } from '../engine/storage'
 import { calcVsanMax } from '../engine/vsanMax'
 import { calcStretch } from '../engine/stretch'
 import { validateInputs } from '../engine/validation'
+import type { DomainResult, AggregateTotals } from '../engine/types'
 
 export const useCalculationStore = defineStore('calculation', () => {
   // CRITICAL: call useInputStore() at TOP LEVEL — not inside computed() (Pinia pattern)
   const input = useInputStore()
 
-  // Management domain overhead (depends only on deploymentMode)
-  const management = computed(() => calcManagement(input.deploymentMode))
-
-  // When stretch is active, total hosts = preferred + secondary (STRCH-01)
-  // For simple/ha, total hosts = hostCount slider
-  const effectiveHostCount = computed(() =>
-    input.deploymentMode === 'stretch'
-      ? input.preferredSiteHosts + input.secondarySiteHosts
-      : input.hostCount
+  // Management domain overhead — uses first domain's deploymentMode as management baseline
+  // (management overhead HA multipliers depend on deployment mode)
+  const management = computed(() =>
+    calcManagement(input.workloadDomains[0]?.deploymentMode ?? 'ha')
   )
 
-  // Compute sizing (workload + management totals)
-  const compute = computed(() =>
-    calcCompute({
-      deploymentMode: input.deploymentMode,
-      coresPerSocket: input.coresPerSocket,
-      socketsPerHost: input.socketsPerHost,
-      hostRamGB: input.hostRamGB,
-      hostCount: effectiveHostCount.value,
-      vmCount: input.vmCount,
-      avgVcpuPerVm: input.avgVcpuPerVm,
-      avgVramGbPerVm: input.avgVramGbPerVm,
-      cpuOvercommitRatio: input.cpuOvercommitRatio,
-      ramOvercommitRatio: input.ramOvercommitRatio,
-      managementCores: management.value.totalCores,
-      managementRamGB: management.value.totalRamGB,
-      nvmeTieringEnabled: input.nvmeTieringEnabled,
-      activeMemoryPct: input.activeMemoryPct,
-      gpuVmCount: input.gpuVmCount,
-      vgpuMemoryGB: input.vgpuMemoryGB,
-    })
-  )
-
-  // Storage sizing (vSAN ESA overhead stack or FC/NFS pass-through)
-  const storage = computed(() =>
-    calcStorage({
-      storageType: input.storageType,
-      hostCount: effectiveHostCount.value,
-      hostStorageTB: input.hostStorageTB,
-      fttLevel: input.fttLevel,
-      raidType: input.raidType,
-      dedupEnabled: input.dedupEnabled,
-      dedupRatio: input.dedupRatio,
-      deploymentMode: input.deploymentMode,
-    })
-  )
-
-  // Stretch cluster topology (only meaningful when deploymentMode === 'stretch')
-  const stretch = computed(() =>
-    calcStretch({
-      preferredSiteHosts: input.preferredSiteHosts,
-      secondarySiteHosts: input.secondarySiteHosts,
-      hostStorageTB: input.hostStorageTB,
-      vmCount: input.vmCount,
-      avgStorageGbPerVm: input.avgStorageGbPerVm,
-    })
-  )
-
-  // Dedicated management host count recommendation (only meaningful when managementArchitecture === 'dedicated')
+  // Dedicated management host count — uses managementDomain host specs (NOT workloadDomains[0])
+  // (Pitfall 4: must be independent of workload domain specs)
   const dedicatedMgmtHostCount = computed<number | null>(() => {
     if (input.managementArchitecture !== 'dedicated') return null
-    const coresPerHost = input.coresPerSocket * input.socketsPerHost
+    const coresPerHost = input.managementDomain.coresPerSocket * input.managementDomain.socketsPerHost
     return Math.max(4, Math.ceil(management.value.totalCores / coresPerHost))
   })
 
-  // vSAN Max storage cluster sizing (only meaningful when storageType === 'vsan-max')
-  const vsanMax = computed(() =>
-    input.storageType === 'vsan-max'
-      ? calcVsanMax({
-          profile: input.vsanMaxProfile,
-          storageNodeCount: input.vsanMaxStorageNodes,
-          computeNodeCount: input.hostCount,
-        })
-      : null
-  )
+  // Per-domain results — maps over array, returns new array each recompute
+  // CALC-02 compliant: computed() is the only reactive primitive used here
+  const domainResults = computed<DomainResult[]>(() =>
+    input.workloadDomains.map(domain => {
+      // Pitfall 6: effectiveHostCount must be computed per-domain inside .map()
+      const effectiveHostCount =
+        domain.deploymentMode === 'stretch'
+          ? domain.preferredSiteHosts + domain.secondarySiteHosts
+          : domain.hostCount
 
-  // Validation warnings and errors
-  const validationErrors = computed(() =>
-    validateInputs({
-      deploymentMode: input.deploymentMode,
-      coresPerSocket: input.coresPerSocket,
-      socketsPerHost: input.socketsPerHost,
-      hostCount: input.hostCount,
-      dedupEnabled: input.dedupEnabled,
-      storageType: input.storageType,
-      preferredSiteHosts: input.preferredSiteHosts,
-      secondarySiteHosts: input.secondarySiteHosts,
-      managementArchitecture: input.managementArchitecture,
-      networkSpeedGbE: input.networkSpeedGbE,
-      vsanMaxStorageNodes: input.vsanMaxStorageNodes,
+      return {
+        id: domain.id,
+        name: domain.name,
+        compute: calcCompute({
+          deploymentMode: domain.deploymentMode,
+          coresPerSocket: domain.coresPerSocket,
+          socketsPerHost: domain.socketsPerHost,
+          hostRamGB: domain.hostRamGB,
+          hostCount: effectiveHostCount,
+          vmCount: domain.vmCount,
+          avgVcpuPerVm: domain.avgVcpuPerVm,
+          avgVramGbPerVm: domain.avgVramGbPerVm,
+          cpuOvercommitRatio: domain.cpuOvercommitRatio,
+          ramOvercommitRatio: domain.ramOvercommitRatio,
+          managementCores: management.value.totalCores,
+          managementRamGB: management.value.totalRamGB,
+          nvmeTieringEnabled: domain.nvmeTieringEnabled,
+          activeMemoryPct: domain.activeMemoryPct,
+          gpuVmCount: domain.gpuVmCount,
+          vgpuMemoryGB: domain.vgpuMemoryGB,
+        }),
+        storage: calcStorage({
+          storageType: domain.storageType,
+          hostCount: effectiveHostCount,
+          hostStorageTB: domain.hostStorageTB,
+          fttLevel: domain.fttLevel,
+          raidType: domain.raidType,
+          dedupEnabled: domain.dedupEnabled,
+          dedupRatio: domain.dedupRatio,
+          deploymentMode: domain.deploymentMode,
+        }),
+        stretch: domain.deploymentMode === 'stretch'
+          ? calcStretch({
+              preferredSiteHosts: domain.preferredSiteHosts,
+              secondarySiteHosts: domain.secondarySiteHosts,
+              hostStorageTB: domain.hostStorageTB,
+              vmCount: domain.vmCount,
+              avgStorageGbPerVm: domain.avgStorageGbPerVm,
+            })
+          : null,
+        vsanMax: domain.storageType === 'vsan-max'
+          ? calcVsanMax({
+              profile: domain.vsanMaxProfile,
+              storageNodeCount: domain.vsanMaxStorageNodes,
+              computeNodeCount: domain.hostCount,
+            })
+          : null,
+        validationErrors: validateInputs({
+          deploymentMode: domain.deploymentMode,
+          coresPerSocket: domain.coresPerSocket,
+          socketsPerHost: domain.socketsPerHost,
+          hostCount: domain.hostCount,
+          dedupEnabled: domain.dedupEnabled,
+          storageType: domain.storageType,
+          preferredSiteHosts: domain.preferredSiteHosts,
+          secondarySiteHosts: domain.secondarySiteHosts,
+          managementArchitecture: input.managementArchitecture,
+          networkSpeedGbE: domain.networkSpeedGbE,
+          vsanMaxStorageNodes: domain.vsanMaxStorageNodes,
+        }),
+      }
     })
   )
 
-  // All returned values are computed — ZERO ref() in this store (CALC-02)
-  return { management, compute, storage, validationErrors, stretch, dedicatedMgmtHostCount, vsanMax }
+  // Aggregate totals — reduces domainResults; second computed, no mutable state
+  const aggregateTotals = computed<AggregateTotals>(() => ({
+    totalRecommendedHosts: domainResults.value.reduce(
+      (sum, d) => sum + d.compute.recommendedHostCount, 0
+    ),
+    totalVmCount: input.workloadDomains.reduce((sum, d) => sum + d.vmCount, 0),
+    totalRawStorageTB: domainResults.value.reduce(
+      (sum, d) => sum + d.storage.rawCapacityTB, 0
+    ),
+    totalEffectiveStorageTB: domainResults.value.reduce(
+      (sum, d) => sum + d.storage.effectiveCapacityTB, 0
+    ),
+    allValidationErrors: domainResults.value.flatMap(d => d.validationErrors),
+  }))
+
+  // ZERO mutable state — CALC-02 compliant
+  return { management, domainResults, aggregateTotals, dedicatedMgmtHostCount }
 })

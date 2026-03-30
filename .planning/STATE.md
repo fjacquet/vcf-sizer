@@ -1,14 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: Export Quality
-status: complete
-last_updated: "2026-03-30T10:45:00.000Z"
+milestone: v3.0
+milestone_name: Multi-Domain Support
+status: verifying
+last_updated: "2026-03-30T14:04:55.392Z"
+last_activity: 2026-03-30
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_phases: 5
+  completed_phases: 3
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -18,15 +19,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Between milestones — v2.1 archived, planning v2.2
+**Current focus:** Phase 11 — url-state-schema-refactor
 
 ## Current Position
 
-Phase: 09 (pptx-conditional-slides-and-polish) — COMPLETE
-Plan: 2 of 2
-Status: Phase verified — all 5 conditional PPTX slides implemented and tested
+Phase: 13
+Plan: Not started
+Status: Phase complete — ready for verification
+Last activity: 2026-03-30
 
-Progress: [####################] 4/4 phases complete
+Progress bar: [----------] 0/5 phases complete
 
 ## Performance Metrics
 
@@ -48,6 +50,10 @@ Progress: [####################] 4/4 phases complete
 | Phase 08 P03 | 5min | 2 tasks | 5 files |
 | Phase 09 P01 | 3min | 1 tasks | 1 files |
 | Phase 09 P02 | 4min | 2 tasks | 1 files |
+| Phase 10 P01 | 6min | 3 tasks | 6 files |
+| Phase 11 P01 | 5min | 2 tasks | 2 files |
+| Phase 12 P01 | 25min | 3 tasks | 10 files |
+| Phase 12 P02 | 10min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -118,9 +124,31 @@ v2.1 decisions:
 - [Phase 09]: Validation warnings in PPTX use raw messageKey — no i18n in composable (consistent with Phase 6)
 - [Phase 09]: vSAN Max PPTX guard uses double condition: storageType === 'vsan-max' && calc.vsanMax !== null
 
+v3.0 decisions:
+
+- [Roadmap]: Store structure — Option A: single inputStore with workloadDomains array + managementDomain object (not a separate domainsStore)
+- [Roadmap]: deploymentMode is per-domain — VCF architecture requires stretch topology to be per-domain
+- [Roadmap]: managementArchitecture remains a global field on inputStore — it is a deployment-level toggle, not a per-domain setting
+- [Roadmap]: v2.x URL backward compatibility — silent reset to default state; document in release notes; no migration code
+- [Roadmap]: Zod v4 — use factory .default(() => [createDefaultWorkloadDomain(0)]) for array field, NOT .default([])
+- [Roadmap]: v-for key must always be :key="domain.id" (crypto.randomUUID()) — never array index
+- [Roadmap]: activeTabIndex is ephemeral UI state — never serialized to URL; hydration always activates first tab
+- [Roadmap]: i18n new keys accumulated across Phases 12-14 are delivered with their respective phases (not deferred to a separate cleanup phase)
+- [Phase 10]: WorkloadDomainConfig has 26 fields covering all per-domain configuration; inputStore uses ref<WorkloadDomainConfig[]> NOT reactive([]) to avoid storeToRefs() double-wrap bug
+- [Phase 10]: vitest.config.ts extended to include src/stores/**/*.test.ts — was missing from original include list
+- [Phase 11]: Export WorkloadDomainSchema and ManagementDomainSchema from useUrlState.ts for Phase 12+ reuse
+- [Phase 11]: Exclude domain id from generateShareUrl — saves URL bytes; IDs re-generated on hydration via crypto.randomUUID()
+- [Phase 12]: domainField() computed helper pattern used in all 4 forms for per-domain field binding via computed({ get, set }) wrapping updateDomain()
+- [Phase 12]: managementArchitecture stays global in DeploymentModelSelector (not per-domain), consistent with locked v3.0 decision
+- [Phase 12]: ManagementDomainSection uses mgmtField() helper — computed({ get, set }) wrapping updateManagementDomain()
+- [Phase 12]: Architecture toggle and management overhead summary moved from DeploymentModelSelector to ManagementDomainSection (UI-05)
+- [Phase 12]: App.vue computes activeDomainId from workloadDomains[activeDomainIndex] with null-coalescing fallback
+
 ### Pending Todos
 
 - Verify ReadyNode profile constants (MED/LRG/XL NVMe counts, XS 128 GB RAM minimum) against compatibilityguide.broadcom.com at Phase 5 implementation time
+- Confirm crypto.randomUUID() availability in Vitest node env as first task of Phase 10
+- Confirm Zod 4 callable .default(() => fn()) works with installed ^4.3.6 as first test of Phase 11
 
 ### Blockers/Concerns
 
@@ -129,3 +157,5 @@ v2.1 decisions:
 ## Session Continuity
 
 v2.1 milestone (Export Quality) is complete. All 4 phases verified. 182 tests passing.
+v3.0 milestone (Multi-Domain Support) roadmap created: 5 phases (Phase 10-14), 27 requirements fully mapped.
+Next action: /gsd:plan-phase 10

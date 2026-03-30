@@ -39,7 +39,8 @@
     "architecture": {
       "label": "Architecture de gestion",
       "shared": "Co-localise",
-      "dedicated": "Domaines dedies"
+      "dedicated": "Domaines dedies",
+      "dedicatedHosts": "Hotes de gestion dedies"
     }
   },
   "host": {
@@ -151,6 +152,12 @@
     "automation": "VCF Automation (VCFA)",
     "totalCores": "Total des cœurs de gestion",
     "totalRam": "Total de la RAM de gestion"
+  },
+  "domain": {
+    "addDomain": "Ajouter un domaine",
+    "deleteConfirm": "Supprimer le domaine \"{name}\" ? Cette action est irréversible.",
+    "managementSection": "Domaine de gestion",
+    "managementHostSpecs": "Specifications des hotes de gestion"
   },
   "print": {
     "header": {
