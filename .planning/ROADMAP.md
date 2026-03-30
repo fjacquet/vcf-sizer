@@ -37,7 +37,7 @@ Full details: `.planning/milestones/v2.1-ROADMAP.md`
 
 - [x] **Phase 10: Domain Types, Defaults, and Store Refactor** — Core data model and store restructure for multi-domain state (completed 2026-03-30)
 - [x] **Phase 11: URL State Schema Refactor** — Zod array schema with round-trip validation for N-domain configs (completed 2026-03-30)
-- [ ] **Phase 12: Domain Tab UI and Per-Domain Input Forms** — Tab strip, add/remove/rename, and all input forms wired per domain
+- [x] **Phase 12: Domain Tab UI and Per-Domain Input Forms** — Tab strip, add/remove/rename, and all input forms wired per domain (completed 2026-03-30)
 - [ ] **Phase 13: Per-Domain Results and Aggregate Totals** — Result cards per domain and aggregate procurement totals display
 - [ ] **Phase 14: Multi-Domain Exports** — Markdown and PPTX exports with per-domain sections and totals
 
@@ -148,6 +148,6 @@ Plans:
 | 9. PPTX Conditional Slides and Polish | v2.1 | 2/2 | Complete | 2026-03-30 |
 | 10. Domain Types, Defaults, and Store Refactor | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 11. URL State Schema Refactor | v3.0 | 1/1 | Complete    | 2026-03-30 |
-| 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | In Progress|  |
+| 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 0/? | Not started | - |
 | 14. Multi-Domain Exports | v3.0 | 0/? | Not started | - |
