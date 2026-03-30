@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
 status: executing
-stopped_at: Completed 15-02-PLAN.md — ENGINE-01/02/03/04 implementation (retrospective)
-last_updated: "2026-03-30T21:00:12.467Z"
+stopped_at: Completed 16-02-PLAN.md — WizardStepper, TopologySelector, App.vue wizard restructure
+last_updated: "2026-03-30T21:06:43Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 13
-  completed_plans: 12
+  total_plans: 14
+  completed_plans: 13
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 14 — multi-domain-exports
+**Current focus:** Phase 16 — wizard-scaffold-and-state
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Executing Phase 14
+Phase: 16 (wizard-scaffold-and-state) — COMPLETE
+Plan: 2 of 2 (COMPLETE)
+Status: Phase 16 complete — all plans executed
 Last activity: 2026-03-30
 
 Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
@@ -60,6 +60,7 @@ Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 | Phase 15 P01 | 5min | 1 tasks | 0 files |
 | Phase 15 P02 | retrospective | 3 tasks | 12 files |
 | Phase 16 P01 | 12min | 3 tasks | 7 files |
+| Phase 16 P02 | 3min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,9 @@ v3.1 decisions (pending implementation):
 - [Phase 15]: mgmtHostCount: 0 when colocated is correct — overhead is embedded in WLD-1 host count, not a separate procurement line item
 - [Phase 16]: currentWizardStep lives in uiStore only — confirmed by WIZARD-07 tests proving InputStateSchema strips it
 - [Phase 16]: vitest include extended to src/stores/**/*.test.ts to enable store unit tests (Rule 3 fix)
+- [Phase 16-02]: v-show (not v-if) enforced for wizard step panels — WIZARD-02 data preservation on back-navigation
+- [Phase 16-02]: TopologySelector writes deploymentMode atomically to managementDomain AND all workloadDomains.forEach — mixed topologies not allowed
+- [Phase 16-02]: WizardStepper step pills are non-clickable display-only — WIZARD-EXT-01 direct-step navigation deferred to v4+
 
 v2.0 decisions:
 
@@ -168,7 +172,7 @@ v3.0 decisions:
 
 ## Session Continuity
 
-Last session: 2026-03-30T19:23:27.632Z
-Stopped at: Completed 15-02-PLAN.md — ENGINE-01/02/03/04 implementation (retrospective)
-Next action: /gsd:plan-phase 15
+Last session: 2026-03-30T21:06:43Z
+Stopped at: Completed 16-02-PLAN.md — WizardStepper, TopologySelector, App.vue wizard restructure
+Next action: Continue to next phase after Phase 16
 Resume file: None

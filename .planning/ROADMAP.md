@@ -48,7 +48,7 @@ Full details: `.planning/milestones/v2.1-ROADMAP.md`
 ### v3.1 Sizing Correctness & Guided Workflow (Phases 15-17) — Active
 
 - [x] **Phase 15: Engine Correctness** — TDD-first fixes to management overhead routing, aggregate totals, and TypeScript diagnostics (completed 2026-03-30)
-- [ ] **Phase 16: Wizard Scaffold and State** — WizardStepper shell, uiStore wizard step, navigation, and URL exclusion guarantee
+- [x] **Phase 16: Wizard Scaffold and State** — WizardStepper shell, uiStore wizard step, navigation, and URL exclusion guarantee (completed 2026-03-30)
 - [ ] **Phase 17: Wizard Step Content and Export Accuracy** — Step validation gates, management result card, management summary panel, and updated exports
 
 ---
@@ -166,8 +166,8 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 16-01-PLAN.md — uiStore extension, tests (WIZARD-02, WIZARD-07), and i18n keys for all 4 locales
-- [ ] 16-02-PLAN.md — WizardStepper.vue, TopologySelector.vue, and App.vue restructuring (WIZARD-01, WIZARD-02)
+- [x] 16-01-PLAN.md — uiStore extension, tests (WIZARD-02, WIZARD-07), and i18n keys for all 4 locales
+- [x] 16-02-PLAN.md — WizardStepper.vue, TopologySelector.vue, and App.vue restructuring (WIZARD-01, WIZARD-02)
 **UI hint**: yes
 
 ### Phase 17: Wizard Step Content and Export Accuracy
@@ -207,5 +207,5 @@ Plans:
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete | 2026-03-30 |
 | 14. Multi-Domain Exports | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 15. Engine Correctness | v3.1 | 2/2 | Complete   | 2026-03-30 |
-| 16. Wizard Scaffold and State | v3.1 | 0/2 | Not started | - |
+| 16. Wizard Scaffold and State | v3.1 | 2/2 | Complete   | 2026-03-30 |
 | 17. Wizard Step Content and Export Accuracy | v3.1 | 0/? | Not started | - |
