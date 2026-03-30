@@ -47,7 +47,7 @@ Full details: `.planning/milestones/v2.1-ROADMAP.md`
 
 ### v3.1 Sizing Correctness & Guided Workflow (Phases 15-17) — Active
 
-- [ ] **Phase 15: Engine Correctness** — TDD-first fixes to management overhead routing, aggregate totals, and TypeScript diagnostics
+- [x] **Phase 15: Engine Correctness** — TDD-first fixes to management overhead routing, aggregate totals, and TypeScript diagnostics (completed 2026-03-30)
 - [ ] **Phase 16: Wizard Scaffold and State** — WizardStepper shell, uiStore wizard step, navigation, and URL exclusion guarantee
 - [ ] **Phase 17: Wizard Step Content and Export Accuracy** — Step validation gates, management result card, management summary panel, and updated exports
 
@@ -201,6 +201,6 @@ Plans:
 | 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | Complete | 2026-03-30 |
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete | 2026-03-30 |
 | 14. Multi-Domain Exports | v3.0 | 1/2 | Complete    | 2026-03-30 |
-| 15. Engine Correctness | v3.1 | 1/2 | In Progress|  |
+| 15. Engine Correctness | v3.1 | 2/2 | Complete   | 2026-03-30 |
 | 16. Wizard Scaffold and State | v3.1 | 0/? | Not started | - |
 | 17. Wizard Step Content and Export Accuracy | v3.1 | 0/? | Not started | - |

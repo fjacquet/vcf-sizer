@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
-status: executing
-stopped_at: Completed 15-01-PLAN.md — ENGINE-01/02/03 TDD tests (retrospective)
-last_updated: "2026-03-30T19:20:08.724Z"
+status: verifying
+stopped_at: Completed 15-02-PLAN.md — ENGINE-01/02/03/04 implementation (retrospective)
+last_updated: "2026-03-30T19:23:27.635Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 15 (engine-correctness) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
@@ -41,6 +41,7 @@ Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 *Updated after each plan completion*
 | Phase 14 P02 | 15min | 2 tasks | 2 files |
 | Phase 15 P01 | 5min | 1 tasks | 0 files |
+| Phase 15 P02 | retrospective | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -58,6 +59,9 @@ v3.1 decisions (pending implementation):
 - [Phase 14]: buildAggregateSlideData(totals) replaces buildRecommendationsData — summarizes all domains in 4 rows instead of single-domain read
 - [Phase 14]: All PPTX helper functions now accept WorkloadDomainConfig directly — no store bridge pattern in export composable
 - [Phase 15]: Out-of-order TDD accepted: Wave-0 tests and Wave-2 implementation written in same session — tests serve as regression guards
+- [Phase 15]: Management overhead routed to WLD-1 only in colocated mode via index-aware map to prevent double-counting across multiple workload domains
+- [Phase 15]: ManagementArchitecture renamed from 'shared' to 'colocated' — semantically accurate for VCF topology (management VMs run co-located within workload domain)
+- [Phase 15]: mgmtHostCount: 0 when colocated is correct — overhead is embedded in WLD-1 host count, not a separate procurement line item
 
 ### Pending Todos
 
@@ -71,7 +75,7 @@ v3.1 decisions (pending implementation):
 
 ## Session Continuity
 
-Last session: 2026-03-30T19:20:08.721Z
-Stopped at: Completed 15-01-PLAN.md — ENGINE-01/02/03 TDD tests (retrospective)
+Last session: 2026-03-30T19:23:27.632Z
+Stopped at: Completed 15-02-PLAN.md — ENGINE-01/02/03/04 implementation (retrospective)
 Next action: /gsd:plan-phase 15
 Resume file: None
