@@ -207,5 +207,5 @@ Plans:
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete | 2026-03-30 |
 | 14. Multi-Domain Exports | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 15. Engine Correctness | v3.1 | 2/2 | Complete   | 2026-03-30 |
-| 16. Wizard Scaffold and State | v3.1 | 2/2 | Complete   | 2026-03-30 |
+| 16. Wizard Scaffold and State | v3.1 | 2/2 | Complete    | 2026-03-30 |
 | 17. Wizard Step Content and Export Accuracy | v3.1 | 0/? | Not started | - |
