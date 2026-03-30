@@ -57,7 +57,7 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ Tab-based domain UI with unlimited add/remove of named workload domains, inline rename, confirmation on delete — Validated in Phase 12
 - ✓ Per-domain result cards (DomainResultCard) + AggregateTotalsCard showing procurement total — Validated in Phase 13: Per-Domain Results and Aggregate Totals
 - ✓ Full multi-domain URL state (lz-string/Zod with variable-length domain arrays), v2.x backward compat, activeTabIndex excluded — Validated in Phase 11: URL State Schema Refactor
-- [ ] Per-domain sections in Markdown and PPTX exports
+- ✓ Per-domain sections in Markdown export (`## Domain: {name}` H2 loop + `## Aggregate Totals`) and PPTX export (per-domain slide groups + aggregate totals slide) — Validated in Phase 14: Multi-Domain Exports
 
 ### Deferred (post-v3.0)
 
@@ -94,9 +94,9 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 **Shipped v2.1 with ~5,400 LOC TypeScript + Vue 3.**
 Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.js, vue-i18n v11, Chart.js via vue-chartjs, lz-string + Zod for URL state, pptxgenjs 4.0.1 (dynamic import), Vitest for unit tests.
 
-222 tests passing. 4 locale files (en/fr/de/it). 3 export formats: Markdown, Print/PDF, PowerPoint.
+236 tests passing. 4 locale files (en/fr/de/it). 3 export formats: Markdown, Print/PDF, PowerPoint.
 
-**Phase 13 complete (2026-03-30):** Per-domain result cards and aggregate totals implemented. DomainResultCard and AggregateTotalsCard created. ResultsPanel rewritten with v-for over domainResults. StretchNetworkChecklist and VsanMaxClusterCard converted to prop-driven. Export composables updated to first-domain bridge pattern.
+**Phase 14 complete (2026-03-30):** Multi-domain Markdown and PPTX exports implemented. useMarkdownExport loops over all workloadDomains emitting `## Domain: {name}` sections plus `## Aggregate Totals`. usePptxExport loops over all workloadDomains generating per-domain slide groups plus an aggregate totals slide. All PPTX helpers now accept WorkloadDomainConfig directly. v3.0 Multi-Domain Support milestone COMPLETE.
 
 **Architecture patterns established:**
 
