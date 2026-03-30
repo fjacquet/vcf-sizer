@@ -39,7 +39,7 @@ Full details: `.planning/milestones/v2.1-ROADMAP.md`
 - [x] **Phase 11: URL State Schema Refactor** — Zod array schema with round-trip validation for N-domain configs (completed 2026-03-30)
 - [x] **Phase 12: Domain Tab UI and Per-Domain Input Forms** — Tab strip, add/remove/rename, and all input forms wired per domain (completed 2026-03-30)
 - [x] **Phase 13: Per-Domain Results and Aggregate Totals** — Result cards per domain and aggregate procurement totals display (completed 2026-03-30)
-- [ ] **Phase 14: Multi-Domain Exports** — Markdown and PPTX exports with per-domain sections and totals
+- [x] **Phase 14: Multi-Domain Exports** — Markdown and PPTX exports with per-domain sections and totals (completed 2026-03-30)
 
 ---
 
@@ -148,4 +148,4 @@ Plans:
 | 11. URL State Schema Refactor | v3.0 | 1/1 | Complete    | 2026-03-30 |
 | 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete    | 2026-03-30 |
-| 14. Multi-Domain Exports | v3.0 | 0/2 | Planned    |  |
+| 14. Multi-Domain Exports | v3.0 | 0/2 | Complete    | 2026-03-30 |
