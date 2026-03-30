@@ -41,7 +41,11 @@ Full details: `.planning/milestones/v2.0-ROADMAP.md`
   3. Downloaded report contains management architecture, NVMe tiering, AI/GPU, stretch topology, vSAN Max, warnings, and network sections — each present when the feature is active and absent when it is not
   4. Downloaded report lists all active validation warnings at export time
   5. All nine section types are covered by passing Vitest tests that assert section presence/absence against controlled store state
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 06-01-PLAN.md — Rewrite test file with full Pinia-backed failing test suite (Wave 0 TDD gate)
+- [ ] 06-02-PLAN.md — Extract generateMarkdownReport() to useMarkdownExport.ts and update imports (MD-01)
+- [ ] 06-03-PLAN.md — Enrich with all new sections: Workload Profile, Management Architecture, NVMe, AI/GPU, Stretch, vSAN Max, Validation Warnings, Network Config (MD-02..09)
 **UI hint**: yes
 
 ### Phase 7: Print/PDF CSS Overhaul
@@ -92,7 +96,7 @@ Full details: `.planning/milestones/v2.0-ROADMAP.md`
 | 3. Advanced Features and Polish | v2.0 | 2/2 | Complete | 2026-03-29 |
 | 4. Correctness and Architecture Validation | v2.0 | 2/2 | Complete | 2026-03-29 |
 | 5. vSAN Max Storage Cluster | v2.0 | 2/2 | Complete | 2026-03-29 |
-| 6. Markdown Extraction and Enrichment | v2.1 | 0/? | Not started | - |
+| 6. Markdown Extraction and Enrichment | v2.1 | 0/3 | Planned | - |
 | 7. Print/PDF CSS Overhaul | v2.1 | 0/? | Not started | - |
 | 8. PPTX Core Slides | v2.1 | 0/? | Not started | - |
 | 9. PPTX Conditional Slides and Polish | v2.1 | 0/? | Not started | - |
