@@ -55,7 +55,7 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ Multiple workload domains with independent host specs, workload profiles, storage configs, and optional features per domain — Validated in Phase 12: Domain Tab UI and Per-Domain Input Forms
 - ✓ Management domain with independent host specs (decoupled from workload domains), architecture toggle in dedicated section — Validated in Phase 12
 - ✓ Tab-based domain UI with unlimited add/remove of named workload domains, inline rename, confirmation on delete — Validated in Phase 12
-- [ ] Per-domain results + aggregate totals across all domains
+- ✓ Per-domain result cards (DomainResultCard) + AggregateTotalsCard showing procurement total — Validated in Phase 13: Per-Domain Results and Aggregate Totals
 - ✓ Full multi-domain URL state (lz-string/Zod with variable-length domain arrays), v2.x backward compat, activeTabIndex excluded — Validated in Phase 11: URL State Schema Refactor
 - [ ] Per-domain sections in Markdown and PPTX exports
 
@@ -94,7 +94,9 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 **Shipped v2.1 with ~5,400 LOC TypeScript + Vue 3.**
 Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.js, vue-i18n v11, Chart.js via vue-chartjs, lz-string + Zod for URL state, pptxgenjs 4.0.1 (dynamic import), Vitest for unit tests.
 
-182 tests passing. 4 locale files (en/fr/de/it). 3 export formats: Markdown, Print/PDF, PowerPoint.
+222 tests passing. 4 locale files (en/fr/de/it). 3 export formats: Markdown, Print/PDF, PowerPoint.
+
+**Phase 13 complete (2026-03-30):** Per-domain result cards and aggregate totals implemented. DomainResultCard and AggregateTotalsCard created. ResultsPanel rewritten with v-for over domainResults. StretchNetworkChecklist and VsanMaxClusterCard converted to prop-driven. Export composables updated to first-domain bridge pattern.
 
 **Architecture patterns established:**
 
