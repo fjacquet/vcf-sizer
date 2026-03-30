@@ -26,5 +26,13 @@ export const useUiStore = defineStore('ui', () => {
     loadLocale(locale.value as 'fr' | 'de' | 'it')
   }
 
-  return { locale, setLocale }
+  // Wizard step state — WIZARD-02
+  // currentWizardStep must NEVER appear in InputStateSchema (WIZARD-07 structural guarantee)
+  const currentWizardStep = ref<1 | 2 | 3>(1)
+
+  function setWizardStep(step: 1 | 2 | 3): void {
+    currentWizardStep.value = step
+  }
+
+  return { locale, setLocale, currentWizardStep, setWizardStep }
 })
