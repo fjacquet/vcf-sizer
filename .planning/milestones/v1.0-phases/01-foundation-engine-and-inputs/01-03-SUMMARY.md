@@ -131,6 +131,7 @@ completed: 2026-03-28
 ### Auto-fixed Issues
 
 **1. [Rule 2 - Missing Critical] Added i18n keys for ManagementSummary table headers**
+
 - **Found during:** Task 1 (ManagementSummary implementation)
 - **Issue:** Plan used hardcoded "Component", "vCPU", "RAM (GB)" as table headers — violates no-hardcoded-strings rule
 - **Fix:** Added management.component/vcpu/ramLabel keys to all four locale files
@@ -138,6 +139,7 @@ completed: 2026-03-28
 - **Committed in:** 0c3661a
 
 **2. [Rule 2 - Missing Critical] Added i18n keys for StorageConfigForm capacity summary**
+
 - **Found during:** Task 2 (StorageConfigForm implementation)
 - **Issue:** Plan used hardcoded "Raw Capacity", "RAID Overhead", "Net Usable" text — violates no-hardcoded-strings rule
 - **Fix:** Added storage.rawCapacity/raidOverhead/netUsable/netUsablePassthrough/minHosts to all four locale files

@@ -25,6 +25,7 @@ Rationale: 5 profiles are already a lot for a button group. Dropdown is compact 
 level selector already in StorageConfigForm.
 
 **Profiles and raw TB per node:**
+
 - XS — 20 TB/node
 - SM — 50 TB/node
 - MED — 100 TB/node
@@ -38,6 +39,7 @@ constants in `engine/vsanMax.ts`. This is flagged as a blocker in STATE.md.
 ### Input Restructure (VMAX-01, VMAX-02)
 
 **StorageConfigForm.vue gets:**
+
 1. "vSAN Max" added to the existing type button group (next to vSAN ESA / FC / NFS)
 2. When `storageType === 'vsan-max'` is active:
    - Profile dropdown: `<select>` with 5 profiles + raw TB/node labels
@@ -45,11 +47,13 @@ constants in `engine/vsanMax.ts`. This is flagged as a blocker in STATE.md.
 3. When vSAN Max NOT active: profile dropdown and storage nodes are hidden (no DOM impact)
 
 **HostSpecsForm.vue:** No changes to structure. When vSAN Max is selected:
+
 - The existing `hostCount` slider implicitly becomes the compute cluster host count
 - A small informational note appears: "Host count = compute cluster size when vSAN Max is selected"
 - No relabeling of the slider — too complex, confusing for non-vSAN-Max modes
 
 **New inputStore fields:**
+
 ```typescript
 const vsanMaxProfile = ref<'xs' | 'sm' | 'med' | 'lrg' | 'xl'>('med')
 const vsanMaxStorageNodes = ref(4)
@@ -67,6 +71,7 @@ const vsanMaxStorageNodes = ref(4)
    - Placement in ResultsPanel: after HostCountCard, before CoresChart
 
 **VsanMaxClusterCard content:**
+
 ```
 [ vSAN Max Storage Cluster ]
   Profile: MED (100 TB/node)    Storage nodes: 4
@@ -78,6 +83,7 @@ const vsanMaxStorageNodes = ref(4)
 ### Capacity Model (VMAX-01)
 
 **Profile TB = raw capacity.** Apply full vSAN overhead stack identical to HCI ESA:
+
 - RAID overhead: Adaptive RAID-5 scheme (same gate as HCI: 4+1 at 4+ nodes)
 - LFS overhead: ~13% (`LFS_OVERHEAD_FACTOR`)
 - Metadata pool: ~10% (`METADATA_OVERHEAD_FACTOR`)
@@ -112,11 +118,13 @@ is added to the `StorageType` union (roadmap constraint).
 ### Network Speed Input (new — scoped to Phase 5)
 
 **New global input in HostSpecsForm.vue:**
+
 ```
 Network speed: [ 10 GbE ] [ 25 GbE ] [ 100 GbE ]   ← button group
 ```
 
 **New inputStore field:**
+
 ```typescript
 const networkSpeedGbE = ref<10 | 25 | 100>(25)   // default 25 GbE
 ```
@@ -130,12 +138,15 @@ const networkSpeedGbE = ref<10 | 25 | 100>(25)   // default 25 GbE
 
 2. **Stretch bandwidth upper bound (STRCH-05)** — The cross-site bandwidth recommendation from
    `calcStretch()` cannot exceed the physical line rate. Apply:
+
    ```typescript
    const effectiveBandwidthGbps = Math.min(stretch.minBandwidthGbps, networkSpeedGbE)
    ```
+
    Surface in DeploymentModelSelector if capped by line rate.
 
 **NOT in scope for Phase 5:**
+
 - vSAN Max interconnect note based on speed (informational, deferred)
 - Speed-based performance multipliers
 
@@ -158,6 +169,7 @@ const networkSpeedGbE = ref<10 | 25 | 100>(25)   // default 25 GbE
 </decisions>
 
 <canonical_refs>
+
 ## Canonical References
 
 - `.planning/REQUIREMENTS.md` — Phase 5: VMAX-01, VMAX-02, VMAX-03
@@ -183,32 +195,40 @@ const networkSpeedGbE = ref<10 | 25 | 100>(25)   // default 25 GbE
 </canonical_refs>
 
 <code_context>
+
 ## Existing Code Insights
 
 ### StorageConfigForm.vue — extension point
+
 Current type selector: button group for vSAN ESA / FC / NFS (lines 21–25 in component).
 `storageType` is `ref<'vsan-esa' | 'fc' | 'nfs'>`. Will extend to include 'vsan-max'.
 Template uses `v-if="storageType === 'vsan-esa'"` — same pattern for vSAN Max section.
 
 ### HostSpecsForm.vue — network speed addition
+
 Currently: coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB, hostCount.
 Add networkSpeedGbE button group (10/25/100) after hostStorageTB, before hostCount.
 Button group already established in DeploymentModelSelector for managementArchitecture toggle.
 
 ### calcStorage() in storage.ts — must convert to switch
+
 Currently uses if/else chain for storage type branching. Roadmap requires exhaustive switch with
 `never` case before 'vsan-max' is added to StorageType union. This is a required refactor task.
 
 ### VsanMaxClusterCard placement
+
 ResultsPanel.vue currently: HostCountCard → CoresChart → RamChart → StorageChart → StretchNetworkChecklist → ExportToolbar.
 Insert VsanMaxClusterCard after HostCountCard (before charts), guarded by `v-if="input.storageType === 'vsan-max'"`.
 
 ### CALC-02 constraint
+
 calculationStore must have zero ref() — only computed(). vsanMax result must be a computed() that
 reads from input store refs. Same pattern as existing stretch computed.
 
 ### URL state triple-sync
+
 Any new inputStore field needs atomic update in useUrlState.ts at all three locations:
+
 1. InputStateSchema Zod object
 2. hydrateFromUrl assignment block
 3. generateShareUrl state object

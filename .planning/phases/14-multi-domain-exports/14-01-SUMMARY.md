@@ -97,9 +97,10 @@ _Note: TDD tasks have two commits — test (RED) then feat (GREEN)_
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Updated existing tests from H2 to H3 for per-domain sections**
+
 - **Found during:** Task 2 (GREEN implementation)
 - **Issue:** Existing tests asserted `## Host Configuration`, `## Compute Sizing`, etc. (H2). After the multi-domain refactor these become H3 sub-sections inside domain blocks, so the assertions would fail.
-- **Fix:** Updated all per-domain section assertions in `useMarkdownExport.test.ts` to use `### ` prefix (NVMe, AI/GPU, Stretch Cluster, vSAN Max, Network Configuration, Host Configuration, Workload Profile, Compute Sizing, Storage Sizing).
+- **Fix:** Updated all per-domain section assertions in `useMarkdownExport.test.ts` to use `###` prefix (NVMe, AI/GPU, Stretch Cluster, vSAN Max, Network Configuration, Host Configuration, Workload Profile, Compute Sizing, Storage Sizing).
 - **Files modified:** `src/composables/useMarkdownExport.test.ts`
 - **Verification:** Full suite 229 tests pass
 - **Committed in:** `7a4a92e` (Task 2 commit)
@@ -120,5 +121,5 @@ _Note: TDD tasks have two commits — test (RED) then feat (GREEN)_
 - `for (const domain of store.workloadDomains)` + `domainResults.find(r => r.id === domain.id)!` is the canonical pattern for export composables
 
 ---
-*Phase: 14-multi-domain-exports*
-*Completed: 2026-03-30*
+_Phase: 14-multi-domain-exports_
+_Completed: 2026-03-30_

@@ -7,6 +7,7 @@
 ---
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
@@ -48,6 +49,7 @@
 </user_constraints>
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -290,6 +292,7 @@ export default defineConfig({
 ```
 
 **Key requirements:**
+
 - `moduleResolution: "bundler"` — required for Vite 8; replaces old `node` mode
 - `isolatedModules: true` — required because Vite/esbuild transpiles without type info
 - `strict: true` — mandatory; catches formula bugs at compile time
@@ -988,6 +991,7 @@ if (new Decimal(activeMemoryGB).lte(new Decimal(totalRamGB).times(0.5))) { ... }
 **What goes wrong:** A 5-node cluster shows the same storage as a 6-node cluster because the threshold is implemented as `>= 5` instead of `>= 6` for 4+1.
 
 **Why it happens:** The PITFALLS.md documents two different threshold descriptions:
+
 - "3 to 5 hosts = 2+1 scheme; 6+ hosts = 4+1 scheme" (PITFALLS.md §Pitfall 2)
 - REQUIREMENTS.md STOR-02: "2+1 at 5 hosts; 4+1 at 6+ hosts"
 
@@ -1132,6 +1136,7 @@ const hasVcfaBlocker = computed(() =>
 | Options API Vue 3 | Composition API + `<script setup>` | Best practice from 2022 | Composables share logic across components |
 
 **Deprecated/outdated:**
+
 - `vue-i18n v9/v10`: Maintenance mode — no new features; use v11
 - `@tailwindcss/postcss`: Still works but superseded by `@tailwindcss/vite` for Vite projects
 - `Vuex`: Officially superseded by Pinia; do not use
@@ -1251,6 +1256,7 @@ Framework install: `npm install -D vitest @vitest/ui` — must run before any te
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — versions verified in prior research (STACK.md, 2026-03-28); Tailwind v4 + Vite plugin setup verified against official docs
 - Architecture: HIGH — Pinia cross-store pattern, vue-i18n lazy loading, Vitest config all verified against official docs
 - raidy port: HIGH — source code inspected directly; divergences from REQUIREMENTS.md identified and documented

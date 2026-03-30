@@ -106,6 +106,7 @@ grep -c "dedicated mode|colocated mode" src/stores/calculationStore.test.ts
 ```
 
 Test describe blocks confirmed present:
+
 - `calculationStore — management overhead routing (ENGINE-01, ENGINE-02)` (3 tests, lines 152-197)
 - `calculationStore — aggregateTotals mgmt host integration (ENGINE-03)` (3 tests, lines 199-224)
 

@@ -52,6 +52,7 @@ requirements:
 ## What Was Built
 
 ### Task 1: pptxgenjs Installation
+
 - Installed `pptxgenjs@^4.0.1` as a production dependency in `package.json`
 - Verified `npm run build` succeeds (pptxgenjs has zero runtime dependencies; Vite integration via package.json `exports` field is automatic)
 
@@ -60,10 +61,12 @@ requirements:
 `src/composables/usePptxExport.ts` — 430 lines implementing:
 
 **Exported constants (no `#` prefix per Pitfall 1):**
+
 - `PPTX_MASTER_COLOR = '003087'` (Broadcom blue)
 - `PPTX_FOOTER_COLOR = '001F5B'`, `PPTX_WHITE`, `PPTX_LIGHT_TEXT`, `PPTX_HEADER_BG`, `MASTER_NAME`
 
 **7 pure data-mapping helpers:**
+
 1. `buildTitleSlideData(store)` — returns `{ deploymentMode, date }` (PPTX-03)
 2. `buildConfigSummaryData(store)` — returns 8 label/value rows for host/config fields (PPTX-04)
 3. `buildWorkloadSlideData(store)` — returns 6 label/value rows for workload profile (PPTX-05)
@@ -73,6 +76,7 @@ requirements:
 7. `buildRecommendationsData(store, calc)` — returns string[] recommendations (PPTX-09)
 
 **Main function:**
+
 - `generatePptxReport()` — creates 7 slides with `VCF_MASTER` slide master, triggers browser download
 - Dynamic import: `(await import('pptxgenjs')).default` inside function body (PPTX-15)
 - `defineSlideMaster()` called before any `addSlide()` (Pitfall 2)
@@ -85,6 +89,7 @@ requirements:
 Test Files  10 passed (10)
      Tests  166 passed (166)
 ```
+
 All 24 Wave 0 usePptxExport tests: GREEN. No regressions in existing suite.
 
 ## Deviations from Plan
@@ -92,6 +97,7 @@ All 24 Wave 0 usePptxExport tests: GREEN. No regressions in existing suite.
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Fixed TypeScript type errors for pptxgenjs TableCell/TableRow**
+
 - **Found during:** Task 2 — build verification after writing composable
 - **Issue:** `TableCell` and `TableRow` are not named exports from `pptxgenjs` — the module uses `export as namespace PptxGenJS` pattern. `fill` in `TableCellProps` must be `ShapeFillProps` object, not a plain string. Plain `string` cannot be used as `TableCell` directly.
 - **Fix:** Changed import to `import type PptxGenJS from 'pptxgenjs'` for namespace access. Added type aliases `type TableCell = PptxGenJS.TableCell` and `type TableRow = PptxGenJS.TableRow`. Added internal `hdrCell()` and `cell()` helpers that create properly typed `TableCell` objects. Changed `fill: 'E8E8E8'` to `fill: { color: 'E8E8E8' }` (ShapeFillProps).

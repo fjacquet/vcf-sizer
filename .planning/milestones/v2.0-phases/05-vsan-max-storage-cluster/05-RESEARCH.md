@@ -7,19 +7,23 @@
 ---
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
 
 **Profile Picker UX (VMAX-01)**
+
 - Presentation: HTML `<select>` dropdown with format `"{PROFILE} — {TB}/node"` (e.g., "MED — 100 TB/node")
 - 5 profiles: XS — 20 TB/node, SM — 50 TB/node, MED — 100 TB/node, LRG — 150 TB/node, XL — 200 TB/node
 - CRITICAL: Verify exact profile specs (especially MED/LRG/XL NVMe counts and XS RAM minimum 128 GB) against `compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance` before hardcoding constants
 
 **Input Restructure (VMAX-01, VMAX-02)**
+
 - StorageConfigForm.vue: "vSAN Max" added to existing type button group; when active shows profile dropdown + storage nodes slider (min 4, max 64, default 4)
 - HostSpecsForm.vue: No structure changes; when vSAN Max selected, show informational note "Host count = compute cluster size when vSAN Max is selected" — no slider relabeling
 - New inputStore fields:
+
   ```typescript
   const vsanMaxProfile = ref<'xs' | 'sm' | 'med' | 'lrg' | 'xl'>('med')
   const vsanMaxStorageNodes = ref(4)
@@ -27,23 +31,27 @@
   ```
 
 **Results Dual Output (VMAX-02)**
+
 - Two separate cards: existing HostCountCard (unchanged) + new VsanMaxClusterCard.vue (vsan-max only)
 - VsanMaxClusterCard placement: after HostCountCard, before CoresChart
 - Shows: profile, storage node count, raw capacity (TB), usable capacity (TB), warning when nodes < 4
 
 **Capacity Model (VMAX-01)**
+
 - Profile TB = raw capacity per node
 - Apply full vSAN overhead stack identical to HCI ESA: RAID overhead, LFS ~13%, metadata pool ~10%, safe slack ~5% (70% net)
 - Engine function: `calcVsanMax(inputs: VsanMaxInputs): VsanMaxResult` in `engine/vsanMax.ts`
 - `calcStorage()` MUST be converted to exhaustive `switch` with `never` case before adding 'vsan-max' to StorageType union
 
 **Network Speed Input (scoped to Phase 5)**
+
 - New button group in HostSpecsForm.vue: [ 10 GbE ] [ 25 GbE ] [ 100 GbE ]
 - New inputStore field: `const networkSpeedGbE = ref<10 | 25 | 100>(25)`
 - Wire to dedup eligibility: `dedupEnabled && networkSpeedGbE < 25` → DEDUP_NETWORK_SPEED warning
 - Wire to stretch bandwidth cap: `Math.min(stretch.minBandwidthGbps, networkSpeedGbE)`
 
 **Test Strategy**
+
 - Full Vitest coverage for `calcVsanMax()` (all 5 profiles, min node validation, usable capacity formula)
 - Validation tests: DEDUP_NETWORK_SPEED warning at 10 GbE with dedup enabled
 - URL state round-trip tests: vsanMaxProfile, vsanMaxStorageNodes, networkSpeedGbE preserved
@@ -69,6 +77,7 @@
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -337,6 +346,7 @@ These constants are already defined in `storage.ts` as `VSAN_LFS_OVERHEAD = 0.13
 From the Mar 2024 blog "Greater Flexibility with vSAN Max": **"a 4-host vSAN Max cluster will allow data to be stored using RAID-5"** — confirmed as the adaptive 2+1 scheme at <6 nodes.
 
 Adaptive RAID-5 in vSAN ESA (same for vSAN-SC):
+
 - 3–5 nodes: **2+1 scheme → 1.5× overhead** (min cluster: 4 nodes for vSAN Max per VMAX-03)
 - 6+ nodes: **4+1 scheme → 1.25× overhead**
 
@@ -376,6 +386,7 @@ From VMware blog Mar 2024 + Nov 2025 update:
 **Confidence note:** XS/SM NVMe counts and RAM are MEDIUM confidence (Mar 2024 blog, confirmed by Nov 2025 update). MED/LRG/XL NVMe counts are LOW confidence (not published in blog sources — compatibility guide only). The XS 128 GB RAM minimum cited in STATE.md is NOT confirmed; the blog shows 384 GB for XS. The Nov 2025 blog's "16 cores and 128 GB of RAM" baseline appears to describe the new *minimum* for the smallest hardware tier, not the XS ReadyNode profile spec.
 
 **CRITICAL at implementation:** Run `source comment` in `READYNODE_PROFILES` constant with URL and date:
+
 ```typescript
 // Source: compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance
 // Last verified: 2026-03-29. Re-verify before hardcoding if more than 3 months old.
@@ -640,6 +651,7 @@ const { vsanMax } = storeToRefs(calc)
 | Minimum 6 hosts for RAID-5 4+1 in vSAN Max | Minimum 4 hosts for RAID-5 2+1 in vSAN Max | Mar 2024 | 4-node cluster is the minimum and uses adaptive 2+1 scheme |
 
 **Deprecated/outdated:**
+
 - "vSAN Max XS" at 75TB: superseded by 20TB per Nov 2025 update
 - "vSAN Max SM" at 150TB: superseded by 50TB per Nov 2025 update
 
@@ -761,6 +773,7 @@ The project `CLAUDE.md` does not exist at the project root (`/Users/fjacquet/Pro
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all from package.json in repo; no new dependencies
 - Engine patterns: HIGH — directly verified in codebase; all patterns confirmed from source files
 - Overhead model: HIGH — LFS/metadata confirmed from official VMware blog

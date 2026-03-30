@@ -83,6 +83,7 @@ completed: 2026-03-29
 - **Files modified:** 11
 
 ## Accomplishments
+
 - URL state composable (`useUrlState.ts`) with full lz-string + Zod round-trip — EXPORT-01/02
 - ExportToolbar.vue with Share URL (Copied! feedback), Export Markdown (Blob download), Print/PDF buttons — EXPORT-03/04
 - URL hydration wired before `app.mount()` in main.ts — prevents flash of default state
@@ -98,6 +99,7 @@ Each task was committed atomically:
 3. **Tests: useUrlState + useMarkdownExport + vitest config** - `db37c4c` (test)
 
 ## Files Created/Modified
+
 - `src/composables/useUrlState.ts` - hydrateFromUrl, generateShareUrl, generateMarkdownReport exports
 - `src/components/results/ExportToolbar.vue` - Share URL / Export Markdown / Print buttons
 - `src/main.ts` - hydrateFromUrl() called after pinia, before app.mount()
@@ -111,6 +113,7 @@ Each task was committed atomically:
 - `src/i18n/locales/it.json` - Italian translations for toolbar keys
 
 ## Decisions Made
+
 - lz-string default import confirmed (not named exports) — plan constraint enforced
 - Zod `.strip()` used to silently discard unknown URL keys — protects against future URL format evolution and untrusted input
 - `hydrateFromUrl()` wired in main.ts (not inside Vue lifecycle) to run before `app.mount()` — avoids flash of default state
@@ -123,6 +126,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Fixed failing lz-string null-check test**
+
 - **Found during:** Test run (between Task 2 and final commit)
 - **Issue:** Test expected `BROKEN_INVALID_INPUT` to return null from LZString, but lz-string returns garbage string `"("` for that specific input. The null return only occurs for inputs with special characters like `!@#`
 - **Fix:** Updated test to use `totally_invalid_!@#` input (which reliably returns null) and added a second test showing JSON.parse error catch also protects the app
@@ -136,12 +140,15 @@ Each task was committed atomically:
 **Impact on plan:** Minimal — test correction only. Production code unchanged.
 
 ## Issues Encountered
+
 - LZString decompression behavior is input-dependent: garbage input returns garbage string (not null), special characters return null. Both cases are handled in the composable (null-check + JSON.parse error catch). Tests updated to reflect actual LZString API behavior.
 
 ## User Setup Required
+
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - Phase 2 export functionality complete: URL sharing, Markdown download, PDF print all working
 - App.vue already has correct print CSS (print:hidden on header and left pane, print:col-span-2 on results pane)
 - Phase 3 (stretch cluster, GPU workloads) can build on this foundation

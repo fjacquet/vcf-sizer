@@ -43,6 +43,7 @@ Complete UI layer for vSAN Max storage cluster: storage type button + profile dr
 ### New Files
 
 **src/components/results/VsanMaxClusterCard.vue** — vSAN Max storage cluster results card (follows HostCountCard pattern)
+
 - Visible only when `storageType === 'vsan-max' && vsanMax` (conditional mount via `v-if`)
 - Shows storage node count as large 48px number (emerald when >= 4, red when below minimum)
 - Shows computed `profileLabel` (e.g. "MED (100 TB/node)") from READYNODE_PROFILES
@@ -53,6 +54,7 @@ Complete UI layer for vSAN Max storage cluster: storage type button + profile dr
 ### Modified Files
 
 **src/components/input/StorageConfigForm.vue** — Extended for vSAN Max
+
 - Added `vsanMaxProfile`, `vsanMaxStorageNodes`, `networkSpeedGbE` to storeToRefs
 - Added `vsanMax` to storeToRefs from calculationStore
 - Added `vsanMaxMinNodesError` and `dedupNetworkSpeedError` computed properties
@@ -63,15 +65,18 @@ Complete UI layer for vSAN Max storage cluster: storage type button + profile dr
 - Updated storage capacity summary: raw capacity uses vsanMax.rawCapacityTB when vSAN Max active; added `v-else-if` for vSAN Max showing raidScheme and usableCapacityTB
 
 **src/components/input/HostSpecsForm.vue** — Network speed + compute note
+
 - Added `networkSpeedGbE`, `storageType` to storeToRefs
 - Added network speed button group (10/25/100 GbE, `sm:col-span-2`) after hostStorageTB slider
 - Added informational note `v-if="storageType === 'vsan-max'"` after hostCount slider
 
 **src/components/results/ResultsPanel.vue** — VsanMaxClusterCard wiring
+
 - Added `import VsanMaxClusterCard`
 - Inserted `<VsanMaxClusterCard />` after `<HostCountCard />` and before `<CoresChart />`
 
 **src/components/input/DeploymentModelSelector.vue** — Stretch bandwidth line-rate cap
+
 - Added `networkSpeedGbE` to storeToRefs
 - Added `effectiveBandwidthGbps = Math.min(stretch.minBandwidthGbps, networkSpeedGbE)` computed
 - Added `bandwidthCappedByLineRate` computed (true when formula result > line rate)
@@ -79,6 +84,7 @@ Complete UI layer for vSAN Max storage cluster: storage type button + profile dr
 - Added `bandwidthLineRateCap` indicator span below existing `bandwidthFloorApplied` indicator
 
 **Locale files (en/fr/de/it)** — All Phase 5 i18n keys added
+
 - `storage.vsanMax`, `storage.vsanMaxProfile`, `storage.vsanMaxStorageNodes`
 - `host.networkSpeed`, `host.vsanMaxComputeNote`
 - `validation.vsanMaxMinNodes`, `validation.dedupNetworkSpeed`

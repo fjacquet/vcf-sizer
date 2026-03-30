@@ -22,10 +22,12 @@ Fix two concrete bugs in `calculationStore.ts` and clean up TypeScript diagnosti
 **Current broken behavior:** `managementCores: management.value.totalCores` and `managementRamGB: management.value.totalRamGB` are passed to ALL workload domains unconditionally.
 
 **Fix:**
+
 - `managementArchitecture === 'dedicated'`: pass `managementCores: 0, managementRamGB: 0` to ALL workload domains. Management runs on its own hosts.
 - `managementArchitecture === 'colocated'`: pass `managementCores: management.value.totalCores, managementRamGB: management.value.totalRamGB` to WLD-1 only (`index === 0`), pass 0 to all other domains.
 
 **Pattern:**
+
 ```typescript
 const mgmtCoresForDomain = input.managementArchitecture === 'colocated' && index === 0
   ? management.value.totalCores
@@ -58,6 +60,7 @@ export interface AggregateTotals {
 ```
 
 **Fix — aggregateTotals computed:**
+
 ```typescript
 const aggregateTotals = computed<AggregateTotals>(() => {
   const workloadHosts = domainResults.value.reduce(
@@ -81,6 +84,7 @@ const aggregateTotals = computed<AggregateTotals>(() => {
 **Decision:** Rename the `'shared'` value to `'colocated'` in `managementArchitecture` throughout the codebase.
 
 **Scope of rename:**
+
 - `src/engine/types.ts` — `ManagementArchitecture` type: `'shared' | 'dedicated'` → `'colocated' | 'dedicated'`
 - `src/stores/inputStore.ts` — default value and all references
 - `src/stores/calculationStore.ts` — conditional checks
@@ -133,6 +137,7 @@ Write these tests in `calculationStore.test.ts` BEFORE touching implementation:
 6. `'colocated mode: aggregateTotals.mgmtHostCount is 0'`
 
 **Wave 1 (implementation):**
+
 - Rename 'shared' → 'colocated' throughout
 - Fix management overhead routing in `domainResults.map()`
 - Extend `AggregateTotals` type and fix `aggregateTotals` computed

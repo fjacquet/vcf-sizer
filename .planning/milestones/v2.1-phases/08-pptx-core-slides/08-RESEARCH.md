@@ -29,6 +29,7 @@ All seven always-present slides can be populated from values already exposed by 
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -50,16 +51,19 @@ All seven always-present slides can be populated from values already exposed by 
 ## Standard Stack
 
 ### Core
+
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | pptxgenjs | 4.0.1 | Generate .pptx files in browser/Node | De-facto JS PPTX library; zero dependencies; TypeScript-first; Vite-compatible via package.json exports field |
 
 ### Supporting
+
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | (none) | — | — | All other dependencies already in project |
 
 ### Alternatives Considered
+
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
 | pptxgenjs | officegen | Node-only; no browser support |
@@ -67,11 +71,13 @@ All seven always-present slides can be populated from values already exposed by 
 | pptxgenjs | html-to-pptx | Heavier, layout-sensitive |
 
 **Installation:**
+
 ```bash
 npm install pptxgenjs
 ```
 
 **Version verification (confirmed 2026-03-30):**
+
 ```bash
 npm view pptxgenjs version
 # 4.0.1
@@ -82,6 +88,7 @@ npm view pptxgenjs version
 ## Architecture Patterns
 
 ### Recommended Project Structure
+
 ```
 src/
 ├── composables/
@@ -98,9 +105,11 @@ src/
 ```
 
 ### Pattern 1: Dynamic Import for Code Splitting
+
 **What:** Load pptxgenjs only when the user clicks "Download PPTX" — never on page load.
 **When to use:** Any large library that is not needed for initial render.
 **Example:**
+
 ```typescript
 // src/composables/usePptxExport.ts
 // Source: pptxgenjs docs + Vite dynamic import docs
@@ -128,9 +137,11 @@ export async function generatePptxReport(): Promise<void> {
 ```
 
 ### Pattern 2: Slide Creation with Master
+
 **What:** Each slide references the master by its `title` string.
 **When to use:** Every slide added in this phase.
 **Example:**
+
 ```typescript
 // Source: https://gitbrent.github.io/PptxGenJS/docs/masters/
 const slide = pres.addSlide({ masterName: 'VCF_MASTER' })
@@ -141,9 +152,11 @@ slide.addText('Title Text', {
 ```
 
 ### Pattern 3: Table Slide
+
 **What:** addTable() for per-row data (management overhead, storage breakdown).
 **When to use:** PPTX-06 (management domain), PPTX-08 (storage results).
 **Example:**
+
 ```typescript
 // Source: https://gitbrent.github.io/PptxGenJS/docs/api-tables.html
 const rows = [
@@ -170,9 +183,11 @@ slide.addTable(rows, {
 ```
 
 ### Pattern 4: ExportToolbar Button Addition
+
 **What:** Mirror the existing `handleExportMarkdown` async pattern; add loading state.
 **When to use:** PPTX-01 — adding the "Download PPTX" button.
 **Example:**
+
 ```typescript
 // src/components/results/ExportToolbar.vue — add to <script setup>
 import { generatePptxReport } from '@/composables/usePptxExport'
@@ -188,6 +203,7 @@ async function handleExportPptx() {
   }
 }
 ```
+
 ```html
 <!-- Template — follow same button class pattern as existing buttons -->
 <button
@@ -200,9 +216,11 @@ async function handleExportPptx() {
 ```
 
 ### Pattern 5: Store Data Access in Composable
+
 **What:** Call `useInputStore()` and `useCalculationStore()` at composable call-time (same as `useMarkdownExport.ts`).
 **When to use:** Any composable that needs store values at export time.
 **Example:**
+
 ```typescript
 // Source: src/composables/useMarkdownExport.ts (Phase 6)
 import { useInputStore } from '@/stores/inputStore'
@@ -217,6 +235,7 @@ export async function generatePptxReport(): Promise<void> {
 ```
 
 ### Anti-Patterns to Avoid
+
 - **Call `addSlide()` before `defineSlideMaster()`:** The master will not be found; slides render without branding. Always define master first.
 - **Re-use a `pres` instance across exports:** Slides accumulate from prior calls (PPTX-15 cleanliness requirement). Always instantiate `new PptxGenJS()` inside the export function body.
 - **Hex color with `#` prefix:** pptxgenjs color values are bare hex strings (`'003087'` not `'#003087'`).
@@ -242,42 +261,49 @@ export async function generatePptxReport(): Promise<void> {
 ## Common Pitfalls
 
 ### Pitfall 1: `#` in Color Codes
+
 **What goes wrong:** `background: { color: '#003087' }` — the leading `#` is passed to XML attributes and PowerPoint fails to parse the color, rendering the background black or throwing an open error.
 **Why it happens:** pptxgenjs follows OOXML color conventions which omit the hash.
 **How to avoid:** Always pass bare 6-digit hex: `color: '003087'`.
 **Warning signs:** Slides open with black/default background despite the option being set.
 
 ### Pitfall 2: `addSlide()` Called Before `defineSlideMaster()`
+
 **What goes wrong:** The slide is created without a recognized master name; PowerPoint opens the file but resets the slide to its default blank layout.
 **Why it happens:** `defineSlideMaster()` registers the master in the presentation's internal table; `addSlide({ masterName })` looks up that table at call time.
 **How to avoid:** Strict ordering: all `defineSlideMaster()` calls at the top of the function, before any `addSlide()`.
 **Warning signs:** PPTX opens but slides show no branding color.
 
 ### Pitfall 3: Static Import Breaks Bundle Splitting
+
 **What goes wrong:** `import PptxGenJS from 'pptxgenjs'` at the top of `usePptxExport.ts` causes Vite to include ~800 KB (gzip ~230 KB estimated) in the main bundle.
 **Why it happens:** Top-level static imports are resolved at module evaluation time; Vite cannot split them.
 **How to avoid:** `const PptxGenJS = (await import('pptxgenjs')).default` inside the async function body.
 **Warning signs:** `npx vite build --report` shows pptxgenjs in the main entry chunk.
 
 ### Pitfall 4: TypeScript Type Import Conflict
+
 **What goes wrong:** `import type PptxGenJS from 'pptxgenjs'` at module top for type annotations causes the type import to fail if the module only has a default export with certain TypeScript settings.
 **Why it happens:** pptxgenjs uses `export default` with `export =` in some older typings.
 **How to avoid:** Use `typeof import('pptxgenjs')` for type narrowing, or declare a local type alias after the dynamic import: `type PptxType = typeof PptxGenJS`.
 **Warning signs:** `TS2305: Module 'pptxgenjs' has no exported member 'default'` — switch to `.default` access.
 
 ### Pitfall 5: `writeFile()` Not Awaited
+
 **What goes wrong:** The function returns before the internal JSZip assembly completes; no download is triggered.
 **Why it happens:** `writeFile()` is async and returns `Promise<string>`.
 **How to avoid:** Always `await pres.writeFile({ fileName: '...' })`.
 **Warning signs:** Button click does nothing; no network/download activity in DevTools.
 
 ### Pitfall 6: Per-Export State Contamination
+
 **What goes wrong:** Calling the export function twice produces a PPTX with 14 slides (double the expected 7).
 **Why it happens:** `pres` is declared at module scope (not inside the function body), so `addSlide()` appends to the existing instance.
 **How to avoid:** Always declare `const pres = new PptxGenJS()` inside the function body, not at module scope.
 **Warning signs:** Second export has double slides or carries content from the previous run.
 
 ### Pitfall 7: Vitest Cannot Dynamically Import pptxgenjs in Node Environment
+
 **What goes wrong:** `import('pptxgenjs')` inside the composable fails in tests with an error about browser globals (`Blob`, `URL.createObjectURL`) not being available.
 **Why it happens:** pptxgenjs uses browser APIs for the download path; `vitest.config.ts` uses `environment: 'node'`.
 **How to avoid:** In tests, mock the dynamic import — do not call `generatePptxReport()` end-to-end. Instead, extract the data-mapping logic (what goes on each slide) into a pure function `buildPptxData(store, calc)` and test that function only. The pptxgenjs call is integration-level and can be verified manually or with a jsdom environment if needed.
@@ -288,6 +314,7 @@ export async function generatePptxReport(): Promise<void> {
 ## Code Examples
 
 ### Complete usePptxExport.ts Skeleton
+
 ```typescript
 // Source: pptxgenjs 4.0.1 docs + useMarkdownExport.ts pattern
 // src/composables/usePptxExport.ts
@@ -350,6 +377,7 @@ export async function generatePptxReport(): Promise<void> {
 ```
 
 ### defineSlideMaster with Broadcom Branding (PPTX-02)
+
 ```typescript
 // Source: https://gitbrent.github.io/PptxGenJS/docs/masters/
 pres.defineSlideMaster({
@@ -369,6 +397,7 @@ pres.defineSlideMaster({
 ```
 
 ### writeFile for Browser Download (PPTX-01)
+
 ```typescript
 // Source: https://gitbrent.github.io/PptxGenJS/docs/usage-saving/
 await pres.writeFile({ fileName: 'vcf-sizing-report.pptx' })
@@ -404,6 +433,7 @@ The following keys must be added to all 4 locale files (`en.json`, `fr.json`, `d
 ```
 
 Current `results.toolbar` keys (from `en.json`):
+
 - `share`, `copied`, `exportMd`, `print`
 
 No PPTX-specific slide content needs i18n — slide text is English-only for v2.1 (localization deferred per REQUIREMENTS.md future requirements).
@@ -419,6 +449,7 @@ No PPTX-specific slide content needs i18n — slide text is English-only for v2.
 | Vitest | Phase 8 tests | Yes | ^4.1.2 (in devDependencies) | — |
 
 **Missing dependencies with no fallback:**
+
 - `pptxgenjs` — must be installed with `npm install pptxgenjs` before any implementation task.
 
 ---
@@ -426,6 +457,7 @@ No PPTX-specific slide content needs i18n — slide text is English-only for v2.
 ## Validation Architecture
 
 ### Test Framework
+
 | Property | Value |
 |----------|-------|
 | Framework | Vitest 4.1.2 |
@@ -434,6 +466,7 @@ No PPTX-specific slide content needs i18n — slide text is English-only for v2.
 | Full suite command | `npm run test` |
 
 ### Phase Requirements → Test Map
+
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
 | PPTX-01 | `generatePptxReport` is an async function | unit | `npx vitest run src/composables/usePptxExport.test.ts` | ❌ Wave 0 |
@@ -450,11 +483,13 @@ No PPTX-specific slide content needs i18n — slide text is English-only for v2.
 **Test strategy note:** Because pptxgenjs itself uses browser globals (`Blob`, `URL.createObjectURL`), the Vitest node environment cannot run `generatePptxReport()` end-to-end without mocking. The recommended approach is to extract data-mapping into pure helper functions (`buildTitleSlideData`, `buildConfigSummaryData`, etc.) and test only those. The `generatePptxReport()` integration test is manual-only.
 
 ### Sampling Rate
+
 - **Per task commit:** `npx vitest run src/composables/usePptxExport.test.ts`
 - **Per wave merge:** `npm run test`
 - **Phase gate:** Full suite green before `/gsd:verify-work`
 
 ### Wave 0 Gaps
+
 - [ ] `src/composables/usePptxExport.test.ts` — covers PPTX-01..09 data-mapping assertions
 - [ ] Framework install: `npm install pptxgenjs` — must run before Wave 1
 
@@ -469,6 +504,7 @@ No PPTX-specific slide content needs i18n — slide text is English-only for v2.
 | `fill` property on BackgroundProps | `color` property (fill deprecated) | v3.6.0 | Use `background: { color: 'XXXXXX' }` not `background: { fill: 'XXXXXX' }` |
 
 **Deprecated/outdated:**
+
 - `background.fill` property: deprecated in v3.6.0; use `background.color` instead.
 - `background.src` property: deprecated in v3.6.0; use `background.path` for image backgrounds.
 - Callback-style `save(fileName, callback)`: removed in v3; use `await writeFile({ fileName })`.
@@ -497,18 +533,21 @@ No PPTX-specific slide content needs i18n — slide text is English-only for v2.
 ## Sources
 
 ### Primary (HIGH confidence)
-- https://gitbrent.github.io/PptxGenJS/docs/quick-start/ — constructor, addSlide, addText, writeFile
-- https://gitbrent.github.io/PptxGenJS/docs/masters/ — defineSlideMaster API, SlideMasterProps, calling order
-- https://gitbrent.github.io/PptxGenJS/docs/api-text.html — addText() full options
-- https://gitbrent.github.io/PptxGenJS/docs/api-tables.html — addTable() full API
-- https://gitbrent.github.io/PptxGenJS/docs/usage-saving/ — writeFile(), write() with all output types
+
+- <https://gitbrent.github.io/PptxGenJS/docs/quick-start/> — constructor, addSlide, addText, writeFile
+- <https://gitbrent.github.io/PptxGenJS/docs/masters/> — defineSlideMaster API, SlideMasterProps, calling order
+- <https://gitbrent.github.io/PptxGenJS/docs/api-text.html> — addText() full options
+- <https://gitbrent.github.io/PptxGenJS/docs/api-tables.html> — addTable() full API
+- <https://gitbrent.github.io/PptxGenJS/docs/usage-saving/> — writeFile(), write() with all output types
 - `npm view pptxgenjs version` — confirmed 4.0.1 as of 2026-03-30
 
 ### Secondary (MEDIUM confidence)
-- https://github.com/gitbrent/PptxGenJS/blob/master/types/index.d.ts — TypeScript interfaces (WebFetch)
+
+- <https://github.com/gitbrent/PptxGenJS/blob/master/types/index.d.ts> — TypeScript interfaces (WebFetch)
 - npm registry JSON for version/dist-tags verification
 
 ### Tertiary (LOW confidence)
+
 - None
 
 ---
@@ -516,6 +555,7 @@ No PPTX-specific slide content needs i18n — slide text is English-only for v2.
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — pptxgenjs 4.0.1 version confirmed via npm registry; API verified via official docs
 - Architecture: HIGH — pattern follows useMarkdownExport.ts exactly; Vite dynamic import behavior is well-established
 - Pitfalls: HIGH — hex color without `#`, calling order, fresh instance per export all verified from official docs and API behavior

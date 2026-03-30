@@ -14,11 +14,13 @@ Surface the calculation engine results through a split-screen UI with real-time 
 ## Implementation Decisions
 
 ### Layout
+
 - **CSS Grid split-screen**: left pane = input panel (existing App.vue content), right pane = results panel. No third-party split library needed — Tailwind CSS grid-cols-2 with responsive collapse to single column on mobile (`md:grid-cols-2`)
 - On mobile: stack vertically, results below inputs
 - Sticky header (with language switcher) stays across both panes
 
 ### Charts
+
 - **Chart.js 4.x + vue-chartjs 5.x** — Bar charts for cores and RAM, Doughnut or stacked bar for storage breakdown
 - **Reactivity pattern**: Use `computed()` returning a **new object reference** bound to `:data` prop — vue-chartjs 5 has a built-in watcher that detects new object references and calls `chart.update()` automatically. `shallowRef + triggerRef` is only needed when holding an imperative Chart.js instance in a reactive ref, which the declarative vue-chartjs component approach avoids entirely.
 - Three charts: CoresChart, RamChart, StorageChart
@@ -26,11 +28,13 @@ Surface the calculation engine results through a split-screen UI with real-time 
 - Color scheme: use-over-capacity = red, safe capacity = green/teal, overhead = amber
 
 ### Host Count Summary Card
+
 - Prominent card at top of results panel showing `recommendedHostCount` from calculationStore.compute
 - Also shows minHostsForCpu and minHostsForRam for transparency
 - Large number typography (Tailwind text-4xl or text-5xl)
 
 ### URL State Sharing (EXPORT-01, EXPORT-02)
+
 - **lz-string** library for compression (NOT native btoa — URL length exceeds 2048 chars with full state)
 - Serialize `inputStore.$state` → JSON → LZString.compressToEncodedURIComponent → append to URL as `?c=...`
 - On app load: if `?c=` param present, decompress → parse JSON → validate schema → hydrate inputStore
@@ -38,18 +42,21 @@ Surface the calculation engine results through a split-screen UI with real-time 
 - Base64URL safe: lz-string's `compressToEncodedURIComponent` is already URL-safe
 
 ### Markdown Export (EXPORT-03)
+
 - Pure JavaScript string template — no library needed
 - Report sections: Summary, Management Domain, Compute Sizing, Storage Sizing, Validation Warnings
 - Uses values from calculationStore at time of export (snapshot, not live)
 - Download via `URL.createObjectURL(new Blob([markdown], { type: 'text/markdown' }))`
 
 ### PDF Export (EXPORT-04)
+
 - **`@media print` CSS only** — no html2canvas, no jsPDF, no dependencies
 - Add `print:` Tailwind CSS variants to hide input panel, show results panel full-width, hide buttons
 - `window.print()` triggers browser's native PDF save
 - Zero dependencies, zero file size issues
 
 ### Results Panel Component Structure
+
 ```
 ResultsPanel.vue
 ├── HostCountCard.vue          (recommendedHostCount, min CPU hosts, min RAM hosts)
@@ -61,6 +68,7 @@ ResultsPanel.vue
 ```
 
 ### Claude's Discretion
+
 - Exact Tailwind classes and spacing within results panel
 - Chart color palette (must remain accessible — avoid red/green only)
 - Exact Markdown report template content/ordering
@@ -69,6 +77,7 @@ ResultsPanel.vue
 </decisions>
 
 <canonical_refs>
+
 ## Canonical References
 
 - `.planning/REQUIREMENTS.md` — Phase 2 requirements: VIZ-01–07, EXPORT-01–04
@@ -76,11 +85,13 @@ ResultsPanel.vue
 - `.planning/research/STACK.md` — Chart.js + vue-chartjs versions, lz-string
 
 ### Phase 1 outputs consumed by Phase 2
+
 - `src/stores/calculationStore.ts` — management, compute, storage, validationErrors (all computed())
 - `src/stores/inputStore.ts` — full $state shape for URL serialization
 - `src/engine/types.ts` — ComputeResult, StorageResult, MgmtDomainResult interfaces
 
 **calculationStore API (read-only):**
+
 - `compute.totalCoresRequired`, `compute.availableCores`, `compute.coreUtilizationPct`
 - `compute.totalRamRequiredGB`, `compute.availableRamGB`, `compute.ramUtilizationPct`
 - `compute.recommendedHostCount`, `compute.minHostsForCpu`, `compute.minHostsForRam`
@@ -91,9 +102,11 @@ ResultsPanel.vue
 </canonical_refs>
 
 <code_context>
+
 ## Existing Code Insights
 
 ### What Phase 1 Delivered
+
 - `src/App.vue` — single-column layout; Phase 2 converts this to split-screen grid
 - `src/stores/calculationStore.ts` — all computed() results ready to drive charts
 - `src/stores/inputStore.ts` — full reactive state; `inputStore.$state` is the URL serialization target
@@ -102,6 +115,7 @@ ResultsPanel.vue
 - `src/components/shared/` — NumberSliderInput, ManagementSummary
 
 ### Integration Points
+
 - `App.vue` refactor: wrap existing input column in left pane div, add right pane div with ResultsPanel
 - ExportToolbar URL share: reads `useInputStore().$state`, compresses, writes to `window.location`
 - URL hydration: runs in `main.ts` (or a composable) BEFORE `app.mount()` to avoid flash of default state

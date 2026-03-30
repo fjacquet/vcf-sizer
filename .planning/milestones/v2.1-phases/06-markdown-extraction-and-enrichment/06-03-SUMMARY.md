@@ -58,6 +58,7 @@ Existing sections retained: ## Host Configuration, ## Management Domain Overhead
 ## Conditional Guards Implemented
 
 All 5 required conditional guards are present:
+
 - `store.nvmeTieringEnabled` — NVMe section (MD-04)
 - `store.gpuVmCount > 0` — AI/GPU section (MD-05)
 - `store.deploymentMode === 'stretch'` — Stretch section (MD-06)
@@ -81,6 +82,7 @@ None.
 ### Minor Deviation
 
 **Label mismatch between plan and tests**
+
 - Plan action block specified: `| Dedicated management hosts | ${calc.dedicatedMgmtHostCount} |`
 - Tests assert: `expect(report).toContain('Dedicated host count')`
 - **Fix:** Used `| Dedicated host count | ${calc.dedicatedMgmtHostCount} |` to match test expectations. Tests are the ground truth for acceptance criteria.

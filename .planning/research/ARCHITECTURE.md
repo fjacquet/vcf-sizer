@@ -190,11 +190,13 @@ src/
 **Why not `inputStore.ts`:** `inputStore` holds domain data that IS serialized to URL and used by the engine. Wizard step is neither — mixing concerns violates the "inputs = data" contract.
 
 **Trade-offs:**
+
 - PRO: No new file, no new store registration, minimal diff
 - PRO: Consistent with existing `uiStore` philosophy (ephemeral UI state only)
 - CON: `uiStore` grows slightly; if wizard logic becomes complex, extract later
 
 **Example:**
+
 ```typescript
 // uiStore.ts — add to existing store
 const currentWizardStep = ref<1 | 2 | 3>(1)
@@ -225,6 +227,7 @@ return { locale, setLocale, currentWizardStep, setStep, nextStep, prevStep }
 **Current bug:** `aggregateTotals.totalRecommendedHosts` sums only `domainResults` (workload hosts). Management hosts from `dedicatedMgmtHostCount` are never added. Colocated mode does not inject management overhead into WLD-1's compute calculation — it passes `management.value.totalCores` to ALL domains, which is incorrect.
 
 **Analysis of current `calculationStore.ts`:**
+
 ```
 // Line 57-58: passes management overhead to ALL workload domains
 managementCores: management.value.totalCores,  // ← WRONG for dedicated mode
@@ -262,6 +265,7 @@ const domainResults = computed<DomainResult[]>(() =>
 ```
 
 **Trade-offs:**
+
 - PRO: Correct VCF 9.x sizing behavior
 - PRO: calcCompute() signature unchanged — it already accepts managementCores as a parameter
 - PRO: CALC-02 fully preserved — no ref() introduced
@@ -299,6 +303,7 @@ const aggregateTotals = computed<AggregateTotals>(() => {
 ```
 
 **Trade-offs:**
+
 - PRO: Correct procurement total regardless of architecture mode
 - PRO: Zero new ref() — CALC-02 preserved
 - PRO: No engine changes required — logic is correctly in the store
@@ -311,6 +316,7 @@ const aggregateTotals = computed<AggregateTotals>(() => {
 **When to use:** When the steps are purely presentational reorganizations of existing inputs — not new data models.
 
 **Step composition:**
+
 ```
 Step1Topology.vue
   - DeploymentModelSelector (with managementArchitecture toggle)
@@ -330,6 +336,7 @@ Step3Workloads.vue
 ```
 
 **Trade-offs:**
+
 - PRO: No refactoring of existing input components — they are slotted into steps
 - PRO: Step 3 is essentially the current App.vue left pane + right pane
 - CON: App.vue grows conditional complexity (use v-if on step, not v-show, to avoid rendering all three steps at once)
@@ -489,6 +496,7 @@ This is a client-side SPA with no backend. Scaling concerns are about bundle siz
 **Why it's wrong:** In dedicated mode, management runs on its own hosts — adding it as overhead to workload host calculations double-counts the hardware. In colocated mode, only WLD-1 absorbs the overhead — adding it to WLD-2, WLD-3, etc. also double-counts.
 
 **Do this instead:** Use an index check inside the map:
+
 ```typescript
 const mgmtCores = (isColocated && index === 0) ? management.value.totalCores : 0
 ```
@@ -541,6 +549,7 @@ No changes needed to `useUrlState.ts`, `InputStateSchema`, `hydrateFromUrl`, or 
 ### i18n
 
 New wizard step components will need i18n keys for:
+
 - Step labels: `wizard.step1.label`, `wizard.step2.label`, `wizard.step3.label`
 - Navigation: `wizard.next`, `wizard.back`
 - Step descriptions (optional UX copy)

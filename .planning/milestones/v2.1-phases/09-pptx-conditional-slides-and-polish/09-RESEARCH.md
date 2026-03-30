@@ -13,6 +13,7 @@ The test strategy replicates Phase 8: a Wave 0 TDD pass writes failing describe 
 **Primary recommendation:** Add five `buildXxxSlideData` helpers following the existing pattern, guard each with the same conditions used in `useMarkdownExport.ts`, append conditional slides after Slide 7 inside `generatePptxReport()`, and extend `usePptxExport.test.ts` with a new `describe` block per helper.
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -29,6 +30,7 @@ The test strategy replicates Phase 8: a Wave 0 TDD pass writes failing describe 
 ## Standard Stack
 
 ### Core
+
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | pptxgenjs | already installed (Phase 8) | PPTX slide generation | Project decision — no alternative |
@@ -36,6 +38,7 @@ The test strategy replicates Phase 8: a Wave 0 TDD pass writes failing describe 
 | vitest | already installed | Unit testing | Project test framework |
 
 ### Supporting
+
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | (none new) | — | — | Phase 9 introduces zero new dependencies |
@@ -150,6 +153,7 @@ export function buildRecommendationsData(
 ```
 
 New Phase 9 helpers should follow the same signature pattern:
+
 - `buildAiGpuSlideData(store)` — input store only
 - `buildNvmeTieringSlideData(store)` — input store only
 - `buildStretchTopologySlideData(store, stretch: StretchResult)` — store + engine result
@@ -222,12 +226,14 @@ Pinia store fields are directly assignable in test context (plain `ref()` wrappe
 **Guard:** `store.deploymentMode === 'stretch'`
 
 **Input store fields:**
+
 | Field | Type | Default |
 |-------|------|---------|
 | `preferredSiteHosts` | `number` | `3` |
 | `secondarySiteHosts` | `number` | `3` |
 
 **Calc store fields (from `calc.stretch: StretchResult`):**
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `totalHosts` | `number` | preferred + secondary |
@@ -249,12 +255,14 @@ Pinia store fields are directly assignable in test context (plain `ref()` wrappe
 **Guard:** `store.storageType === 'vsan-max' && calc.vsanMax !== null`
 
 **Input store fields:**
+
 | Field | Type | Default |
 |-------|------|---------|
 | `vsanMaxProfile` | `'xs' | 'sm' | 'med' | 'lrg' | 'xl'` | `'med'` |
 | `vsanMaxStorageNodes` | `number` | `4` |
 
 **Calc store fields (from `calc.vsanMax: VsanMaxResult`):**
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `storageNodeCount` | `number` | — |
@@ -271,6 +279,7 @@ Pinia store fields are directly assignable in test context (plain `ref()` wrappe
 **Guard:** `calc.validationErrors.length > 0`
 
 **Calc store fields (from `calc.validationErrors: ValidationWarning[]`):**
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `severity` | `'error' | 'warning'` | Display as `[ERROR]` or `[WARNING]` |
@@ -295,27 +304,32 @@ Pinia store fields are directly assignable in test context (plain `ref()` wrappe
 ## Common Pitfalls
 
 ### Pitfall 1: Guard mismatches between PPTX and Markdown
+
 **What goes wrong:** PPTX-13 guard uses `storageType === 'vsan-max'` but forgets `&& calc.vsanMax !== null`, causing a TypeScript null-dereference in the helper.
 **Why it happens:** `calc.vsanMax` is `VsanMaxResult | null` — it returns null when storageType is not 'vsan-max'. The double guard is required.
 **How to avoid:** Copy the guard verbatim from `useMarkdownExport.ts` line 167: `if (store.storageType === 'vsan-max' && calc.vsanMax !== null)`.
 **Warning signs:** TypeScript error `Object is possibly 'null'` on `calc.vsanMax.storageNodeCount`.
 
 ### Pitfall 2: Calling addTable with an empty rows array
+
 **What goes wrong:** pptxgenjs throws or produces a corrupt file when `addTable([])` is called.
 **Why it happens:** Data-mapping helper returns zero rows if input is misconfigured.
 **How to avoid:** Guards ensure the slide is only added when data exists. Helpers should always return at least one data row when called (their input is already guarded).
 
 ### Pitfall 3: Two tables on one slide (Stretch topology) exceed slide height
+
 **What goes wrong:** Main topology table + network checklist table overflow past the footer area (y + h > 6.8 inches).
 **Why it happens:** Default `rowH: 0.45` for each row; 7 topology rows + 5 checklist rows = significant height.
 **How to avoid:** Position first table at `y: 1.3` with height capped, second table at `y: 4.2` or use `fontSize: 11` to compress rows. Test in actual PowerPoint viewer.
 
 ### Pitfall 4: Accessing calc.stretch when deploymentMode is not 'stretch'
+
 **What goes wrong:** `calc.stretch` is always computed (not null-guarded in calculationStore), but its values may be nonsensical when `deploymentMode !== 'stretch'`.
 **Why it happens:** `calcStretch()` is always called; the result is only meaningful when stretch mode is active.
 **How to avoid:** The `if (store.deploymentMode === 'stretch')` guard already ensures the helper is only called in the correct mode. The helper should take the `StretchResult` directly (as a parameter) rather than the full calc store.
 
 ### Pitfall 5: Forgetting to export new helpers
+
 **What goes wrong:** Tests import the helper by name and get `undefined`; TypeScript reports a module error.
 **Why it happens:** Helpers added without the `export` keyword.
 **How to avoid:** All data-mapping helpers in usePptxExport.ts are exported (verified in Phase 8 — every `buildXxx` function has `export`).
@@ -417,6 +431,7 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
 ## Validation Architecture
 
 ### Test Framework
+
 | Property | Value |
 |----------|-------|
 | Framework | Vitest (already configured) |
@@ -435,11 +450,13 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
 | PPTX-14 | `buildValidationWarningsSlideData` returns an entry per warning | unit | `npx vitest run src/composables/usePptxExport.test.ts` | Extend existing |
 
 ### Sampling Rate
+
 - **Per task commit:** `npx vitest run src/composables/usePptxExport.test.ts`
 - **Per wave merge:** `npm run test`
 - **Phase gate:** Full suite green before `/gsd:verify-work`
 
 ### Wave 0 Gaps
+
 - [ ] `src/composables/usePptxExport.test.ts` — add 5 new `describe` blocks for PPTX-10..14 helpers (file exists; extend it)
 
 No new test files are needed — Phase 9 tests live inside the existing test file as additional `describe` blocks.
@@ -489,6 +506,7 @@ Step 2.5: SKIPPED — Phase 9 is not a rename/refactor/migration phase. No store
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Direct read of `src/composables/usePptxExport.ts` — full Phase 8 output, patterns verified
 - Direct read of `src/composables/useMarkdownExport.ts` — conditional guard patterns verified
 - Direct read of `src/composables/usePptxExport.test.ts` — test patterns verified
@@ -500,9 +518,11 @@ Step 2.5: SKIPPED — Phase 9 is not a rename/refactor/migration phase. No store
 - Direct read of `CLAUDE.md` — project constraints verified
 
 ### Secondary (MEDIUM confidence)
+
 - None required — all findings sourced from project codebase directly
 
 ### Tertiary (LOW confidence)
+
 - None
 
 ---
@@ -510,6 +530,7 @@ Step 2.5: SKIPPED — Phase 9 is not a rename/refactor/migration phase. No store
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — no new dependencies; all libraries already installed and proven
 - Architecture: HIGH — patterns read directly from Phase 8 source files and Markdown composable
 - Store field mapping: HIGH — read directly from inputStore.ts and calculationStore.ts

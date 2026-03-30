@@ -17,6 +17,7 @@ This document is specific to the v3.1 milestone additions on top of the v3.0 mul
 5. **Export composable staleness** — Markdown/PPTX using pre-refactor calculation values after engine fix
 
 The codebase already has strict contracts established:
+
 - CALC-01: engine files (`src/engine/*.ts`) have zero Vue imports
 - CALC-02: `calculationStore.ts` uses only `computed()`, zero `ref()`
 - URL-04: `activeDomainIndex` is excluded from URL state (ephemeral)
@@ -35,18 +36,21 @@ A `currentStep` ref (or `wizardStep` signal) is added to `inputStore` to track w
 The `activeDomainIndex` exclusion pattern (URL-04) is documented in `useUrlState.ts` but the comment is specific to tab index. A developer adding wizard step tracking reuses the same `inputStore` pattern and instinctively includes it in the schema, not recognizing wizard step as equally ephemeral.
 
 **Consequences:**
+
 - URLs shared from step 2 or 3 produce broken entry-point UX
 - Hydration skips wizard validation gates, allowing malformed state
 - `generateShareUrl()` grows and persists UI-layer state that should be discarded
 - Zod schema drift: wizard step requires a default but the default (step 1) is meaningless without running the wizard
 
 **How to avoid:**
+
 - Store wizard step in a separate store (`uiStore.ts`) or as a local `ref()` in the wizard component, never in `inputStore`
 - Do NOT add `currentWizardStep` (or any wizard-phase field) to `InputStateSchema`, `WorkloadDomainSchema`, or `ManagementDomainSchema`
 - Add an explicit comment in `useUrlState.ts` next to the `activeDomainIndex` exclusion: "wizard step is likewise ephemeral — never serialize"
 - Write a Vitest test: `generateShareUrl()` output must not contain a `wizardStep` key after decompression
 
 **Warning signs:**
+
 - `InputStateSchema` gains a `currentStep`, `wizardPhase`, or `activeStep` field
 - `generateShareUrl()` reads from `uiStore` or any UI-only ref
 - URL compressed string length increases unexpectedly on basic configurations
@@ -64,17 +68,20 @@ The `activeDomainIndex` exclusion pattern (URL-04) is documented in `useUrlState
 `calculationStore` is the natural place to put "are results ready to display" logic, which is tempting to tie to wizard step. The developer forgets that CALC-02 prohibits `ref()` in that store entirely.
 
 **Consequences:**
+
 - `calculationStore` gains mutable state — invalidates the CALC-02 invariant
 - `vue-tsc` will not catch this; it is a semantic constraint, not a type error
 - Future contributors import wizard-gating logic from `calculationStore` thinking it is a computed value, but it is actually mutable
 
 **How to avoid:**
+
 - Wizard step lives in `uiStore.ts` exclusively
 - Any "should results be visible" derived state is a `computed()` in `uiStore` that reads `uiStore.currentWizardStep >= 3`
 - `calculationStore` has zero knowledge of wizard state; results are always computed regardless of wizard step
 - Add a lint comment to `calculationStore.ts`: `// CALC-02: zero ref() — see constraints. Any new ref must go to inputStore or uiStore.`
 
 **Warning signs:**
+
 - `import { useUiStore }` appears inside `calculationStore.ts`
 - A `ref()` call appears in `calculationStore`'s setup function body
 
@@ -91,17 +98,20 @@ The `activeDomainIndex` exclusion pattern (URL-04) is documented in `useUrlState
 Wizard frameworks conventionally initialize their own state on mount. The developer adds initialization logic to the wizard's `onMounted` without checking whether URL hydration already populated the store. The pattern is the same as a form component that "resets to defaults" on mount.
 
 **Consequences:**
+
 - Any shared URL silently loses its state the moment the wizard component mounts
 - No error, no warning — the URL is valid but the store is reset over the top of it
 - `hydrateFromUrl()` returns void and has no "was hydrated" signal for the wizard to check
 
 **How to avoid:**
+
 - The wizard must never call any `inputStore` reset on mount
 - Wizard step initialization must be purely UI — set `uiStore.currentWizardStep = 1` but do not touch `inputStore` state
 - If the URL contains valid state, the wizard should advance directly to step 3 (review/results), skipping the guided flow — add a `isHydratedFromUrl` computed to `uiStore` that returns `true` if a `?c=` param was present at startup
 - Write a test: `hydrateFromUrl()` → mount wizard component → `inputStore.workloadDomains.length` must equal the hydrated count
 
 **Warning signs:**
+
 - `inputStore.workloadDomains = [createDefaultWorkloadDomain(0)]` appears in any Vue component lifecycle hook
 - Wizard `onMounted` or `setup()` calls `store.$reset()` or any factory-default assignment
 
@@ -118,17 +128,20 @@ The colocated overhead fix requires `calcCompute()` to optionally receive a new 
 TypeScript interfaces enforce required vs optional properties strictly. `ComputeInputs` (defined in `src/engine/types.ts`) is the interface passed to `calcCompute()`. Adding a required field without a default breaks every spread-pattern call in tests such as `calcCompute({ ...baseInputs, managementCores: 50 })`.
 
 **Consequences:**
+
 - `vue-tsc` fails on every engine test file simultaneously
 - The entire test suite goes red before any new logic is validated
 - Developer may abandon the refactor or over-patch tests before the logic is correct
 
 **How to avoid:**
+
 - Add any new fields to `ComputeInputs` as optional with `?` and default inside `calcCompute` via destructuring defaults: `const { isColocated = false } = inputs`
 - This is the established pattern in the codebase — `nvmeTieringEnabled`, `activeMemoryPct`, `gpuVmCount`, `vgpuMemoryGB` are all optional with defaults in `ComputeInputs`
 - Write the new test cases for colocated behavior FIRST (TDD wave 0), confirm they fail for the right reason, THEN add the optional field
 - Run `npx vitest run src/engine/compute.test.ts` after each change — not the full suite — to isolate regression from new behavior
 
 **Warning signs:**
+
 - A new field in `ComputeInputs` lacks `?`
 - `vue-tsc` reports 50+ errors simultaneously after a single interface change
 - `calculationStore.ts` shows TypeScript errors on the `calcCompute({...})` call
@@ -148,12 +161,14 @@ In colocated mode (`managementArchitecture === 'shared'`), management VMs run in
 The management overhead for colocated mode is already embedded in WLD-1's `recommendedHostCount` via `managementCores`/`managementRamGB` passed to `calcCompute`. Adding a separate `managementHostCount` field to `AggregateTotals` and summing it unconditionally counts that overhead twice: once through WLD-1's larger host count, once as an additional explicit management host count.
 
 **Consequences:**
+
 - The aggregate host count is inflated (e.g. shows 12 total hosts when correct answer is 8)
 - The PPTX and Markdown exports reproduce the inflated number
 - Procurement decisions based on the export are incorrect
 - No test catches this unless there is an explicit test for colocated aggregate totals
 
 **How to avoid:**
+
 - The correct formula is:
   - Dedicated: `totalRecommendedHosts = sum(domainResults.recommendedHostCount) + dedicatedMgmtHostCount`
   - Colocated: `totalRecommendedHosts = sum(domainResults.recommendedHostCount)` (management overhead already in WLD-1)
@@ -162,6 +177,7 @@ The management overhead for colocated mode is already embedded in WLD-1's `recom
 - Document the formula in `calculationStore.ts` as a comment on `aggregateTotals`
 
 **Warning signs:**
+
 - `AggregateTotals` interface gains a `managementHostCount` field without a guard comment
 - `aggregateTotals` computed adds any management-related count without checking `input.managementArchitecture`
 - The colocated test configuration shows a host count higher than the workload-only calculation
@@ -179,16 +195,19 @@ In the current system, the management domain has its own `deploymentMode` in `Ma
 `ManagementDomainConfig` and `WorkloadDomainConfig` both have a `deploymentMode` field. They are independent by design (DOM-03). The wizard introduces a single "topology choice" that is expected to affect both, but the wiring must explicitly copy the selected mode to all domains.
 
 **Consequences:**
+
 - Management overhead calculated at HA level (118 cores) but workload hosts sized for Simple — cluster is under-provisioned
 - Or: workload domains at stretch but management at simple — wrong management stack size, wrong stretch multiplier
 - A shared URL from a post-wizard state is internally consistent, but a URL built by manually editing inputs may not be
 
 **How to avoid:**
+
 - Step 1 of the wizard writes `deploymentMode` to BOTH `managementDomain.deploymentMode` AND every `workloadDomain.deploymentMode` via `inputStore.updateManagementDomain({ deploymentMode })` + `inputStore.workloadDomains.forEach(d => store.updateDomain(d.id, { deploymentMode }))`
 - Or: introduce a single `globalDeploymentMode` ref in `inputStore` that both management and workload domains read from (simpler for wizard, but a larger refactor)
 - Write a validation function in the engine or store that warns when `managementDomain.deploymentMode !== workloadDomains[0].deploymentMode` (unless the design explicitly allows mixed topologies)
 
 **Warning signs:**
+
 - Wizard Step 1 only calls `updateManagementDomain()` but not `updateDomain()` for workload domains
 - `calcManagement()` and `calcCompute()` are called with different `deploymentMode` values in the same render cycle
 
@@ -207,17 +226,20 @@ Vue 3's reactivity system evaluates `computed()` lazily — they run when access
 **Current state (from code inspection):** `calculationStore.ts` already declares `const management = computed(...)` before `const domainResults = computed(...)`. This ordering is safe. Do not change it.
 
 **Consequences:**
+
 - `management.value` could return a stale result the first time `domainResults` is evaluated if the dependency graph is broken
 - No runtime error; results appear correct on subsequent reactive updates but wrong on initial render
 - Hard to reproduce in tests because Vitest evaluates synchronously
 
 **How to avoid:**
+
 - Preserve the declaration order in `calculationStore.ts`: `management` → `dedicatedMgmtHostCount` → `domainResults` → `aggregateTotals`
 - Never re-order these computed declarations. Add a comment: `// ORDER MATTERS: management must be declared before domainResults (dependency graph)`
 - Do not add a new store that calls `useCalculationStore()` inside its own setup — this creates a cross-store computed chain that Vue may not resolve correctly in all hydration paths
 - If a new store needs management results, have it read from `inputStore.managementDomain.deploymentMode` and call `calcManagement()` directly (pure function, safe to call from anywhere)
 
 **Warning signs:**
+
 - `const domainResults = computed(...)` appears before `const management = computed(...)` in `calculationStore.ts`
 - A new store file contains `import { useCalculationStore }` in its setup function body
 - Initial page load shows different results than after the first user interaction
@@ -237,27 +259,33 @@ The double-application bug: if the developer misreads the current code and think
 The current code passes `management.value.totalCores` to ALL domains unconditionally. This is technically wrong for dedicated mode (management has its own hosts) and partially wrong for colocated (only WLD-1 should carry it). The v3.1 fix needs to CHANGE the logic, not ADD more overhead.
 
 **Correct target logic:**
+
 - Colocated (`shared`): WLD-1 receives `managementCores: management.value.totalCores`, all other WLD-N receive `managementCores: 0`
 - Dedicated: all WLD-N receive `managementCores: 0` (management has its own hosts)
 
 **Consequences:**
+
 - Every workload domain beyond WLD-1 is oversized in colocated mode
 - In dedicated mode, all workload domains are currently oversized (they carry management overhead that belongs to separate management hosts)
 - The test suite for dedicated mode will fail if it checks that WLD-2 does NOT include management overhead
 
 **How to avoid:**
+
 - Before writing any new code, write tests that encode the expected behavior:
   - Test: colocated, WLD-1 `totalCoresRequired` includes management overhead
   - Test: colocated, WLD-2 (if present) `totalCoresRequired` does NOT include management overhead
   - Test: dedicated, WLD-1 `totalCoresRequired` does NOT include management overhead (separate hosts handle it)
 - In `domainResults` computed, the management cores passed to each domain should be:
+
   ```typescript
   const mgmtCores = (input.managementArchitecture === 'shared' && isFirstDomain)
     ? management.value.totalCores : 0
   ```
+
 - The `isFirstDomain` check must use domain index (position 0 in `input.workloadDomains`), not domain ID
 
 **Warning signs:**
+
 - All domains in `domainResults.map()` receive the same non-zero `managementCores`
 - WLD-2 result card shows "Management overhead included" in the results display
 - The aggregate host count grows linearly with domain count even when management is dedicated
@@ -275,17 +303,20 @@ The current code passes `management.value.totalCores` to ALL domains uncondition
 The export composables are plain TypeScript modules (no reactive bindings) that take a snapshot of store state at call time. They are not tested for "completeness" — the tests verify that known fields appear in the output, not that all new fields from the engine are included. A field added to `AggregateTotals` in Phase 2 will not automatically appear in the Markdown report until `useMarkdownExport.ts` is updated.
 
 **Consequences:**
+
 - Markdown and PPTX exports continue to show pre-refactor numbers (e.g. management overhead in every domain instead of only WLD-1)
 - The UI results panel (which reads from the store reactively) shows correct numbers, but exports show different numbers — discrepancy erodes user trust
 - No TypeScript error if the export reads `result.compute.totalCoresRequired` directly — the field exists but its value is now computed differently
 
 **How to avoid:**
+
 - Treat export composable updates as mandatory in the same phase as the engine/store refactor, not deferred
 - After the engine refactor, run the full export test suite and verify numbers: `npx vitest run src/composables/`
 - Add a test that explicitly checks the exported management overhead section reflects the post-refactor values (management section appears once, outside the per-domain loop)
 - If `AggregateTotals` gains a new `managementHostCount` field, add it to `useMarkdownExport.ts` `## Aggregate Totals` section in the same commit
 
 **Warning signs:**
+
 - A new field is added to `AggregateTotals` or `DomainResult` but `useMarkdownExport.ts` and `usePptxExport.ts` are not modified in the same PR/commit
 - The Markdown export test for aggregate totals passes but the computed value of `totalRecommendedHosts` has changed
 - "Recommended hosts" in the Markdown output does not match the `AggregateTotalsCard` UI
@@ -305,15 +336,18 @@ Vue 3 batches reactive updates and flushes them asynchronously (via microtask qu
 **Current risk for v3.1:** The wizard "Finish" button in Step 3 may both mark the wizard as complete AND trigger an auto-export or display a result summary — if the same event handler mutates state and reads export data, there is a risk of stale reads.
 
 **Consequences:**
+
 - Exported report shows results from before the last input change
 - The discrepancy is subtle (one slider position off) and may not be caught in manual testing
 
 **How to avoid:**
+
 - Never mutate store state and call `generateMarkdownReport()` / `generatePptxReport()` in the same synchronous function body
 - If the wizard finish step needs to both finalize state AND show results, use `await nextTick()` between the state write and the export call
 - In tests: after any store mutation that should affect export output, call `await nextTick()` before asserting export string content
 
 **Warning signs:**
+
 - A wizard "onFinish" or "onComplete" handler both calls `store.updateDomain(...)` and `generateMarkdownReport()` without `await nextTick()`
 - Export tests intermittently fail on CI but pass locally
 
@@ -417,9 +451,9 @@ Vue 3 batches reactive updates and flushes them asynchronously (via microtask qu
 
 ## Sources
 
-- Vue 3 Composition API reactivity — https://vuejs.org/guide/essentials/reactivity-fundamentals.html (official, HIGH confidence)
-- Pinia setup store patterns — https://pinia.vuejs.org/core-concepts/#setup-stores (official, HIGH confidence)
-- Vue 3 `nextTick()` behavior — https://vuejs.org/api/general.html#nexttick (official, HIGH confidence)
+- Vue 3 Composition API reactivity — <https://vuejs.org/guide/essentials/reactivity-fundamentals.html> (official, HIGH confidence)
+- Pinia setup store patterns — <https://pinia.vuejs.org/core-concepts/#setup-stores> (official, HIGH confidence)
+- Vue 3 `nextTick()` behavior — <https://vuejs.org/api/general.html#nexttick> (official, HIGH confidence)
 - Codebase inspection: `src/stores/calculationStore.ts` — computed ordering, management pass-through, aggregateTotals reducer (direct, HIGH confidence)
 - Codebase inspection: `src/composables/useUrlState.ts` — URL-04 exclusion pattern, `activeDomainIndex` not serialized (direct, HIGH confidence)
 - Codebase inspection: `src/engine/types.ts` — `ComputeInputs` optional fields pattern (direct, HIGH confidence)

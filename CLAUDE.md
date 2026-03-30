@@ -13,6 +13,7 @@ npm run preview      # preview production build locally
 ```
 
 Run a single test file:
+
 ```bash
 npx vitest run src/engine/storage.test.ts
 ```
@@ -26,6 +27,7 @@ Tests cover `src/engine/**/*.test.ts` and `src/composables/**/*.test.ts` only �
 **Engine layer** (`src/engine/`) — Pure TypeScript, **zero Vue imports** (CALC-01). All sizing formulas are plain functions that accept typed inputs and return typed results. This is what the tests cover.
 
 **Store layer** (`src/stores/`) — Two stores with a hard separation:
+
 - `inputStore.ts` — all `ref()` mutable state (slider values, toggles)
 - `calculationStore.ts` — **zero `ref()`** (CALC-02); only `computed()` values that call engine functions. Read-only derived state.
 - `uiStore.ts` — locale switching and UI flags

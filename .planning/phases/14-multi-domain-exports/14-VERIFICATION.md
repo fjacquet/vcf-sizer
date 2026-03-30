@@ -158,6 +158,7 @@ No implementation gaps found. All 9 observable truths are verified by code inspe
 The `human_needed` status reflects that browser download behavior (the actual file generation UX) cannot be verified programmatically. All upstream logic — the domain loop, data mapping, and aggregate totals computation — is fully tested and verified.
 
 The only non-blocking documentation items are:
+
 - EXP-01 through EXP-04 not present in the current v3.1 REQUIREMENTS.md (they are v3.0 requirements, fully satisfied)
 - ROADMAP.md line 140 shows `14-02-PLAN.md` as unchecked despite the implementation being complete
 

@@ -7,6 +7,7 @@
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -81,6 +82,7 @@ src/composables/
 **When to use:** Always — same pattern as the existing `generateMarkdownReport()` in `useUrlState.ts`.
 
 **Example (composable):**
+
 ```typescript
 // src/composables/useMarkdownExport.ts
 import { useInputStore } from '@/stores/inputStore'
@@ -179,6 +181,7 @@ export function generateMarkdownReport(): string {
 **When to use:** All tests in `useMarkdownExport.test.ts` after the extraction.
 
 **Example (test file):**
+
 ```typescript
 /// <reference types="vitest/globals" />
 import { createPinia, setActivePinia } from 'pinia'
@@ -347,6 +350,7 @@ export function generateMarkdownReport(): string {
 **What it covers today:** Host Configuration (5 rows), Management Domain Overhead (2 rows), Compute Sizing (9 rows), Storage Sizing (7 rows), footer.
 
 **What it is missing (MD-02 through MD-09):**
+
 - Workload Profile section (vmCount, avgVcpuPerVm, avgVramGbPerVm, avgStorageGbPerVm, cpuOvercommitRatio, ramOvercommitRatio)
 - Management Architecture row (managementArchitecture + dedicatedMgmtHostCount)
 - NVMe Tiering section (conditional)
@@ -434,6 +438,7 @@ it('AI/GPU section present when gpuVmCount=5', () => {
 | 4-section report | 11-section report | Phase 6 (now) | Complete coverage of all feature areas |
 
 **Deprecated/outdated:**
+
 - `generateMarkdownReport` export from `useUrlState.ts`: removed in this phase; callers must update imports.
 
 ---
@@ -541,6 +546,7 @@ Step 2.6: SKIPPED (no external dependencies identified — this phase is pure Ty
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all packages verified by direct inspection of installed `node_modules` and `package.json`
 - Architecture: HIGH — current `generateMarkdownReport()` read verbatim; all store fields enumerated from source
 - Pitfalls: HIGH — derived from reading actual test file and tracing actual import chain

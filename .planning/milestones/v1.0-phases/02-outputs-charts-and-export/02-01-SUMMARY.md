@@ -109,6 +109,7 @@ None. All chart components are fully wired to live store data via `storeToRefs(c
 ## Self-Check: PASSED
 
 Files verified present:
+
 - FOUND: src/components/results/ResultsPanel.vue
 - FOUND: src/components/results/HostCountCard.vue
 - FOUND: src/components/results/charts/CoresChart.vue
@@ -118,6 +119,7 @@ Files verified present:
 - FOUND: md:grid-cols-2 in src/App.vue
 
 Commits verified present:
+
 - ff5476e: chore(02-01): install dependencies + print variant
 - dea3a3e: feat(02-01): split-screen + ResultsPanel + HostCountCard
 - 862f2e5: feat(02-01): CoresChart + RamChart + StorageChart

@@ -65,6 +65,7 @@ completed: 2026-03-30
 - **Files modified:** 1
 
 ## Accomplishments
+
 - Added 5 exported pure data-mapping helper functions (no Pinia imports, no ref(), no i18n resolution)
 - Added 5 conditional slide blocks in generatePptxReport() with guard conditions identical to useMarkdownExport.ts
 - All 182 tests pass (166 from Phase 8 + 16 new Wave 0 tests from Phase 09-01)
@@ -80,9 +81,11 @@ Each task was committed atomically:
 **Plan metadata:** (docs commit — see below)
 
 ## Files Created/Modified
+
 - `src/composables/usePptxExport.ts` - Extended with 5 helpers + 5 conditional slide blocks
 
 ## Decisions Made
+
 - buildStretchTopologySlideData takes StretchResult directly (not full calc store) to keep function testable without needing a full Pinia instance for the StretchResult shape
 - Validation warnings rendered as raw messageKey strings — consistent with Phase 6 decision that composables do not resolve i18n
 - vSAN Max guard includes null-check on calc.vsanMax to handle TypeScript narrowing correctly after the storageType guard
@@ -100,6 +103,7 @@ None.
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - All PPTX-10..14 requirements implemented and verified
 - PPTX export now conditionally includes all 5 feature-specific slides
 - v2.1 Export Quality milestone fully complete

@@ -576,11 +576,13 @@ const chartImageDataUrl = chartRef.value?.chart?.toBase64Image('image/png', 1) ?
 **Approach:** `@media print` stylesheet + `@page` rules. Zero bundle cost. Produces searchable, selectable, vector-quality text.
 
 **Why not jsPDF:**
+
 - jsPDF@4.2.1 unpacked size: **28.8 MB** (verified via npm registry — font files account for the bulk). Even with dynamic import the gzip transfer is ~900 kB–1.2 MB for a single lazy chunk.
 - `jsPDF.html()` has poor compatibility with Tailwind CSS utility classes. It parses DOM styles via its own renderer; Tailwind's JIT-generated classes are often misinterpreted.
 - When combined with html2canvas (the only way to capture chart canvases), the PDF output is a rasterized image: text is not selectable, file size is large, and output looks blurry at non-100% zoom.
 
 **Why not html2canvas:**
+
 - html2canvas@1.4.1 unpacked size: **3.3 MB** (verified via npm registry). Last published **2022-01-22** — over 3 years without a release. The project is effectively unmaintained.
 - Rasterizes the entire DOM into a canvas image → embeds as a JPEG/PNG in the PDF. No text selection, no accessibility, no searchability.
 - Browser canvas size limits (max ~16,384×16,384 px depending on browser/OS/hardware) can clip long pages.
@@ -820,11 +822,13 @@ vSAN-Max / vSAN-SC ReadyNode profiles (authoritative: Broadcom VCF Blog, verifie
 **Source confidence:** MEDIUM-HIGH. March 2024 Broadcom blog ("Greater Flexibility with vSAN Max") documents XS/SM/MED/LRG/XL with above specs. November 2025 blog ("Driving Down Storage Costs") documents further reductions: vSAN-SC-SM lost 33% CPU and 50% RAM; vSAN-SC-MED 50% RAM cut; vSAN-SC-LRG 67% RAM cut. Exact updated absolute numbers not given in the November 2025 article — it cites percentage reductions only. Profile names in VCF 9 changed from `vSAN-Max-*` to `vSAN-SC-*` for the storage cluster variant. The compatibility guide at `compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance` is the single authoritative source for current certified specs (verify during implementation).
 
 **RAID behavior in vSAN Max:**
+
 - 4-host cluster: ESA RAID-5 with 4+1 scheme (min 4 hosts for vSAN-SC-XS and vSAN-SC-SM)
 - 6+ hosts: RAID-6 supported (4+2 scheme)
 - No PFTT site-mirroring overhead (vSAN Max is a storage cluster; stretched behavior requires a dedicated stretched storage cluster topology with a witness)
 
 **Network architecture for vSAN Max (VCF 9.0):**
+
 - **Backend traffic (intra-cluster):** 25 Gbps required for most profiles; 10 Gbps for XS only
 - **Frontend client traffic (compute-to-storage):** 10 Gbps minimum
 - Two distinct VMkernel port tags: `vSAN storage cluster client` (frontend) and `vSAN` (backend) — traffic separation is supported in VCF 9.0
@@ -834,6 +838,7 @@ vSAN-Max / vSAN-SC ReadyNode profiles (authoritative: Broadcom VCF Blog, verifie
 
 **Capacity overhead model for vSAN Max:**
 vSAN Max uses the same ESA overhead stack as vSAN ESA HCI. The RAID multipliers, LFS overhead (13%), metadata pool (10% of raw), and safe slack (70%) constants already in `storage.ts` apply unchanged. The only material differences from the HCI path are:
+
 1. No PFTT mirroring factor (vSAN Max is a single cluster; stretched vSAN Max is a separate topology)
 2. `minHostsRequired` comes from profile table above (minimum 4, not 3)
 3. Backend NIC requirement surfaces as a checklist item (not a sizing formula)
@@ -878,11 +883,13 @@ This is a pure logic addition — no new libraries.
 **Bandwidth floor enforcement:** The current formula (`totalWorkloadStorageTB × 0.1`) computes a workload-based estimate. Add an explicit floor: `max(formulaResult, 10)` to enforce the 10 Gbps minimum from the spec. This remains pure Decimal.js arithmetic.
 
 **New fields to add to `StretchResult` in `types.ts`:**
+
 - `bandwidthFloorEnforced: boolean` — true when formula result is below the 10 Gbps floor
 - `witnessRttMaxMs: number` — maximum tolerated witness RTT in ms (derived from hosts/site count)
 - `mtuRequired: number` — always 9000 for stretch
 
 **New validation rules to add to `validateInputs()`:**
+
 - `STRETCH_BANDWIDTH_BELOW_FLOOR`: warn when formula gives <10 Gbps (before floor is applied) — inform user
 - `STRETCH_MTU_REMINDER`: informational warning that MTU 9000 must be set end-to-end
 
@@ -990,16 +997,16 @@ src/components/
 
 | Source | URL | Confidence | Notes |
 |--------|-----|------------|-------|
-| Broadcom TechDocs: Bandwidth and Latency Requirements (VCF 9.0) | https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/vsan-deployment-administration-and-monitoring/vsan-network-design/understanding-vsan-networking/network-requirements-for-vsan/bandwidth-and-latency-requirements.html | HIGH | Official; all RTT/bandwidth numbers from here |
-| Broadcom KB 392993: Minimum ESXi hosts for VCF Management Domain | https://knowledge.broadcom.com/external/article/392993/minimum-number-of-esxi-hosts-required-on.html | HIGH | 4 hosts / stretched = 8 hosts (4 per site) |
-| Broadcom Blog: Greater Flexibility with vSAN Max (Mar 2024) | https://blogs.vmware.com/cloud-foundation/2024/03/13/greater-flexibility-with-vsan-max-through-lower-hardware-and-cluster-requirements/ | HIGH | ReadyNode profile table: XS/SM/MED/LRG/XL with specs |
-| Broadcom Blog: Driving Down Storage Costs (Nov 2025) | https://blogs.vmware.com/cloud-foundation/2025/11/14/driving-down-storage-costs-with-lower-hardware-requirements-for-vsan/ | MEDIUM | % reductions for vSAN-SC profiles; no absolute table |
-| Broadcom Blog: Network Traffic Separation for VCF 9.0 (Jun 2025) | https://blogs.vmware.com/cloud-foundation/2025/06/19/network-traffic-separation-in-vsan-storage-clusters-for-vcf-9-0/ | HIGH | 25Gb backend; 10Gb client; VMkernel tag split |
-| Broadcom Compatibility Guide: vSAN ESA ReadyNode Hardware Guidance | https://compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance | HIGH | Single authoritative source for certified profiles; verify during implementation |
-| Broadcom Blog: vSAN Storage Clusters + Stretched Topologies (Jun 2025) | https://blogs.vmware.com/cloud-foundation/2025/06/19/stretched-topologies-using-vsan-storage-clusters-in-vcf-9-0/ | MEDIUM | Stretched vSAN Max topology; witness required; vSAN OSA compute clusters excluded |
-| Broadcom Blog: VCF 9.0 Deployment Pathways (Jul 2025) | https://blogs.vmware.com/cloud-foundation/2025/07/03/vcf-9-0-deployment-pathways/ | HIGH | 4-host minimum for management cluster; co-located model described |
-| Medium: Strategic Bandwidth Sizing for vSAN Stretched Clusters in VCF 9.0 | https://medium.com/@lubomir-tobek/strategic-bandwidth-sizing-for-vsan-stretched-clusters-in-vcf-9-0-a-roadmap-to-resilience-ce55545b96a2 | MEDIUM | ISL sizing formula with IOPS × I/O size × md × mr × CR; good for future extension |
-| Design and Operational Guidance for vSAN Storage Clusters | https://www.vmware.com/docs/vmw-vsan-storage-clusters-design-and-operations | HIGH | Official PDF design guide; ReadyNode profiles, topology options |
+| Broadcom TechDocs: Bandwidth and Latency Requirements (VCF 9.0) | <https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/vsan-deployment-administration-and-monitoring/vsan-network-design/understanding-vsan-networking/network-requirements-for-vsan/bandwidth-and-latency-requirements.html> | HIGH | Official; all RTT/bandwidth numbers from here |
+| Broadcom KB 392993: Minimum ESXi hosts for VCF Management Domain | <https://knowledge.broadcom.com/external/article/392993/minimum-number-of-esxi-hosts-required-on.html> | HIGH | 4 hosts / stretched = 8 hosts (4 per site) |
+| Broadcom Blog: Greater Flexibility with vSAN Max (Mar 2024) | <https://blogs.vmware.com/cloud-foundation/2024/03/13/greater-flexibility-with-vsan-max-through-lower-hardware-and-cluster-requirements/> | HIGH | ReadyNode profile table: XS/SM/MED/LRG/XL with specs |
+| Broadcom Blog: Driving Down Storage Costs (Nov 2025) | <https://blogs.vmware.com/cloud-foundation/2025/11/14/driving-down-storage-costs-with-lower-hardware-requirements-for-vsan/> | MEDIUM | % reductions for vSAN-SC profiles; no absolute table |
+| Broadcom Blog: Network Traffic Separation for VCF 9.0 (Jun 2025) | <https://blogs.vmware.com/cloud-foundation/2025/06/19/network-traffic-separation-in-vsan-storage-clusters-for-vcf-9-0/> | HIGH | 25Gb backend; 10Gb client; VMkernel tag split |
+| Broadcom Compatibility Guide: vSAN ESA ReadyNode Hardware Guidance | <https://compatibilityguide.broadcom.com/pages/vsan-esa-readynode-hardware-guidance> | HIGH | Single authoritative source for certified profiles; verify during implementation |
+| Broadcom Blog: vSAN Storage Clusters + Stretched Topologies (Jun 2025) | <https://blogs.vmware.com/cloud-foundation/2025/06/19/stretched-topologies-using-vsan-storage-clusters-in-vcf-9-0/> | MEDIUM | Stretched vSAN Max topology; witness required; vSAN OSA compute clusters excluded |
+| Broadcom Blog: VCF 9.0 Deployment Pathways (Jul 2025) | <https://blogs.vmware.com/cloud-foundation/2025/07/03/vcf-9-0-deployment-pathways/> | HIGH | 4-host minimum for management cluster; co-located model described |
+| Medium: Strategic Bandwidth Sizing for vSAN Stretched Clusters in VCF 9.0 | <https://medium.com/@lubomir-tobek/strategic-bandwidth-sizing-for-vsan-stretched-clusters-in-vcf-9-0-a-roadmap-to-resilience-ce55545b96a2> | MEDIUM | ISL sizing formula with IOPS × I/O size × md × mr × CR; good for future extension |
+| Design and Operational Guidance for vSAN Storage Clusters | <https://www.vmware.com/docs/vmw-vsan-storage-clusters-design-and-operations> | HIGH | Official PDF design guide; ReadyNode profiles, topology options |
 
 ---
 
@@ -1206,7 +1213,7 @@ export default defineConfig({
 | vite@8.0.3 | @vitejs/plugin-vue@latest | Use `@vitejs/plugin-vue` v5.x for Vue 3; do not use v4 |
 | chart.js@4.5.1 | vue-chartjs@5.3.3 | Chart.js 4.x required as peer dep; Chart.js 5 not yet released |
 | vue-i18n@11.3.0 | @intlify/unplugin-vue-i18n@6.x | Companion Vite plugin; must match vue-i18n major; v9/v10 plugins incompatible with v11 |
-| typescript@5.7+ | vue-tsc@2.x | `vue-tsc` 2.x requires TypeScript 5.x; set `moduleResolution: "bundler"` in tsconfig |
+| typescript@5.7+ | <vue-tsc@2.x> | `vue-tsc` 2.x requires TypeScript 5.x; set `moduleResolution: "bundler"` in tsconfig |
 | pptxgenjs@4.0.1 | vite@8, vue@3.5.31 | ESM build; v4.0.0+ required for Vite node detection fix |
 
 ---
@@ -1240,6 +1247,7 @@ export default defineConfig({
 **Confidence:** HIGH (codebase reviewed directly; Vue 3 / Tailwind v4 patterns from official docs; VCF sizing order from Broadcom TechDocs)
 
 This section answers: what patterns and (if any) stack additions are needed for:
+
 1. A 3-step guided wizard UI (Topology → Management → Workloads) using Vue 3 + Tailwind CSS v4 with no external component library
 2. Fixing the calculation order so management domain sizing precedes workload domain sizing, and colocated overhead is assigned correctly
 
@@ -1265,6 +1273,7 @@ This section answers: what patterns and (if any) stack additions are needed for:
 #### Why vue-router is the wrong tool here
 
 `vue-router@5.0.4` is already installed but intentionally not wired into `main.ts`. Router-based step navigation is correct when:
+
 - Each step needs its own URL for bookmarking or deep-linking
 - The user may share a URL to a specific step
 - Browser back/forward buttons should navigate between steps
@@ -1290,6 +1299,7 @@ WizardShell.vue  (new component in src/components/)
 ```
 
 Step content components:
+
 - `TopologyStep.vue` — wraps `DeploymentModelSelector` + management architecture toggle (currently in `ManagementDomainSection`)
 - `ManagementStep.vue` — wraps `ManagementDomainSection` host specs form + `ManagementSummary`
 - `WorkloadsStep.vue` — wraps `DomainTabStrip` + per-domain input forms + `ResultsPanel` + `ExportToolbar`
@@ -1309,6 +1319,7 @@ When `<component :is>` switches steps, Vue unmounts the leaving component and de
 Tailwind v4 supports `data-*` attribute variants natively without any configuration. This eliminates the v3-era arbitrary-value syntax (`[&[data-active='true']]`).
 
 **Key v4 behavior:**
+
 - `:data-active="true"` in Vue sets the `data-active` HTML attribute on the element
 - `:data-active="false"` in Vue removes the attribute (Vue boolean attribute binding)
 - `data-active:` utility applies when the attribute is present
@@ -1393,6 +1404,7 @@ function prevStep() {
 Return `{ currentWizardStep, goToStep, nextStep, prevStep }` from the store's return statement alongside existing locale fields.
 
 **Why extend `uiStore` rather than create `wizardStore`:**
+
 - Wizard step is a UI state concern, same category as locale selection
 - Three refs + three actions do not justify a dedicated store
 - A dedicated store is warranted only if wizard state grows to include per-step validation aggregation, cross-step dependency tracking, or route guards — none of which are required for v3.1's linear 3-step flow

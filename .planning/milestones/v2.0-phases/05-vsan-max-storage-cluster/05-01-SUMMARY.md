@@ -45,6 +45,7 @@ Complete engine layer for vSAN Max disaggregated storage cluster sizing: pure Ty
 ### New Files
 
 **src/engine/vsanMax.ts** — vSAN Max storage engine (CALC-01 compliant, zero Vue imports)
+
 - `READYNODE_PROFILES` constant: 5 profiles (xs=20TB, sm=50TB, med=100TB, lrg=150TB, xl=200TB per node)
 - `calcVsanMax(inputs: VsanMaxInputs): VsanMaxResult` — full overhead stack calculation
 - Reuses `vsanEsaRaidOverhead()` for adaptive RAID-5 scheme (same logic as HCI ESA)
@@ -56,6 +57,7 @@ Complete engine layer for vSAN Max disaggregated storage cluster sizing: pure Ty
 ### Modified Files
 
 **src/engine/types.ts** — Additive type extensions:
+
 - `StorageType` extended: `'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'`
 - `VsanMaxProfile = 'xs' | 'sm' | 'med' | 'lrg' | 'xl'`
 - `VsanMaxInputs` interface (profile, storageNodeCount, computeNodeCount)
@@ -63,25 +65,30 @@ Complete engine layer for vSAN Max disaggregated storage cluster sizing: pure Ty
 - `ValidationInputs` extended with `networkSpeedGbE?: 10 | 25 | 100` and `vsanMaxStorageNodes?: number`
 
 **src/engine/storage.ts** — Two changes:
+
 - Export `VSAN_LFS_OVERHEAD`, `VSAN_METADATA_PCT`, `VSAN_SAFE_SLACK` (previously private)
 - Convert `calcStorage()` if/else chain to exhaustive switch with `never` case (catches future StorageType additions)
 - Add `case 'vsan-max'` pass-through (compute nodes have no vSAN storage)
 
 **src/engine/validation.ts** — Two new rules:
+
 - Rule 6: `DEDUP_NETWORK_SPEED` warning — fires when `dedupEnabled && networkSpeedGbE < 25` (STOR-05)
 - Rule 7: `VSAN_MAX_MIN_NODES` error — fires when `storageType === 'vsan-max' && vsanMaxStorageNodes < 4` (VMAX-03)
 
 **src/stores/inputStore.ts** — Three new refs:
+
 - `vsanMaxProfile = ref<VsanMaxProfile>('med')`
 - `vsanMaxStorageNodes = ref(4)`
 - `networkSpeedGbE = ref<10 | 25 | 100>(25)`
 - `storageType` ref type extended to include `'vsan-max'`
 
 **src/stores/calculationStore.ts** — Two changes:
+
 - `vsanMax = computed(() => ...)` — returns `VsanMaxResult | null` (null when storageType != 'vsan-max')
 - `validationErrors` now passes `networkSpeedGbE` and `vsanMaxStorageNodes` to validateInputs
 
 **src/composables/useUrlState.ts** — Triple-sync (all 3 locations updated atomically):
+
 - Zod schema: `storageType` enum extended + 3 new fields with defaults
 - `hydrateFromUrl`: assigns `vsanMaxProfile`, `vsanMaxStorageNodes`, `networkSpeedGbE`
 - `generateShareUrl`: includes all 3 new fields in state object

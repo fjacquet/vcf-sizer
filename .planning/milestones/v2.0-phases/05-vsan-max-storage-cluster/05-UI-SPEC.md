@@ -45,6 +45,7 @@ Standard 8-point scale. Pre-populated from existing codebase pattern (`space-y-4
 | 3xl | 64px | — (page-level, not used in card scope) |
 
 **Exceptions:**
+
 - Profile dropdown and storage nodes slider: contained in `grid grid-cols-1 sm:grid-cols-2 gap-4` (16px), same as FTT/RAID grid in StorageConfigForm.
 - Network speed button group: `flex gap-2 flex-wrap` (8px), same as existing type button groups.
 - VsanMaxClusterCard data grid: `grid grid-cols-2 gap-x-4 gap-y-1` (16px / 4px), same as HostCountCard details grid.
@@ -66,6 +67,7 @@ Pre-populated entirely from codebase scan. All existing components use the same 
 | Data / mono | 12px (`text-xs`) | 400 (`font-normal`) + 600 (`font-semibold`) for values | 1.5 | Data grid cells (`font-mono text-right`), capacity values |
 
 **New in Phase 5 — VsanMaxClusterCard large display number:**
+
 - Storage node count: 48px (`text-5xl`), weight 600 (`font-semibold`), line-height none (`leading-none`) — mirrors HostCountCard's `recommendedHostCount` display. The 48px size provides sufficient visual distinction without needing `font-bold`.
 
 Source: codebase scan — HostCountCard.vue, StretchNetworkChecklist.vue, StorageConfigForm.vue.
@@ -89,6 +91,7 @@ Pre-populated from codebase scan. Project uses Tailwind CSS v4 with dark mode (`
 | Muted text | `gray-500` | `gray-400` | Card sub-headings, data labels |
 
 **Accent reserved for:**
+
 - Active/selected state of all button group buttons (storage type, network speed)
 - Focus ring on all interactive inputs (`focus:ring-blue-500`)
 - Mono data values in data grids (`text-blue-700 dark:text-blue-400`)
@@ -107,10 +110,13 @@ Source: codebase scan — all existing components.
 **Change 1 — Storage type button group: add "vSAN Max" button**
 
 Add a fourth entry to the `storageTypes` array:
+
 ```
 { value: 'vsan-max', labelKey: 'storage.vsanMax' }
 ```
+
 Button styling: identical to existing type buttons.
+
 ```
 'px-3 py-1.5 text-sm rounded border font-normal transition-colors'
 active:   'bg-blue-600 text-white border-blue-600'
@@ -122,6 +128,7 @@ inactive: 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gra
 Section uses `<template v-if>` identical to the existing `v-if="storageType === 'vsan-esa'"` block.
 
 Structural layout:
+
 ```
 <template v-if="storageType === 'vsan-max'">
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -133,6 +140,7 @@ Structural layout:
 ```
 
 **Profile dropdown:**
+
 ```html
 <div class="space-y-1">
   <label class="text-sm font-normal text-gray-700 dark:text-gray-300">
@@ -152,10 +160,12 @@ Structural layout:
   </select>
 </div>
 ```
+
 Format exactly: `"{PROFILE} — {N} TB/node"` (em dash with spaces, consistent with CONTEXT.md decision).
 Default selected: `med` (MED — 100 TB/node).
 
 **Storage nodes slider:**
+
 ```html
 <NumberSliderInput
   v-model="vsanMaxStorageNodes"
@@ -165,9 +175,11 @@ Default selected: `med` (MED — 100 TB/node).
   :step="1"
 />
 ```
+
 Min 4, default 4, max 64. Uses existing NumberSliderInput component unmodified.
 
 **VSAN_MAX_MIN_NODES error banner** (shown when `vsanMax.belowMinNodes === true`):
+
 ```html
 <WarningBanner
   v-if="vsanMaxMinNodesError"
@@ -175,6 +187,7 @@ Min 4, default 4, max 64. Uses existing NumberSliderInput component unmodified.
   severity="error"
 />
 ```
+
 Uses existing WarningBanner component, severity `error` (red).
 
 ---
@@ -230,6 +243,7 @@ Placement: `sm:col-span-2` so it spans full width in the 2-column grid. Style mi
 **Change 3 — DEDUP_NETWORK_SPEED warning** (shown in StorageConfigForm, not HostSpecsForm)
 
 The dedup network speed warning fires from StorageConfigForm, not HostSpecsForm, because it relates to the dedup toggle in storage section. Add to the Global Deduplication section in StorageConfigForm:
+
 ```html
 <WarningBanner
   v-if="dedupNetworkSpeedError"
@@ -265,14 +279,17 @@ The dedup network speed warning fires from StorageConfigForm, not HostSpecsForm,
 ```
 
 **Heading:**
+
 ```html
 <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
   {{ t('results.vsanMax.title') }}
 </h2>
 ```
+
 Matches HostCountCard heading style exactly.
 
 **Profile + node count row** (displayed above the data grid):
+
 ```html
 <div class="flex items-center gap-6 mb-3">
   <div class="flex flex-col">
@@ -295,6 +312,7 @@ Matches HostCountCard heading style exactly.
 Large number color logic: `text-emerald-600` when `storageNodeCount >= 4`, `text-red-600` when `storageNodeCount < 4`. Mirrors HostCountCard `isSufficient` color logic.
 
 **Data grid:**
+
 ```html
 <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400
             border-t border-gray-100 dark:border-gray-700 pt-3">
@@ -312,6 +330,7 @@ Large number color logic: `text-emerald-600` when `storageNodeCount >= 4`, `text
 ```
 
 **Validation error banner:**
+
 ```html
 <WarningBanner
   v-if="vsanMax.belowMinNodes"
@@ -322,6 +341,7 @@ Large number color logic: `text-emerald-600` when `storageNodeCount >= 4`, `text
 ```
 
 **Card wrapper class:** Identical to HostCountCard and StretchNetworkChecklist:
+
 ```
 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4
 ```

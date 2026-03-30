@@ -16,16 +16,19 @@ Add the three VCF 9.x differentiating features (NVMe Memory Tiering, Stretch Clu
 ### NVMe Memory Tiering (NVME-01 to NVME-04)
 
 **Store changes (inputStore.ts):**
+
 - Add `nvmeTieringEnabled: ref(false)`
 - Add `activeMemoryPct: ref(50)` — percentage of DRAM actively used (0–100)
 
 **Engine changes (compute.ts):**
+
 - Add optional `nvmeTieringEnabled` and `activeMemoryPct` to `ComputeInputs`
 - When `nvmeTieringEnabled && activeMemoryPct <= 50`: `effectiveHostRamGB = hostRamGB / 2`
 - Else: `effectiveHostRamGB = hostRamGB`
 - All RAM calculations use `effectiveHostRamGB` (not raw `hostRamGB`)
 
 **UI (HostSpecsForm.vue):**
+
 - Add NVMe Tiering toggle beneath host RAM input
 - When toggle enabled: show `activeMemoryPct` slider (0–100%)
 - When `activeMemoryPct <= 50`: show green indicator "NVMe tiering active — DRAM halved"
@@ -34,11 +37,13 @@ Add the three VCF 9.x differentiating features (NVMe Memory Tiering, Stretch Clu
 ### Stretch Cluster (STRCH-01 to STRCH-05)
 
 **Store changes (inputStore.ts):**
+
 - Add `preferredSiteHosts: ref(3)` — host count at preferred site
 - Add `secondarySiteHosts: ref(3)` — host count at secondary site
 - Note: existing `hostCount` becomes the total across both sites when stretch is active
 
 **Engine changes:**
+
 - `calcStretch(inputs)` new function in `src/engine/stretch.ts`:
   - Witness node overhead: 4 vCPU, 16 GB RAM (vSAN ESA M-profile witness — ESA does not support the Tiny/2vCPU profile; minimum is M per Yellow Bricks Mar 2026)
   - Per-site storage: each site holds a full copy → storage calc uses PFTT=1 (2× site replication on top of FTT policy)
@@ -46,12 +51,14 @@ Add the three VCF 9.x differentiating features (NVMe Memory Tiering, Stretch Clu
   - Total host count for capacity: `preferredSiteHosts + secondarySiteHosts`
 
 **UI:**
+
 - In `DeploymentModelSelector.vue`: when stretch selected, show two new inputs: "Preferred site hosts" and "Secondary site hosts" (NumberSliderInput)
 - Witness overhead shown in ManagementSummary.vue when stretch active
 - Cross-site bandwidth guidance displayed as informational note
 - Mutual exclusion: Global Deduplication toggle disabled (greyed out) when stretch is active (STRCH-04)
 
 **Storage math for stretch:**
+
 - Data is written to both sites → effective storage per site = normal vSAN calc × 1 (each site is independent)
 - Total cluster raw capacity = `(preferredSiteHosts + secondarySiteHosts) × hostStorageTB`
 - Apply normal RAID+LFS+metadata stack per-site, then sum
@@ -60,14 +67,17 @@ Add the three VCF 9.x differentiating features (NVMe Memory Tiering, Stretch Clu
 ### AI / GPU Workloads (GPU-01 to GPU-03)
 
 **Store changes (inputStore.ts):**
+
 - Add `gpuVmCount: ref(0)`
 - Add `vgpuMemoryGB: ref(16)` — memory per vGPU profile
 
 **Engine changes (compute.ts):**
+
 - Add `gpuVmCount` and `vgpuMemoryGB` to `ComputeInputs`
 - GPU RAM overhead added to `totalRamRequiredGB`: `gpuVmCount × vgpuMemoryGB × 2` (conservative 2× multiplier for vGPU overhead)
 
 **UI (WorkloadProfileForm.vue):**
+
 - Add "AI/GPU Workloads" section at bottom of form
 - `gpuVmCount`: NumberSliderInput (0–50)
 - `vgpuMemoryGB`: NumberSliderInput (8, 16, 32, 48, 80 GB — common vGPU profiles)
@@ -96,6 +106,7 @@ Add the three VCF 9.x differentiating features (NVMe Memory Tiering, Stretch Clu
 </decisions>
 
 <canonical_refs>
+
 ## Canonical References
 
 - `.planning/REQUIREMENTS.md` — Phase 3: NVME-01–04, STRCH-01–05, GPU-01–03
@@ -116,24 +127,30 @@ Add the three VCF 9.x differentiating features (NVMe Memory Tiering, Stretch Clu
 </canonical_refs>
 
 <code_context>
+
 ## Existing Code Insights
 
 ### ComputeInputs (types.ts) — fields to add
+
 Current: deploymentMode, coresPerSocket, socketsPerHost, hostRamGB, hostCount, vmCount, avgVcpuPerVm, avgVramGbPerVm, cpuOvercommitRatio, ramOvercommitRatio, managementCores, managementRamGB
 Add: nvmeTieringEnabled?, activeMemoryPct?, gpuVmCount?, vgpuMemoryGB?
 
 ### calcCompute (compute.ts) — changes
+
 - Compute `effectiveHostRamGB` from NVMe inputs before using hostRamGB in formulas
 - Add `gpuRamOverheadGB = gpuVmCount × vgpuMemoryGB × 2` to `totalRamRequiredGB`
 - All new fields are optional with sensible defaults (0 for counts, false for toggles)
 
 ### StorageConfigForm.vue (src/components/input/)
+
 - Dedup toggle already exists — needs to be disabled/greyed when stretch is active (STRCH-04)
 - Read `inputStore.deploymentMode` to conditionally disable
 
 ### Existing i18n keys structure
+
 Locale files: src/i18n/locales/{en,fr,de,it}.json
 Phase 3 new keys go under existing sections:
+
 - `host.nvme.*` for NVMe tiering
 - `workload.gpu.*` for GPU section
 - `deployment.stretch.*` for stretch site inputs

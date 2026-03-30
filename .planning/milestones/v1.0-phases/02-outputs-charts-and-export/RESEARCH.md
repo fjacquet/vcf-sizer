@@ -7,6 +7,7 @@
 ---
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
@@ -46,6 +47,7 @@
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -158,6 +160,7 @@ src/
 **When to use:** All three chart components (CoresChart, RamChart, StorageChart). This is the correct pattern when chart data derives from a Pinia store.
 
 **Example:**
+
 ```typescript
 // Source: vue-chartjs official guide (vue-chartjs.org/guide) + confirmed behavior from v4 release notes
 <script setup lang="ts">
@@ -216,6 +219,7 @@ The `shallowRef` + `triggerRef` pattern is required ONLY when you store the Char
 **When to use:** Only if ExportToolbar needs to call `chart.toBase64Image()` for Markdown report image embedding (currently not required per CONTEXT.md).
 
 **Example:**
+
 ```typescript
 // Source: Vue 3 docs (vuejs.org/api/reactivity-advanced#triggerref) + Chart.js issue #11619
 import { shallowRef, triggerRef } from 'vue'
@@ -237,6 +241,7 @@ triggerRef(chartData)  // force vue-chartjs to re-render
 **When to use:** Called once at startup; called again when user clicks "Share URL".
 
 **Example:**
+
 ```typescript
 // Source: lz-string API (pieroxy.net) + Zod docs (zod.dev) + Vue 3 patterns
 // src/composables/useUrlState.ts
@@ -326,6 +331,7 @@ export function generateShareUrl(): string {
 **When to use:** App.vue refactor in Wave 1.
 
 **Example:**
+
 ```html
 <!-- Source: CONTEXT.md layout decision + Tailwind v4 grid utilities -->
 <template>
@@ -365,6 +371,7 @@ export function generateShareUrl(): string {
 **When to use:** Add to `src/style.css` (the single CSS entry point).
 
 **Example:**
+
 ```css
 /* src/style.css */
 @import "tailwindcss";
@@ -382,6 +389,7 @@ Once registered, use `print:hidden`, `print:block`, `print:col-span-2` in templa
 **When to use:** ExportToolbar "Download Markdown" button click handler.
 
 **Example:**
+
 ```typescript
 // Source: CONTEXT.md decision + MDN Web API
 export function downloadMarkdown(calc: ReturnType<typeof useCalculationStore>): void {
@@ -417,6 +425,7 @@ export function downloadMarkdown(calc: ReturnType<typeof useCalculationStore>): 
 **What:** `useClipboard` from `@vueuse/core` — provides auto-resetting `copied` ref.
 
 **Example:**
+
 ```typescript
 // Source: vueuse.org/core/useclipboard (HIGH confidence — verified 2026-03-28)
 import { useClipboard } from '@vueuse/core'
@@ -468,6 +477,7 @@ const { copy, copied } = useClipboard({ source: shareUrl, copiedDuring: 2000 })
 **Why it happens:** `chartData` is a `computed()` that returns the SAME object reference (shallow copy mutation instead of new object creation). vue-chartjs's internal watcher uses `===` to detect changes — same reference means no update.
 
 **How to avoid:** Always return a NEW plain object from `computed()`:
+
 ```typescript
 // WRONG — mutates same object
 const chartData = computed(() => {
@@ -491,6 +501,7 @@ const chartData = computed(() => ({
 **Why it happens:** Vue's `reactive()` wraps Chart.js internal objects in a Proxy, causing Chart.js's internal `update()` to trigger Vue watchers, which trigger `update()` again recursively. (Confirmed: Chart.js issue #11619)
 
 **How to avoid:** Never store Chart.js instances in `reactive()` or `ref()`. If you need an imperative reference to the chart instance, use `shallowRef`:
+
 ```typescript
 const chartRef = shallowRef<InstanceType<typeof Bar> | null>(null)
 ```
@@ -504,6 +515,7 @@ const chartRef = shallowRef<InstanceType<typeof Bar> | null>(null)
 **Why it happens:** lz-string 1.5.0 uses a default export (`LZString` object). The ESM build may expose named exports depending on build tool resolution, but the safe pattern uses the default import.
 
 **How to avoid:**
+
 ```typescript
 // CORRECT — default import (always works with Vite + TypeScript)
 import LZString from 'lz-string'
@@ -520,6 +532,7 @@ LZString.decompressFromEncodedURIComponent(compressed)
 **Why it happens:** `hydrateFromUrl()` calls `useInputStore()` before `app.use(pinia)` runs.
 
 **How to avoid:** Strict ordering in `main.ts`:
+
 ```typescript
 const app = createApp(App)
 const pinia = createPinia()
@@ -548,6 +561,7 @@ app.mount('#app')      // Step 3: mount
 **Why it happens:** `LZString.decompressFromEncodedURIComponent()` returns `null` (not empty string) when the input is corrupted or truncated.
 
 **How to avoid:** Always null-check before `JSON.parse`:
+
 ```typescript
 const json = LZString.decompressFromEncodedURIComponent(compressed)
 if (!json) return  // corrupted URL — silently ignore
@@ -562,6 +576,7 @@ if (!json) return  // corrupted URL — silently ignore
 **Why it happens:** Chart.js stacked bars require explicit `scales.x.stacked: true` and `scales.y.stacked: true` in options. Without it, bars render side-by-side (grouped) or overlapping.
 
 **How to avoid:**
+
 ```typescript
 const chartOptions = {
   responsive: true,
@@ -753,6 +768,7 @@ const { copy, copied, isSupported } = useClipboard({
 | `Intl.NumberFormat` for chart labels | Chart.js built-in tick formatting | Chart.js v3+ | Use `scales.y.ticks.callback` for locale-aware formatting |
 
 **Deprecated/outdated:**
+
 - vue-chartjs `reactiveProp` and `reactiveData` mixins: Removed in v5; do not use.
 - vue-chartjs `v-if` on chart for forced re-render: Anti-pattern; use computed prop returning new object instead.
 - `window.location.hash` for URL state: Use `URLSearchParams` (query string) for better compatibility with social link previews.
@@ -792,9 +808,11 @@ const { copy, copied, isSupported } = useClipboard({
 | @vueuse/core | EXPORT-01/02 (clipboard) | No (not yet installed) | 14.2.1 available | Manual `navigator.clipboard.writeText` |
 
 **Missing dependencies with no fallback:**
+
 - vue-chartjs, chart.js, lz-string, zod — all must be installed in Wave 0
 
 **Missing dependencies with fallback:**
+
 - @vueuse/core useClipboard — can be implemented manually with `navigator.clipboard.writeText()` + `setTimeout` reset if @vueuse/core introduces a conflict
 
 ---
@@ -876,6 +894,7 @@ The following directives from `CLAUDE.md` apply to this phase:
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all versions verified from npm registry 2026-03-28
 - Architecture patterns: HIGH — vue-chartjs props from official API docs; lz-string functions from official guide; Zod from official docs; Tailwind print from GitHub issues
 - Pitfalls: HIGH — sourced from pre-existing verified PITFALLS.md (compiled 2026-03-28) + Chart.js issue #11619 reference

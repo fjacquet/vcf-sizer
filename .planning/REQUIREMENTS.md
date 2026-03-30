@@ -84,6 +84,7 @@
 | EXPORT-02 | Phase 17 | Pending |
 
 **Coverage:**
+
 - v3.1 requirements: 13 total
 - Mapped to phases: 13
 - Unmapped: 0 ✓

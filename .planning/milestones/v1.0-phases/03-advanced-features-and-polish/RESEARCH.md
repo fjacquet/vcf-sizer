@@ -7,11 +7,13 @@
 ---
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
 
 **NVMe Memory Tiering (NVME-01 to NVME-04)**
+
 - Add `nvmeTieringEnabled: ref(false)` and `activeMemoryPct: ref(50)` to `inputStore.ts`
 - Add optional `nvmeTieringEnabled` and `activeMemoryPct` to `ComputeInputs`
 - When `nvmeTieringEnabled && activeMemoryPct <= 50`: `effectiveHostRamGB = hostRamGB / 2`
@@ -21,6 +23,7 @@
 - Prerequisite notice: "Requires Class D+ NVMe at 3+ DWPD" (NVME-04)
 
 **Stretch Cluster (STRCH-01 to STRCH-05)**
+
 - Add `preferredSiteHosts: ref(3)` and `secondarySiteHosts: ref(3)` to `inputStore.ts`
 - `calcStretch(inputs)` new function in `src/engine/stretch.ts`
 - Witness node overhead: 2 vCPU, 8 GB RAM (small form factor witness — see ESA caveat in Research)
@@ -32,11 +35,13 @@
 - Mutual exclusion: Global Deduplication toggle disabled when stretch is active (STRCH-04)
 
 **Storage math for stretch:**
+
 - Total cluster raw capacity = `(preferredSiteHosts + secondarySiteHosts) × hostStorageTB`
 - Apply normal RAID+LFS+metadata stack per-site, then sum
 - Simpler: treat total host count = preferred + secondary, but flag in UI that stretch halves effective usable vs. single-site
 
 **AI / GPU Workloads (GPU-01 to GPU-03)**
+
 - Add `gpuVmCount: ref(0)` and `vgpuMemoryGB: ref(16)` to `inputStore.ts`
 - Add `gpuVmCount` and `vgpuMemoryGB` to `ComputeInputs`
 - GPU RAM overhead: `gpuVmCount × vgpuMemoryGB × 2` (conservative 2× multiplier for vGPU overhead)
@@ -45,11 +50,13 @@
 - `vgpuMemoryGB`: NumberSliderInput (8, 16, 32, 48, 80 GB — common vGPU profiles)
 
 **i18n Locale Completion**
+
 - All Phase 3 new UI strings added to all 4 locale files simultaneously (not deferred)
 - EN keys defined first; FR/DE/IT translations included in same task
 - No hardcoded English strings in any Phase 3 component
 
 **Test Strategy**
+
 - All new engine functions (`calcStretch`, updated `calcCompute`) get Vitest unit tests
 - Test files follow existing pattern: `/// <reference types="vitest/globals" />`
 - GPU RAM overhead formula tested with boundary values (gpuVmCount=0 → no overhead)
@@ -75,6 +82,7 @@
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -363,6 +371,7 @@ const STRETCH_MIN_HOSTS_PER_SITE = 3
 **Why it happens:** Swiss French follows the French convention of using a comma as the decimal separator. Swiss German and Swiss Italian follow the ISO convention with a period decimal. The `i18n/index.ts` correctly defines all four locale entries but doesn't override the decimal separator — meaning the browser's CLDR data determines it.
 
 **Confirmed by live test (Node v25.8.2, ICU 78.3):**
+
 - `fr-CH`: `1'234'567,89` — comma decimal
 - `de-CH`: `1'234'567.89` — period decimal
 - `it-CH`: `1'234'567.89` — period decimal
@@ -487,6 +496,7 @@ Two formulae are available:
 **Heuristic (CONTEXT.md):** `totalWorkloadStorageTB × 0.1` GB/s — simple, no additional inputs
 
 **Precise (FEATURES.md, official):** `Wb × 1.4 × 1.25 × CR`
+
 - Wb = write bandwidth (GB/s)
 - 1.4 = metadata overhead factor
 - 1.25 = resync/rebuild headroom
@@ -520,6 +530,7 @@ Group separator character confirmed to be the Unicode apostrophe `'` (U+2019) vi
 `fr-CH` uses a **comma** decimal separator, consistent with French linguistic convention. `de-CH` and `it-CH` use a **period**. This is correct behavior per CLDR — do not attempt to override it with a custom format.
 
 **Test assertion pattern:**
+
 ```typescript
 expect(new Intl.NumberFormat('fr-CH', { style: 'decimal', minimumFractionDigits: 2 }).format(1234.56))
   .toBe("1'234,56")  // comma decimal for fr-CH
@@ -684,6 +695,7 @@ Step 2.6: SKIPPED — Phase 3 is pure TypeScript/Vue code changes with no extern
 ## Metadata
 
 **Confidence breakdown:**
+
 - NVMe tiering spec: HIGH — official VMware blog series Nov–Dec 2025, two-part verified
 - ESA witness sizing: HIGH — Duncan Epping Yellow Bricks Mar 2026 + Broadcom TechDocs corroboration
 - TypeScript patterns: HIGH — verified against actual codebase `compute.ts` and `types.ts`

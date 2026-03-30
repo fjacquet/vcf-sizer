@@ -7,6 +7,7 @@
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -80,6 +81,7 @@ src/
 **When to use:** Any correctness bug fix that has an existing test pinning the wrong behavior.
 
 **The failing test (stretch.test.ts line 28–40) currently asserts:**
+
 ```typescript
 // CURRENT (incorrect assertion — pins pre-floor formula value):
 it('bandwidth = totalWorkloadStorageTB × 0.1; 100 VMs × 100 GB/VM = 10 TB → 1.0 Gbps', () => {
@@ -91,6 +93,7 @@ it('bandwidth = totalWorkloadStorageTB × 0.1; 100 VMs × 100 GB/VM = 10 TB → 
 ```
 
 **TDD order for the fix:**
+
 ```typescript
 // STEP 1 — update test to expect the floor (test goes RED):
 it('bandwidth floor: 100 VMs × 100 GB/VM → formula ~0.097 Gbps < 10 Gbps floor → returns 10 Gbps', () => {
@@ -107,6 +110,7 @@ const bandwidthFloorApplied = calculatedBandwidthGbps < STRETCH_MIN_BANDWIDTH_GB
 ```
 
 **Additional test to add — floor NOT applied when formula exceeds 10 Gbps:**
+
 ```typescript
 it('bandwidth floor NOT applied: 200,000 VMs × 1000 GB/VM → formula > 10 Gbps → bandwidthFloorApplied=false', () => {
   const result = calcStretch({ ..., vmCount: 100, avgStorageGbPerVm: 200_000 })
@@ -211,6 +215,7 @@ return {
 ```
 
 **Zod schema update (useUrlState.ts) — must be synchronised:**
+
 ```typescript
 // Add to InputStateSchema.object({...}):
 managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
@@ -473,6 +478,7 @@ managementArchitecture: store.managementArchitecture,
 | Bandwidth sizing as formula-only | Bandwidth floor 10 Gbps (Broadcom TechDocs VCF 9.0) | VCF 9.0 specification | Bug fix: apply floor via Math.max() |
 
 **Deprecated/outdated:**
+
 - Sub-10-Gbps bandwidth recommendations: Any stretch cluster recommendation below 10 Gbps is now spec-incorrect per VCF 9.0. The `bandwidthFloorApplied` indicator communicates this to users who had existing shared URLs.
 
 ---
@@ -591,6 +597,7 @@ No project-level `CLAUDE.md` exists in `/Users/fjacquet/Projects/vcf-sizer/`. Th
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — confirmed from direct code inspection; zero new dependencies
 - Architecture: HIGH — all patterns derived from existing working code in the repository
 - Type extensions: HIGH — additive-only; TypeScript strict mode enforces correctness

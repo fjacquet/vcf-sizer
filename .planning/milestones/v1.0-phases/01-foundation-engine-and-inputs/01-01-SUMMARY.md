@@ -158,6 +158,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] @intlify/unplugin-vue-i18n v6 crashes with Vite 8/rolldown when include pattern is set**
+
 - **Found during:** Task 1 verification (build)
 - **Issue:** Plugin pre-compiles JSON locale files into a format that rolldown's built-in JSON handler cannot parse, resulting in 4 "expected value at line 1 column 1" errors
 - **Fix:** Removed the `include` option from VueI18nPlugin config. Rolldown handles JSON natively and correctly splits locale files into separate chunks for lazy loading. Plugin kept for future SFC `<i18n>` block support.
@@ -166,6 +167,7 @@ Each task was committed atomically:
 - **Committed in:** `f4ac759` (Task 1 commit, then refined in final vite.config.ts)
 
 **2. [Rule 1 - Bug] vitest globals (describe/it/expect) not recognized by TypeScript**
+
 - **Found during:** Task 3 verification (full `npm run build` including vue-tsc)
 - **Issue:** placeholder.test.ts included in tsconfig.app.json compilation — vitest types not declared, causing TS2582/TS2304 errors
 - **Fix:** Added `exclude: ["src/**/*.test.ts", "src/**/*.spec.ts"]` to tsconfig.app.json
