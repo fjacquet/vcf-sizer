@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Export Quality
-status: roadmap-ready
-last_updated: "2026-03-30T00:00:00.000Z"
-last_activity: 2026-03-30
+status: planning
+last_updated: "2026-03-30T06:19:58.933Z"
+last_activity: 2026-03-30 — Roadmap v2.1 created (4 phases, 30 requirements mapped)
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
 ---
 
 # Project State
@@ -38,6 +38,7 @@ Progress: [----------] 0/4 phases complete
 | Phase 04 P02 | 10min | 3 tasks | 7 files |
 | Phase 05 P01 | 9min | 2 tasks | 10 files |
 | Phase 05 P02 | 12min | 3 tasks | 9 files |
+| Phase 06 P01 | 1min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ v2.1 decisions:
 - [Roadmap]: Build order enforced: Markdown extraction (Phase 6) → Print/PDF CSS (Phase 7) → PPTX core (Phase 8) → PPTX conditional (Phase 9)
 - [Roadmap]: Print/PDF is pure CSS — zero JavaScript changes required; window.print() call in ExportToolbar.vue unchanged
 - [Roadmap]: Phase 8 (PPTX core) introduces pptxgenjs as the only new production dependency for v2.1
+- [Phase 06]: Tests call generateMarkdownReport() directly through real Pinia stores — no engine function imports
+- [Phase 06]: Wave 0 gate: useMarkdownExport.test.ts intentionally fails import until Plan 02 creates useMarkdownExport.ts
 
 ### Pending Todos
 
