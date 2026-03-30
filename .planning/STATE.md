@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: Export Quality
-status: complete
-last_updated: "2026-03-30T10:45:00.000Z"
+milestone: v2.0
+milestone_name: milestone
+status: verifying
+last_updated: "2026-03-30T20:23:10.098Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
+  total_phases: 6
+  completed_phases: 5
   total_plans: 11
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 09 (pptx-conditional-slides-and-polish) — COMPLETE
 Plan: 2 of 2
-Status: Phase verified — all 5 conditional PPTX slides implemented and tested
+Status: Phase complete — ready for verification
 
 Progress: [####################] 4/4 phases complete
 
@@ -48,6 +48,7 @@ Progress: [####################] 4/4 phases complete
 | Phase 08 P03 | 5min | 2 tasks | 5 files |
 | Phase 09 P01 | 3min | 1 tasks | 1 files |
 | Phase 09 P02 | 4min | 2 tasks | 1 files |
+| Phase 16 P01 | 12min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,8 @@ v2.1 decisions:
 - [Phase 09]: Stretch helper accepts StretchResult directly (not full calc store) for testability
 - [Phase 09]: Validation warnings in PPTX use raw messageKey — no i18n in composable (consistent with Phase 6)
 - [Phase 09]: vSAN Max PPTX guard uses double condition: storageType === 'vsan-max' && calc.vsanMax !== null
+- [Phase 16]: currentWizardStep lives in uiStore only — confirmed by WIZARD-07 tests proving InputStateSchema strips it
+- [Phase 16]: vitest include extended to src/stores/**/*.test.ts to enable store unit tests (Rule 3 fix)
 
 ### Pending Todos
 
