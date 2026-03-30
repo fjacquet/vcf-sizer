@@ -110,8 +110,8 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 10-01-PLAN.md — Types, defaults, and inputStore refactor (DOM-01, DOM-02, DOM-03, DOM-04)
-- [ ] 10-02-PLAN.md — calculationStore refactor and integration (DOM-05, DOM-06)
+- [ ] 13-01-PLAN.md — Fix export composables for multi-domain store API (RES-01, RES-02, RES-03)
+- [ ] 13-02-PLAN.md — Per-domain result cards, aggregate totals card, and i18n (RES-01, RES-02, RES-03)
 **UI hint**: yes
 
 ### Phase 14: Multi-Domain Exports
@@ -149,5 +149,5 @@ Plans:
 | 10. Domain Types, Defaults, and Store Refactor | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 11. URL State Schema Refactor | v3.0 | 1/1 | Complete    | 2026-03-30 |
 | 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | Complete    | 2026-03-30 |
-| 13. Per-Domain Results and Aggregate Totals | v3.0 | 0/? | Not started | - |
+| 13. Per-Domain Results and Aggregate Totals | v3.0 | 0/2 | Not started | - |
 | 14. Multi-Domain Exports | v3.0 | 0/? | Not started | - |
