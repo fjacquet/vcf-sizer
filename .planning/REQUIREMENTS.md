@@ -40,11 +40,11 @@
 - [x] **PPTX-07**: PPTX includes a compute results slide (recommended host count, CPU and RAM utilization percentages)
 - [x] **PPTX-08**: PPTX includes a storage results slide (capacity breakdown: raw, RAID overhead, LFS, metadata, safe usable)
 - [x] **PPTX-09**: PPTX includes a recommendations slide summarising key sizing outputs and any active warnings
-- [ ] **PPTX-10**: PPTX includes a conditional AI/GPU slide when `gpuVmCount > 0`
-- [ ] **PPTX-11**: PPTX includes a conditional NVMe memory tiering slide when `nvmeTieringEnabled = true`
-- [ ] **PPTX-12**: PPTX includes a conditional stretch cluster topology slide when `deploymentMode = 'stretch'`
-- [ ] **PPTX-13**: PPTX includes a conditional vSAN Max cluster slide when `storageType = 'vsan-max'`
-- [ ] **PPTX-14**: PPTX includes a conditional validation warnings slide when one or more warnings exist
+- [x] **PPTX-10**: PPTX includes a conditional AI/GPU slide when `gpuVmCount > 0`
+- [x] **PPTX-11**: PPTX includes a conditional NVMe memory tiering slide when `nvmeTieringEnabled = true`
+- [x] **PPTX-12**: PPTX includes a conditional stretch cluster topology slide when `deploymentMode = 'stretch'`
+- [x] **PPTX-13**: PPTX includes a conditional vSAN Max cluster slide when `storageType = 'vsan-max'`
+- [x] **PPTX-14**: PPTX includes a conditional validation warnings slide when one or more warnings exist
 - [x] **PPTX-15**: `pptxgenjs` is loaded via dynamic `import()` inside the export function body — zero impact on the initial bundle
 
 ---

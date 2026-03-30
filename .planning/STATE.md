@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Export Quality
-status: verifying
-last_updated: "2026-03-30T08:11:04.710Z"
+status: executing
+last_updated: "2026-03-30T08:34:47.913Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 11
+  completed_plans: 10
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 08 — pptx-core-slides
+**Current focus:** Phase 09 — pptx-conditional-slides-and-polish
 
 ## Current Position
 
-Phase: 08 (pptx-core-slides) — EXECUTING
-Plan: 3 of 3
-Next: Phase 08 (pptx-core-slides) — NOT STARTED
-Status: Phase complete — ready for verification
+Phase: 09 (pptx-conditional-slides-and-polish) — EXECUTING
+Plan: 2 of 2
+Next: Phase 09 (pptx-conditional-slides) — NOT STARTED
+Status: Ready to execute
 
-Progress: [##########----------] 2/4 phases complete
+Progress: [###############-----] 3/4 phases complete
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Progress: [##########----------] 2/4 phases complete
 | Phase 08 P02 | 11min | 2 tasks | 3 files |
 | Phase 08 P03 | 5min | 1 tasks | 5 files |
 | Phase 08 P03 | 5min | 2 tasks | 5 files |
+| Phase 09 P01 | 3min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -112,14 +113,12 @@ v2.1 decisions:
 - [Phase 08]: [08-02]: type import PptxGenJS used for namespace type access only — runtime dynamic import still inside function body (PPTX-15 compliant)
 - [Phase 08-03]: [08-03]: Button uses disabled:opacity-50 Tailwind class and :disabled binding for loading state visual feedback
 - [Phase 08-03]: [08-03]: i18n key path is results.toolbar.exportPptx / results.toolbar.exportPptxLoading — consistent with existing toolbar keys
-- [Phase 08-03]: [08-03]: Button uses disabled:opacity-50 Tailwind class and :disabled binding for loading state visual feedback
-- [Phase 08-03]: [08-03]: i18n key path is results.toolbar.exportPptx / results.toolbar.exportPptxLoading — consistent with existing toolbar keys
+- [Phase 09]: Wave 0 TDD RED gate: 5 failing test describe blocks added to usePptxExport.test.ts for PPTX-10..14 before any helper implementation
 
 ### Pending Todos
 
 - Verify ReadyNode profile constants (MED/LRG/XL NVMe counts, XS 128 GB RAM minimum) against compatibilityguide.broadcom.com at Phase 5 implementation time
-- Phase 8: Measure actual pptxgenjs gzip bundle size with `npx vite build --report` or rollup-plugin-visualizer after adding dependency
-- Phase 8: Prototype `pres.defineSlideMaster()` option-object mutation behavior before designing master template (pitfall A-2)
+- Phase 9: Add conditional slides for AI/GPU, NVMe tiering, stretch topology, vSAN Max, and validation warnings
 
 ### Blockers/Concerns
 
@@ -130,5 +129,5 @@ v2.1 decisions:
 To resume:
 
 1. Read .planning/ROADMAP.md for full phase structure (Phases 6-9)
-2. Read .planning/REQUIREMENTS.md for v2.1 requirement IDs (MD-01..09, PRINT-01..06, PPTX-01..15)
-3. Run: `/gsd:plan-phase 8` to begin PPTX Core Slides
+2. Read .planning/REQUIREMENTS.md for v2.1 requirement IDs (PPTX-10..14)
+3. Run: `/gsd:plan-phase 9` to begin PPTX Conditional Slides and Polish
