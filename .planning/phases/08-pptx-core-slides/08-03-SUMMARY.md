@@ -58,7 +58,9 @@ Each task was committed atomically:
 
 1. **Task 1: Add PPTX button to ExportToolbar.vue and i18n keys to all 4 locales** - `19bb243` (feat)
 
-**Plan metadata:** (pending final docs commit)
+**Task 2: Verify PPTX export end-to-end (human-verify checkpoint)** - User approved (no code changes)
+
+**Plan metadata:** `ce7938c` (docs: complete pptx-core-slides toolbar wiring plan)
 
 ## Files Created/Modified
 
@@ -88,8 +90,8 @@ None - no external service configuration required.
 ## Next Phase Readiness
 
 - PPTX export button is fully wired and functional. Users can click "Download PPTX" and receive `vcf-sizing-report.pptx` with 7 branded slides.
-- Task 2 (human-verify checkpoint) requires user to open the dev server and visually confirm the end-to-end PPTX download works.
-- Phase 09 (PPTX conditional slides) can proceed once Task 2 is verified.
+- Task 2 (human-verify checkpoint) was approved by user — end-to-end PPTX download confirmed working.
+- Phase 09 (PPTX conditional slides) is unblocked and ready to proceed.
 
 ## Known Stubs
 

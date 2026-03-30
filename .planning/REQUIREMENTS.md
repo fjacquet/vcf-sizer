@@ -45,7 +45,7 @@
 - [ ] **PPTX-12**: PPTX includes a conditional stretch cluster topology slide when `deploymentMode = 'stretch'`
 - [ ] **PPTX-13**: PPTX includes a conditional vSAN Max cluster slide when `storageType = 'vsan-max'`
 - [ ] **PPTX-14**: PPTX includes a conditional validation warnings slide when one or more warnings exist
-- [ ] **PPTX-15**: `pptxgenjs` is loaded via dynamic `import()` inside the export function body — zero impact on the initial bundle
+- [x] **PPTX-15**: `pptxgenjs` is loaded via dynamic `import()` inside the export function body — zero impact on the initial bundle
 
 ---
 
