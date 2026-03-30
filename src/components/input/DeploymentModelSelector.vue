@@ -29,14 +29,12 @@ const deploymentMode = domainField('deploymentMode')
 const preferredSiteHosts = domainField('preferredSiteHosts')
 const secondarySiteHosts = domainField('secondarySiteHosts')
 const networkSpeedGbE = domainField('networkSpeedGbE')
-const storageType = domainField('storageType')
 
 // Per-domain calc results
 const domainResult = computed(() =>
   calc.domainResults.find(r => r.id === props.domainId)
 )
 const stretch = computed(() => domainResult.value?.stretch ?? null)
-const validationErrors = computed(() => domainResult.value?.validationErrors ?? [])
 
 const modes = [
   { value: 'simple' as const, labelKey: 'deployment.simple' },
