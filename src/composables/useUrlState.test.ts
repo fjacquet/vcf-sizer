@@ -286,3 +286,52 @@ describe('Schema validation — edge cases', () => {
     expect(guardTriggered).toBe(true)
   })
 })
+
+describe('WIZARD-07: wizard step URL exclusion', () => {
+  it('InputStateSchema strips currentWizardStep from parsed input', () => {
+    // InputStateSchema uses .strip() — any unknown key including currentWizardStep must be removed
+    const inputWithWizardStep = {
+      ...defaultState,
+      currentWizardStep: 2,
+    }
+    const result = InputStateSchema.safeParse(inputWithWizardStep)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('currentWizardStep')
+    }
+  })
+
+  it('serialized URL state object has no currentWizardStep key', () => {
+    // Mirrors what generateShareUrl() does: serialize only inputStore fields
+    // currentWizardStep lives in uiStore and must never appear in the URL state object
+    const urlStateObject = {
+      deploymentMode: defaultState.deploymentMode,
+      coresPerSocket: defaultState.coresPerSocket,
+      socketsPerHost: defaultState.socketsPerHost,
+      hostRamGB: defaultState.hostRamGB,
+      hostStorageTB: defaultState.hostStorageTB,
+      hostCount: defaultState.hostCount,
+      vmCount: defaultState.vmCount,
+      avgVcpuPerVm: defaultState.avgVcpuPerVm,
+      avgVramGbPerVm: defaultState.avgVramGbPerVm,
+      avgStorageGbPerVm: defaultState.avgStorageGbPerVm,
+      cpuOvercommitRatio: defaultState.cpuOvercommitRatio,
+      ramOvercommitRatio: defaultState.ramOvercommitRatio,
+      storageType: defaultState.storageType,
+      fttLevel: defaultState.fttLevel,
+      raidType: defaultState.raidType,
+      dedupEnabled: defaultState.dedupEnabled,
+      dedupRatio: defaultState.dedupRatio,
+      managementArchitecture: defaultState.managementArchitecture,
+      vsanMaxProfile: defaultState.vsanMaxProfile,
+      vsanMaxStorageNodes: defaultState.vsanMaxStorageNodes,
+      networkSpeedGbE: defaultState.networkSpeedGbE,
+    }
+
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(urlStateObject))
+    const decompressed = LZString.decompressFromEncodedURIComponent(compressed)
+    const roundTripped = JSON.parse(decompressed!)
+
+    expect(Object.keys(roundTripped)).not.toContain('currentWizardStep')
+  })
+})

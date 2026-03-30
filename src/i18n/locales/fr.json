@@ -181,5 +181,23 @@
     "footer": {
       "attribution": "Genere par VCF Sizer"
     }
+  },
+  "wizard": {
+    "step1": {
+      "number": "1",
+      "label": "Topologie"
+    },
+    "step2": {
+      "number": "2",
+      "label": "Gestion"
+    },
+    "step3": {
+      "number": "3",
+      "label": "Charges de travail"
+    },
+    "nav": {
+      "previous": "Precedent",
+      "next": "Suivant"
+    }
   }
 }

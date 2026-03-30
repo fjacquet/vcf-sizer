@@ -181,5 +181,23 @@
     "footer": {
       "attribution": "Generato da VCF Sizer"
     }
+  },
+  "wizard": {
+    "step1": {
+      "number": "1",
+      "label": "Topologia"
+    },
+    "step2": {
+      "number": "2",
+      "label": "Gestione"
+    },
+    "step3": {
+      "number": "3",
+      "label": "Carichi di lavoro"
+    },
+    "nav": {
+      "previous": "Precedente",
+      "next": "Avanti"
+    }
   }
 }
