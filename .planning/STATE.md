@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Export Quality
 status: planning
-last_updated: "2026-03-30T06:25:39.649Z"
+last_updated: "2026-03-30T06:33:11.738Z"
 last_activity: 2026-03-30 — Roadmap v2.1 created (4 phases, 30 requirements mapped)
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 3
 ---
 
 # Project State
@@ -39,6 +39,7 @@ Progress: [----------] 0/4 phases complete
 | Phase 05 P01 | 9min | 2 tasks | 10 files |
 | Phase 05 P02 | 12min | 3 tasks | 9 files |
 | Phase 06 P02 | 5min | 2 tasks | 3 files |
+| Phase 06 P03 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ v2.1 decisions:
 - [Roadmap]: Phase 8 (PPTX core) introduces pptxgenjs as the only new production dependency for v2.1
 - [Phase 06-02]: generateMarkdownReport() extracted verbatim to useMarkdownExport.ts — Wave 2 enrichment targets single source of truth
 - [Phase 06-02]: useCalculationStore import removed from useUrlState.ts as dead code after extraction
+- [Phase 06-03]: generateMarkdownReport() uses sections[] array pattern for conditional section assembly
+- [Phase 06-03]: Validation warnings rendered as i18n keys — no i18n resolution in composable (Pitfall 6)
 
 ### Pending Todos
 
