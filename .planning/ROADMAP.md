@@ -44,7 +44,7 @@ Full details: `.planning/milestones/v2.0-ROADMAP.md`
 **Plans**: 3 plans
 Plans:
 - [ ] 06-01-PLAN.md — Rewrite test file with full Pinia-backed failing test suite (Wave 0 TDD gate)
-- [ ] 06-02-PLAN.md — Extract generateMarkdownReport() to useMarkdownExport.ts and update imports (MD-01)
+- [x] 06-02-PLAN.md — Extract generateMarkdownReport() to useMarkdownExport.ts and update imports (MD-01)
 - [ ] 06-03-PLAN.md — Enrich with all new sections: Workload Profile, Management Architecture, NVMe, AI/GPU, Stretch, vSAN Max, Validation Warnings, Network Config (MD-02..09)
 **UI hint**: yes
 
@@ -96,7 +96,7 @@ Plans:
 | 3. Advanced Features and Polish | v2.0 | 2/2 | Complete | 2026-03-29 |
 | 4. Correctness and Architecture Validation | v2.0 | 2/2 | Complete | 2026-03-29 |
 | 5. vSAN Max Storage Cluster | v2.0 | 2/2 | Complete | 2026-03-29 |
-| 6. Markdown Extraction and Enrichment | v2.1 | 0/3 | Planned | - |
+| 6. Markdown Extraction and Enrichment | v2.1 | 1/3 | In Progress|  |
 | 7. Print/PDF CSS Overhaul | v2.1 | 0/? | Not started | - |
 | 8. PPTX Core Slides | v2.1 | 0/? | Not started | - |
 | 9. PPTX Conditional Slides and Polish | v2.1 | 0/? | Not started | - |

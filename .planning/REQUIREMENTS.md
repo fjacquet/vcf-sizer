@@ -10,7 +10,7 @@
 
 ### Markdown Export
 
-- [ ] **MD-01**: User can download a complete Markdown report generated from `src/composables/useMarkdownExport.ts` (function extracted from `useUrlState.ts`)
+- [x] **MD-01**: User can download a complete Markdown report generated from `src/composables/useMarkdownExport.ts` (function extracted from `useUrlState.ts`)
 - [ ] **MD-02**: Report includes a workload profile section (VM count, vCPU per VM, vRAM per VM, storage per VM, CPU and RAM overcommit ratios)
 - [ ] **MD-03**: Report includes a management architecture section (shared vs dedicated, dedicated management host count when applicable)
 - [ ] **MD-04**: Report includes an NVMe memory tiering section (enabled/disabled state, active memory percentage)
