@@ -1,108 +1,93 @@
-# Requirements — v3.0 Multi-Domain Support
+# Requirements — v3.1 Sizing Correctness & Guided Workflow
 
-**Milestone:** v3.0 Multi-Domain Support
+**Milestone:** v3.1 Sizing Correctness & Guided Workflow
 **Status:** Active
 **Last updated:** 2026-03-30
 
 ---
 
-## Milestone v3.0 Requirements
+## Milestone v3.1 Requirements
 
-### Domain Data Model & Store
+### Engine Correctness
 
-- [x] **DOM-01**: `inputStore` is refactored from a flat structure to `managementDomain: ManagementDomainConfig` + `workloadDomains: WorkloadDomainConfig[]`
-- [x] **DOM-02**: `WorkloadDomainConfig` type includes a stable `id` (crypto.randomUUID()), a user-editable `name`, all per-domain host specs, workload profile, storage config, and optional feature toggles (NVMe, AI/GPU, stretch, vSAN Max)
-- [x] **DOM-03**: `ManagementDomainConfig` type contains management host specs (CPU, cores, RAM) and the management architecture toggle — independent from any workload domain
-- [x] **DOM-04**: Default state on first load is one workload domain named "WLD-1" with all existing default values
-- [x] **DOM-05**: `calculationStore` maps over `workloadDomains` to produce a `domainResults` computed array (one result per domain) — zero `ref()` (CALC-02)
-- [x] **DOM-06**: `calculationStore` reduces `domainResults` into `aggregateTotals` (total host count, combined resources) — zero `ref()` (CALC-02)
+- [ ] **ENGINE-01**: Engine sizes management domain first; in dedicated architecture mode, workload domains receive zero management vCPU/RAM overhead (currently management overhead is unconditionally passed to all domains)
+- [ ] **ENGINE-02**: In colocated architecture mode, engine adds management vCPU/RAM overhead to WLD-1 required resources before computing WLD-1 host count
+- [ ] **ENGINE-03**: Aggregate totals include dedicated management host count in the procurement total (`dedicatedMgmtHostCount` is currently not added to `totalRecommendedHosts`)
+- [ ] **ENGINE-04**: TypeScript compiler errors in `useMarkdownExport.ts`, `usePptxExport.ts`, and `useUrlState.ts` are resolved (missing module imports, implicit `any` types)
 
-### Domain Management UI
+### Wizard UI
 
-- [x] **UI-01**: A tab strip above the input panel shows one tab per workload domain; clicking a tab makes that domain's inputs active
-- [x] **UI-02**: User can add a new workload domain via an "Add Domain" button; new domain appends with default name "WLD-N" (N = current count + 1) and all default values
-- [x] **UI-03**: User can remove a workload domain via a per-tab delete button; a confirmation dialog appears only when the domain has non-default data; the last remaining domain cannot be deleted
-- [x] **UI-04**: User can rename a workload domain by double-clicking its tab label; inline edit field with blur/Enter to confirm, Escape to cancel
-- [x] **UI-05**: Management domain inputs (host specs + architecture toggle) are displayed in a dedicated section separate from the workload domain tab strip — not as a tab
+- [ ] **WIZARD-01**: User sees a 3-step horizontal wizard with numbered and labeled steps (1: Topology, 2: Management, 3: Workloads) visible throughout the sizing workflow
+- [ ] **WIZARD-02**: User can navigate back to a previous step without losing any entered data
+- [ ] **WIZARD-03**: User cannot advance from step 1 until a deployment topology (Simple / HA / Stretch) is selected
+- [ ] **WIZARD-04**: User cannot advance from step 2 until management domain inputs are valid (host count meets minimum)
+- [ ] **WIZARD-05**: User sees the management domain result card (computed host count + utilization) at the end of step 2 before advancing to step 3
+- [ ] **WIZARD-06**: User sees a collapsed summary of committed management resources (host count, vCPU, RAM) at the top of step 3
+- [ ] **WIZARD-07**: Shareable URL never encodes wizard step position (ephemeral UI state excluded from lz-string payload)
 
-### URL State
+### Export Accuracy
 
-- [x] **URL-01**: `useUrlState.ts` Zod schema is restructured to `{ managementDomain: ManagementDomainSchema, workloadDomains: z.array(WorkloadDomainSchema).min(1) }` with `.strip()` on all sub-schemas
-- [x] **URL-02**: Old flat-schema shared URLs (v2.x format) are not migrated — they fall back to default state on load
-- [x] **URL-03**: Full multi-domain configuration (N workload domains) serializes to and deserializes from a lz-string compressed URL parameter round-trip losslessly
-- [x] **URL-04**: The active tab index is NOT serialized to URL state; on hydration, the first domain tab is always active
-
-### Input Forms (per-domain)
-
-- [x] **FORM-01**: `HostSpecsForm` accepts a `domainId` prop and reads/writes to the corresponding domain in `workloadDomains` via `computed({ get, set })`
-- [x] **FORM-02**: `WorkloadProfileForm` accepts a `domainId` prop; VM count, vCPU/VM, vRAM/VM, storage/VM, and overcommit ratios are all per-domain
-- [x] **FORM-03**: `StorageConfigForm` accepts a `domainId` prop; storage type selection and all storage-type-specific options (vSAN dedup, vSAN Max profile, etc.) are per-domain
-- [x] **FORM-04**: `DeploymentModelSelector` accepts a `domainId` prop; `deploymentMode` (Simple/HA/Stretch) and all stretch-specific inputs (`preferredSiteHosts`, `secondarySiteHosts`) are per-domain
-- [x] **FORM-05**: NVMe tiering, AI/GPU workload, and vSAN Max options are per-domain — each domain independently enables or disables these features
-
-### Results (per-domain + aggregate)
-
-- [x] **RES-01**: Each workload domain renders its own result card showing domain name, recommended host count, CPU utilization %, RAM utilization %, and storage breakdown for that domain
-- [x] **RES-02**: An aggregate totals card summarizes all workload domains: total host count (sum), combined compute demand, combined storage demand
-- [x] **RES-03**: Management domain results (mgmt component overhead + recommended management host count) render in their existing dedicated section, unchanged from v2.x
-
-### Exports (per-domain sections)
-
-- [x] **EXP-01**: Markdown export includes one section per workload domain, each containing the domain name, its configuration inputs, and its sizing results
-- [x] **EXP-02**: Markdown export includes a totals section after all domain sections summarizing aggregate host counts and resources
-- [x] **EXP-03**: PPTX export includes one slide per workload domain showing the domain name, key inputs, and results summary
-- [x] **EXP-04**: PPTX export includes an aggregate totals slide after all per-domain slides
+- [ ] **EXPORT-01**: Markdown export aggregate totals section includes a management hosts line: dedicated mode shows host count; colocated mode shows "colocated with WLD-1"
+- [ ] **EXPORT-02**: PPTX aggregate totals slide includes a management hosts breakdown row matching the Markdown representation
 
 ---
 
-## Future Requirements (Deferred to v3.1+)
+## Future Requirements (Deferred to v4+)
+
+### Wizard Enhancements
+
+- **WIZARD-EXT-01**: User can click a completed step indicator to jump back to that step directly
+- **WIZARD-EXT-02**: Wizard shows a "Start Sizing" landing / intro view on first load
+- **WIZARD-EXT-03**: Topology change in step 1 after step 2 completion triggers a confirmation dialog
+
+### Advanced Mode
+
+- **ADV-01**: User can toggle between wizard mode and the classic flat tab layout (power user escape hatch)
+
+### Domain Features (carried from v3.0 deferred list)
 
 - Domain duplication ("Copy domain" button) — useful for modeling near-identical domains with minor differences
 - Domain reordering (drag-and-drop tab reordering)
-- Per-domain Chart.js visualizations (multi-series charts or per-domain chart switching)
+- Per-domain Chart.js visualizations (multi-series or per-domain switching)
 - Aggregate CPU/RAM/Storage chart across all domains
-- Auto-migration of v2.x flat-schema URLs to single-domain array format
 
 ---
 
 ## Out of Scope
 
-- Backend/server-side logic — client-only SPA, no backend permitted
-- localStorage or session persistence — URL sharing is the only persistence mechanism
-- User accounts or named configurations beyond URL sharing
-- Cross-domain comparison view (side-by-side columns) — deferred to v3.1+
-- vSAN Max stretched topology per domain — still not implemented in engine
+| Feature | Reason |
+|---------|--------|
+| Per-step route-based URLs (vue-router wizard) | Adds router config complexity for no functional benefit; URL encodes domain data only |
+| Animated step transitions | CSS complexity with zero correctness value |
+| Wizard state saved to localStorage | URL sharing (lz-string) already provides state persistence |
+| VCF topology rename (Simple→PoC, HA→Single Site) | Current names confirmed; renaming risks breaking i18n keys across 4 locales |
+| VCF 9.x colocated overhead authoritative formula | No official Broadcom spec exists; engine uses engineering-derived absorption formula |
 
 ---
 
 ## Traceability
 
-| REQ-ID | Phase | Plan |
-|--------|-------|------|
-| DOM-01 | Phase 10 | TBD |
-| DOM-02 | Phase 10 | TBD |
-| DOM-03 | Phase 10 | TBD |
-| DOM-04 | Phase 10 | TBD |
-| DOM-05 | Phase 10 | TBD |
-| DOM-06 | Phase 10 | TBD |
-| URL-01 | Phase 11 | TBD |
-| URL-02 | Phase 11 | TBD |
-| URL-03 | Phase 11 | TBD |
-| URL-04 | Phase 11 | TBD |
-| UI-01 | Phase 12 | TBD |
-| UI-02 | Phase 12 | TBD |
-| UI-03 | Phase 12 | TBD |
-| UI-04 | Phase 12 | TBD |
-| UI-05 | Phase 12 | TBD |
-| FORM-01 | Phase 12 | TBD |
-| FORM-02 | Phase 12 | TBD |
-| FORM-03 | Phase 12 | TBD |
-| FORM-04 | Phase 12 | TBD |
-| FORM-05 | Phase 12 | TBD |
-| RES-01 | Phase 13 | TBD |
-| RES-02 | Phase 13 | TBD |
-| RES-03 | Phase 13 | TBD |
-| EXP-01 | Phase 14 | TBD |
-| EXP-02 | Phase 14 | TBD |
-| EXP-03 | Phase 14 | TBD |
-| EXP-04 | Phase 14 | TBD |
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| ENGINE-01 | TBD | Pending |
+| ENGINE-02 | TBD | Pending |
+| ENGINE-03 | TBD | Pending |
+| ENGINE-04 | TBD | Pending |
+| WIZARD-01 | TBD | Pending |
+| WIZARD-02 | TBD | Pending |
+| WIZARD-03 | TBD | Pending |
+| WIZARD-04 | TBD | Pending |
+| WIZARD-05 | TBD | Pending |
+| WIZARD-06 | TBD | Pending |
+| WIZARD-07 | TBD | Pending |
+| EXPORT-01 | TBD | Pending |
+| EXPORT-02 | TBD | Pending |
+
+**Coverage:**
+- v3.1 requirements: 13 total
+- Mapped to phases: 0 (roadmap pending)
+- Unmapped: 13 ⚠️
+
+---
+*Requirements defined: 2026-03-30*
+*Last updated: 2026-03-30 after initial definition*
