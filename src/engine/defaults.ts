@@ -42,5 +42,6 @@ export function createDefaultManagementDomain(): ManagementDomainConfig {
     socketsPerHost: 2,
     hostRamGB: 512,
     hostStorageTB: 3.84,
+    deploymentMode: 'ha',
   }
 }

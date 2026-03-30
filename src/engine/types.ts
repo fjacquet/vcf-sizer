@@ -177,6 +177,7 @@ export interface ManagementDomainConfig {
   socketsPerHost: number
   hostRamGB: number
   hostStorageTB: number
+  deploymentMode: DeploymentMode
 }
 
 export interface DomainResult {

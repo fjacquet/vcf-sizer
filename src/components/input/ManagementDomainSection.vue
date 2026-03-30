@@ -21,6 +21,7 @@ const coresPerSocket = mgmtField('coresPerSocket')
 const socketsPerHost = mgmtField('socketsPerHost')
 const hostRamGB = mgmtField('hostRamGB')
 const hostStorageTB = mgmtField('hostStorageTB')
+const deploymentMode = mgmtField('deploymentMode')
 
 const managementArchitecture = computed({
   get: () => input.managementArchitecture,
@@ -58,6 +59,32 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
           @click="managementArchitecture = arch.value"
         >
           {{ t(arch.labelKey) }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Management deployment mode -->
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {{ t('deployment.label') }}
+      </label>
+      <div class="flex gap-2">
+        <button
+          v-for="mode in [
+            { value: 'simple' as const, labelKey: 'deployment.simple' },
+            { value: 'ha' as const, labelKey: 'deployment.ha' },
+            { value: 'stretch' as const, labelKey: 'deployment.stretch' },
+          ]"
+          :key="mode.value"
+          :class="[
+            'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
+            deploymentMode === mode.value
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+          ]"
+          @click="deploymentMode = mode.value"
+        >
+          {{ t(mode.labelKey) }}
         </button>
       </div>
     </div>

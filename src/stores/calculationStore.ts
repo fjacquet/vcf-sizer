@@ -17,10 +17,9 @@ export const useCalculationStore = defineStore('calculation', () => {
   // CRITICAL: call useInputStore() at TOP LEVEL — not inside computed() (Pinia pattern)
   const input = useInputStore()
 
-  // Management domain overhead — uses first domain's deploymentMode as management baseline
-  // (management overhead HA multipliers depend on deployment mode)
+  // Management domain overhead — uses management domain's own deploymentMode (independent of workload domains)
   const management = computed(() =>
-    calcManagement(input.workloadDomains[0]?.deploymentMode ?? 'ha')
+    calcManagement(input.managementDomain.deploymentMode)
   )
 
   // Dedicated management host count — uses managementDomain host specs (NOT workloadDomains[0])
