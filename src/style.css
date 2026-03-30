@@ -1,3 +1,15 @@
 @import "tailwindcss";
 
 @custom-variant print (@media print);
+
+@page {
+  size: A4 portrait;
+  margin: 25mm 15mm 25mm 15mm;
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
