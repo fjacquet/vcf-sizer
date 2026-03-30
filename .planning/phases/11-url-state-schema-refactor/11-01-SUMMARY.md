@@ -73,6 +73,7 @@ The Zod schema in `src/composables/useUrlState.ts` was completely replaced. The 
 ### URL Length Empirical Data
 
 Per research phase (verified at implementation time):
+
 - 1 domain: 654 chars
 - 3 domains: 1,277 chars
 - 5 domains: 1,789 chars — passes SC4 (< 2,048 chars)

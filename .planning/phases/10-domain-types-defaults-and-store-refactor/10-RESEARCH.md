@@ -7,6 +7,7 @@
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -71,6 +72,7 @@ The critical constraint is maintaining CALC-02: `calculationStore.ts` must conta
 The current inputStore has 22 flat scalar refs. They map to the new structure as follows:
 
 **Fields moving INTO WorkloadDomainConfig (per-domain):**
+
 ```
 deploymentMode, coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB, hostCount,
 nvmeTieringEnabled, activeMemoryPct, preferredSiteHosts, secondarySiteHosts,
@@ -79,17 +81,21 @@ gpuVmCount, vgpuMemoryGB,
 storageType, fttLevel, raidType, dedupEnabled, dedupRatio,
 vsanMaxProfile, vsanMaxStorageNodes, networkSpeedGbE
 ```
+
 That is all 26 workload-related fields (current 22 + `name`, `id` added as new fields).
 
 **Fields staying GLOBAL on inputStore:**
+
 ```
 managementArchitecture   — deployment-level toggle, not per-domain
 ```
 
 **Fields moving INTO ManagementDomainConfig:**
+
 ```
 coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB
 ```
+
 Note: management domain gets its OWN independent copy of host specs. This is required because `dedicatedMgmtHostCount` in calculationStore uses `input.coresPerSocket * input.socketsPerHost` — after refactor it must use `input.managementDomain.coresPerSocket * input.managementDomain.socketsPerHost`.
 
 ### New TypeScript Interfaces (src/engine/types.ts additions)
@@ -422,20 +428,24 @@ This order minimizes broken intermediate states:
 ### File Change Inventory
 
 **New files:**
+
 - `src/engine/defaults.ts` — factory functions (CALC-01 compliant)
 - `src/stores/calculationStore.test.ts` — new test file for store behavior
 
 **Modified files:**
+
 - `src/engine/types.ts` — additive interface additions
 - `src/stores/inputStore.ts` — complete structural rewrite
 - `src/stores/calculationStore.ts` — complete structural rewrite
 
 **Unchanged files (all engine pure functions):**
+
 - `src/engine/compute.ts`, `src/engine/storage.ts`, `src/engine/stretch.ts`
 - `src/engine/management.ts`, `src/engine/vsanMax.ts`, `src/engine/validation.ts`
 - `src/engine/*.test.ts` — all 7 test files unchanged
 
 **Deliberately out of Phase 10 scope:**
+
 - `src/composables/useUrlState.ts` — Phase 11 scope
 - `src/components/**` — Phase 12 scope
 - `src/i18n/**` — Phase 12 scope
@@ -457,28 +467,34 @@ This order minimizes broken intermediate states:
 ## Common Pitfalls
 
 ### Pitfall 1: Assigning `reactive([])` to workloadDomains
+
 **What goes wrong:** `workloadDomains = reactive([])` inside a Pinia setup store causes double-proxy wrapping. `storeToRefs()` returns a `ComputedRef` instead of `Ref` for the array, breaking array mutation tracking.
 **Prevention:** Always declare as `ref<WorkloadDomainConfig[]>([])`. Never `reactive([])`.
 **Warning signs:** `storeToRefs(inputStore).workloadDomains` has unexpected type; `.push()` does not trigger `domainResults` recompute.
 
 ### Pitfall 2: Calling `useInputStore()` inside the `.map()` callback
+
 **What goes wrong:** Vue's `getCurrentInstance()` context is not available during lazy computed evaluation. Calling any composable inside a `.map()` callback throws "getCurrentInstance() was called outside of setup" in production builds.
 **Prevention:** `const input = useInputStore()` must be at the TOP LEVEL of the `defineStore('calculation', () => { ... })` factory — already the pattern in the current calculationStore.ts.
 **Warning signs:** Error appears in browser but NOT in Vitest (test environment initializes Pinia globally).
 
 ### Pitfall 3: Using `$patch()` for partial domain updates
+
 **What goes wrong:** `store.$patch({ workloadDomains: [{ id: '1', vmCount: 200 }] })` replaces the array with a new array containing only one incomplete object — all other fields become `undefined`.
 **Prevention:** Use direct property mutation via `Object.assign(domain, patch)` inside the `updateDomain()` action.
 
 ### Pitfall 4: `dedicatedMgmtHostCount` inheriting from domain[0] specs
+
 **What goes wrong:** The current `calculationStore` uses `input.coresPerSocket * input.socketsPerHost` for management host sizing. After refactor, `input.coresPerSocket` no longer exists — it is `input.managementDomain.coresPerSocket`. If the developer uses `input.workloadDomains[0].coresPerSocket` instead, management host count silently changes when workload domain[0] specs change.
 **Prevention:** `dedicatedMgmtHostCount` must read from `input.managementDomain.coresPerSocket * input.managementDomain.socketsPerHost`.
 
 ### Pitfall 5: `crypto.randomUUID()` in engine/defaults.ts (CALC-01 risk)
+
 **What goes wrong:** `crypto` is a web/Node global — NOT a Vue import — so calling it in `src/engine/defaults.ts` does NOT violate CALC-01. CALC-01 only prohibits importing from Vue, Pinia, or Vue ecosystem packages.
 **Verification:** Node 25.x (confirmed on this machine) has `crypto.randomUUID()` available as a global without any import. Vitest node environment also has it (no polyfill needed).
 
 ### Pitfall 6: Forgetting `effectiveHostCount` logic per domain
+
 **What goes wrong:** The current calculationStore computes `effectiveHostCount` as a separate computed that uses `input.deploymentMode`. After refactor, each domain has its own `deploymentMode`. The domain-level effective host count must be computed INSIDE the `.map()` callback.
 **Prevention:** The pattern is: `const effectiveHostCount = domain.deploymentMode === 'stretch' ? domain.preferredSiteHosts + domain.secondarySiteHosts : domain.hostCount` — inline within the map.
 
@@ -617,6 +633,7 @@ No framework install needed — Vitest 4.1.2 already configured and running.
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Direct codebase inspection: `src/stores/inputStore.ts` — full field inventory (22 flat refs catalogued)
 - Direct codebase inspection: `src/stores/calculationStore.ts` — all 7 existing computed() identified
 - Direct codebase inspection: `src/engine/types.ts` — all existing interfaces confirmed
@@ -625,10 +642,12 @@ No framework install needed — Vitest 4.1.2 already configured and running.
 - `.planning/STATE.md` — all v3.0 roadmap decisions confirmed
 
 ### Secondary (MEDIUM confidence)
+
 - `.planning/research/STACK.md` — Pinia `ref<[]>` vs `reactive([])` guidance; tab UI decision
 - Node 25.8.2 runtime test: `crypto.randomUUID()` available without import
 
 ### Tertiary (confirmed by prior planning)
+
 - Zod 4 `.default(() => fn())` factory pattern — noted in STATE.md as requiring verification against exact 4.3.6; deferred to Phase 11 (not needed in Phase 10)
 
 ---
@@ -636,6 +655,7 @@ No framework install needed — Vitest 4.1.2 already configured and running.
 ## Metadata
 
 **Confidence breakdown:**
+
 - Types and interfaces: HIGH — derived from direct field audit of inputStore.ts + engine/types.ts
 - Store restructure pattern: HIGH — matches established Pinia setup store conventions; ARCHITECTURE.md verifies
 - calculationStore computed array: HIGH — `computed(() => array.map(...))` is standard Vue 3; existing codebase already uses this pattern per-field

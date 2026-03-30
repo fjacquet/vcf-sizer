@@ -50,6 +50,7 @@ ManagementDomainSection.vue with management host specs + architecture toggle, Ap
 ### Task 1: ManagementDomainSection.vue + App.vue Wiring
 
 **ManagementDomainSection.vue** (`src/components/input/ManagementDomainSection.vue`):
+
 - `mgmtField()` helper: `computed({ get, set })` wrapping `updateManagementDomain()` — mirrors domainField() pattern from Plan 12-01
 - Management host specs sliders: coresPerSocket (4–64), socketsPerHost (1–8), hostRamGB (64–6144 GB), hostStorageTB (0.96–30.72 TB)
 - Architecture toggle (shared/dedicated) — global, not per-domain, reads/writes `input.managementArchitecture`
@@ -57,6 +58,7 @@ ManagementDomainSection.vue with management host specs + architecture toggle, Ap
 - Dedicated host count row shown when `dedicatedMgmtHostCount !== null`
 
 **App.vue** rewrite:
+
 - Added imports: `computed`, `useInputStore`, `DomainTabStrip`, `ManagementDomainSection`
 - `activeDomainId` computed: `input.workloadDomains[input.activeDomainIndex]?.id ?? input.workloadDomains[0].id`
 - `<DomainTabStrip />` placed at top of left pane
@@ -64,6 +66,7 @@ ManagementDomainSection.vue with management host specs + architecture toggle, Ap
 - `<ManagementDomainSection />` placed below per-domain forms, above `<ManagementSummary />`
 
 **DeploymentModelSelector.vue** cleanup:
+
 - Removed architecture toggle block (`<template v-if="deploymentMode !== 'simple'">`)
 - Removed management overhead summary div
 - Removed `managementArchitecture`, `dedicatedMgmtHostCount`, `architectureErrors` computed
@@ -73,6 +76,7 @@ ManagementDomainSection.vue with management host specs + architecture toggle, Ap
 ### Task 2: i18n Keys
 
 6 new keys added across all 4 locale files:
+
 - `domain.managementSection` — heading for ManagementDomainSection
 - `domain.managementHostSpecs` — subheading for host specs section
 - `deployment.architecture.dedicatedHosts` — label for dedicated host count
@@ -82,6 +86,7 @@ ManagementDomainSection.vue with management host specs + architecture toggle, Ap
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Removed unused `storageType` and `validationErrors` from DeploymentModelSelector.vue**
+
 - Found during: Task 1 verification (build output)
 - Issue: After removing the architecture toggle block (which was the only consumer of these computed refs), vue-tsc reported TS6133 unused variable errors
 - Fix: Removed `storageType = domainField('storageType')` and `validationErrors = computed(...)` from DeploymentModelSelector.vue script
@@ -91,6 +96,7 @@ ManagementDomainSection.vue with management host specs + architecture toggle, Ap
 ### Pre-existing Issues (out of scope, deferred to later phases)
 
 The following type errors exist in files outside this plan's scope and were present before Phase 12-02:
+
 - `src/components/results/*.vue` — still using flat storeToRefs on old calc properties (deferred to Phase 14)
 - `src/composables/useMarkdownExport.ts` and `usePptxExport.ts` — still using flat store properties (deferred to Phase 14)
 - 58 test failures in useMarkdownExport.test.ts and usePptxExport.test.ts (pre-existing from Phase 10)

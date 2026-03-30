@@ -51,11 +51,13 @@ Store mutations (`renameDomain`, `updateManagementDomain`), DomainTabStrip compo
 ## What Was Built
 
 ### Task 1: inputStore mutations
+
 - `renameDomain(id, name)`: trims whitespace, ignores empty/whitespace-only strings, ignores non-existent IDs
 - `updateManagementDomain(patch)`: Object.assign patch for management domain without overwriting unpatched fields
 - 6 new unit tests covering edge cases; all 19 inputStore tests pass
 
 ### Task 2: DomainTabStrip.vue
+
 - Horizontal tab strip with one tab per workload domain
 - Active tab: `border-b-2 border-blue-600` visual indicator
 - Delete button hidden when `workloadDomains.length === 1` (UI-03)
@@ -66,7 +68,9 @@ Store mutations (`renameDomain`, `updateManagementDomain`), DomainTabStrip compo
 - All 4 locale files updated with `domain.addDomain` and `domain.deleteConfirm` keys
 
 ### Task 3: Per-domain form refactoring
+
 Pattern used in all 4 forms:
+
 ```typescript
 const props = defineProps<{ domainId: string }>()
 function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
@@ -87,6 +91,7 @@ function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
 ### Auto-fixed Issues
 
 **1. [Rule 2 - Missing functionality] Added domain i18n keys to all 4 locales**
+
 - Found during: Task 2
 - Issue: DomainTabStrip uses `t('domain.addDomain')` and `t('domain.deleteConfirm')` but these keys did not exist in any locale file
 - Fix: Added `domain` section to all 4 locale files (en, fr, de, it) with appropriate translations
@@ -96,6 +101,7 @@ function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
 ### Pre-existing Issues (out of scope)
 
 The following type errors exist in files outside this plan's scope and were present before Phase 12 started (from Phase 10's store refactor):
+
 - `src/App.vue` — forms used without domainId prop (Plan 12-02 will fix)
 - `src/components/results/*.vue` — still using flat storeToRefs on old calc properties
 - `src/composables/useMarkdownExport.ts` and `usePptxExport.ts` — still using flat store properties

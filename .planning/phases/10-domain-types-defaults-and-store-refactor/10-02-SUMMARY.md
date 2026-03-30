@@ -90,6 +90,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Fixed false-positive CALC-02 compliance test failure from ref() in comments**
+
 - **Found during:** Task 2 (GREEN implementation)
 - **Issue:** Comments in calculationStore contained "ref()" text (e.g., "// second computed, zero ref()") which the test regex matched as real ref() calls
 - **Fix:** Changed comment wording from "zero ref()" to "no mutable state" / "ZERO mutable state" to avoid regex false-positive
@@ -132,10 +133,12 @@ None — domainResults and aggregateTotals are fully computed from live input st
 ## Self-Check
 
 Files check:
+
 - `src/stores/calculationStore.ts` — FOUND
 - `src/stores/calculationStore.test.ts` — FOUND
 
 Commits check:
+
 - `0d3c5cb` — Task 1 RED tests
 - `a741a42` — Task 2 GREEN implementation
 

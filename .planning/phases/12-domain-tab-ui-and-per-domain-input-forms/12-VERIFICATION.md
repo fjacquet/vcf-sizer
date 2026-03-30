@@ -152,9 +152,10 @@ No blocker anti-patterns were introduced by Phase 12 files. All Phase 12 files (
 
 #### 1. Multi-Domain Tab UI End-to-End Test
 
-**Test:** Run `npm run dev`, open http://localhost:5173/vcf-sizer/
+**Test:** Run `npm run dev`, open <http://localhost:5173/vcf-sizer/>
 
 **Expected:**
+
 1. One tab labeled "WLD-1" is visible above the input forms
 2. Clicking "Add Domain" appends a "WLD-2" tab that becomes active; all form values reset to defaults
 3. Set VM count to 500 in WLD-2; switch to WLD-1 — WLD-1 still shows its original VM count (100)
@@ -179,6 +180,7 @@ No blocker anti-patterns were introduced by Phase 12 files. All Phase 12 files (
 No automated gaps found. All 11 must-have truths are verified, all artifacts exist and are substantive, all key links are wired, and all data flows are real.
 
 **Known pre-existing debt (not Phase 12 blockers):**
+
 - `npm run build` fails due to Phase 10 debt in `src/components/results/*.vue` and `src/composables/use{Markdown,Pptx}Export.ts` — scheduled for Phase 14 repair
 - 58 test failures in `useMarkdownExport.test.ts` and `usePptxExport.test.ts` — same Phase 10 debt
 

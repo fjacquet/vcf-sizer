@@ -47,17 +47,20 @@ metrics:
 ## What Was Built
 
 ### src/engine/types.ts (additive — 4 new interfaces)
+
 - `WorkloadDomainConfig`: 26-field interface covering all per-domain configuration (id, name, host specs, workload profile, storage, GPU, networking, deployment mode)
 - `ManagementDomainConfig`: 4-field interface for management domain host specs (coresPerSocket, socketsPerHost, hostRamGB, hostStorageTB)
 - `DomainResult`: Per-domain calculation result container (id, name, compute, storage, stretch, vsanMax, validationErrors)
 - `AggregateTotals`: Cross-domain aggregated totals for summary display
 
 ### src/engine/defaults.ts (new file — CALC-01 compliant)
+
 - `createDefaultWorkloadDomain(index: number)`: Factory returning WorkloadDomainConfig with name `WLD-{index+1}`, crypto.randomUUID() id, and all 26 fields at standard defaults
 - `createDefaultManagementDomain()`: Factory returning ManagementDomainConfig with standard management host specs
 - Zero Vue/Pinia imports — pure TypeScript engine layer
 
 ### src/stores/inputStore.ts (complete rewrite v3.0)
+
 - Replaced 22 flat scalar refs with structured domain refs
 - `managementArchitecture`: Global deployment-level toggle (stays at top level per DOM-03)
 - `managementDomain`: Independent management host specs (ref\<ManagementDomainConfig\>)
@@ -68,6 +71,7 @@ metrics:
 - `updateDomain(id, patch)`: Object.assign patch update (not $patch which breaks arrays)
 
 ### vitest.config.ts (deviation fix)
+
 Extended `include` pattern to add `src/stores/**/*.test.ts` — the original config only covered `src/engine/**` and `src/composables/**`, which excluded the new inputStore test file.
 
 ## Test Results
@@ -83,6 +87,7 @@ Extended `include` pattern to add `src/stores/**/*.test.ts` — the original con
 ### Auto-fixed Issues
 
 **1. [Rule 3 - Blocking] Extended vitest.config.ts include to cover stores tests**
+
 - **Found during:** Task 1 (RED verification)
 - **Issue:** vitest.config.ts `include` only covered `src/engine/**` and `src/composables/**` — `src/stores/inputStore.test.ts` would never be picked up by `npm run test`
 - **Fix:** Added `src/stores/**/*.test.ts` to the include array

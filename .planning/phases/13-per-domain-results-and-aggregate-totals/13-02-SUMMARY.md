@@ -62,6 +62,7 @@ Per-domain result cards (DomainResultCard) iterating reactively over calculation
 ### Task 1: Result Components Created and Rewritten
 
 **DomainResultCard.vue** (new):
+
 - `defineProps<{ result: DomainResult }>()` typed prop
 - Big number hero: `result.compute.recommendedHostCount` with emerald/red color coding
 - CPU/RAM utilization rows with >80% threshold color coding
@@ -70,23 +71,27 @@ Per-domain result cards (DomainResultCard) iterating reactively over calculation
 - Validation warnings rendered via `t(w.messageKey)` pattern
 
 **AggregateTotalsCard.vue** (new):
+
 - `defineProps<{ totals: AggregateTotals; managementHostCount: number | null }>()`
 - Grand total computed as `totals.totalRecommendedHosts + (managementHostCount ?? 0)`
 - Blue hero number for the procurement total
 - Grid rows: workload hosts, management hosts (conditional), total VMs, combined raw/effective storage
 
 **StretchNetworkChecklist.vue** (rewrite):
+
 - Changed from store reads (`storeToRefs(calc)`) to `defineProps<{ result: DomainResult }>()`
 - Accesses stretch data via `props.result.stretch.networkChecklist`
 - Removed `useCalculationStore()`, `useInputStore()`, and `storeToRefs()` imports
 
 **VsanMaxClusterCard.vue** (rewrite):
+
 - Changed from `storeToRefs(input) + storeToRefs(calc)` to `defineProps<{ result: DomainResult }>()`
 - Accesses vSAN Max data via `props.result.vsanMax`
 - Removed `useCalculationStore()`, `useInputStore()`, and `storeToRefs()` imports
 - Removed computed `profileLabel` (not available in VsanMaxResult interface)
 
 **ResultsPanel.vue** (rewrite):
+
 - Added `DomainResultCard`, `AggregateTotalsCard` imports
 - Added `storeToRefs(calc)` destructure of `domainResults`, `aggregateTotals`, `dedicatedMgmtHostCount`
 - Template: `<DomainResultCard v-for="result in domainResults" :key="result.id" :result="result" />`
@@ -111,6 +116,7 @@ All existing `results.toolbar`, `results.hostCount`, `results.charts`, `results.
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Fixed chart components using removed calculationStore API**
+
 - **Found during:** Task 1 (build verification)
 - **Issue:** `CoresChart.vue`, `RamChart.vue`, `StorageChart.vue` referenced `{ compute }` and `{ storage }` from `storeToRefs(calc)` — these properties were removed in Phase 10 when the store was refactored to `domainResults[]`
 - **Fix:** Updated all 3 chart components to use first-domain bridge pattern (`domainResults.value[0]?.compute` / `domainResults.value[0]?.storage`) consistent with Phase 13 pattern established in Plan 01
@@ -118,6 +124,7 @@ All existing `results.toolbar`, `results.hostCount`, `results.charts`, `results.
 - **Commit:** `03c42ce`
 
 **2. [Rule 3 - Blocking] Worktree merge required before execution**
+
 - **Found during:** Pre-task setup
 - **Issue:** Worktree branch was on the v2.1 archive commit (before Phase 10-12), lacking `domainResults[]`, `aggregateTotals`, `DomainResult` interface
 - **Fix:** `git merge maincd` to sync Phase 10-12 source changes into this worktree

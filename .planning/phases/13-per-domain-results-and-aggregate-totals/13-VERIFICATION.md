@@ -142,7 +142,7 @@ Note: chart components (`CoresChart.vue`, `RamChart.vue`, `StorageChart.vue`) us
 
 ### 1. Per-domain result cards render correctly
 
-**Test:** Run `npm run dev`, open http://localhost:5173/vcf-sizer/, observe the Results panel
+**Test:** Run `npm run dev`, open <http://localhost:5173/vcf-sizer/>, observe the Results panel
 **Expected:** A card for each workload domain (default: "WLD-1") showing: domain name heading, large recommended host count number in emerald/red, CPU utilization % with color coding, RAM utilization %, safe usable storage TB, RAID scheme label
 **Why human:** Component rendering fidelity and layout correctness cannot be verified by static analysis
 

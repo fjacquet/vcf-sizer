@@ -7,6 +7,7 @@
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -137,6 +138,7 @@ The deferred-to-v3.1+ note in REQUIREMENTS.md says "per-domain Chart.js visualiz
 `usePptxExport.ts` and `useMarkdownExport.ts` both reference the v2.x flat store API. The full multi-domain export rewrite is Phase 14. For Phase 13, the composables must be fixed to **compile and pass tests** — the strategy is to use `domainResults[0]` as the first-domain bridge and `aggregateTotals` for totals.
 
 Key mappings:
+
 - `store.vmCount` → `input.workloadDomains[0].vmCount`
 - `store.deploymentMode` → `input.workloadDomains[0].deploymentMode`
 - `store.storageType` → `input.workloadDomains[0].storageType`
@@ -200,17 +202,20 @@ interface DomainResult {
 ```
 
 **ComputeResult fields for RES-01:**
+
 - `recommendedHostCount` — the host count number to display
 - `coreUtilizationPct` — CPU utilization %
 - `ramUtilizationPct` — RAM utilization %
 - `minHostsForCpu`, `minHostsForRam` — supporting data
 
 **StorageResult fields for RES-01:**
+
 - `safeUsableCapacityTB` — the headline storage number
 - `raidScheme` — e.g. "2+1 (FTT=1 RAID-5)"
 - `rawCapacityTB`, `usableAfterRaidTB`, `lfsOverheadTB`, `metadataOverheadTB`
 
 **AggregateTotals fields for RES-02:**
+
 - `totalRecommendedHosts` — procurement number (workload domains only)
 - `totalVmCount` — total VMs across all domains
 - `totalRawStorageTB` — combined raw storage
@@ -222,37 +227,45 @@ interface DomainResult {
 ## Common Pitfalls
 
 ### Pitfall 1: storeToRefs() on computed array returns ref, not reactive array
+
 **What goes wrong:** Accessing `domainResults` as an array directly in script (not template) without `.value` causes TypeScript errors.
 **Why it happens:** `storeToRefs()` wraps computed values in `Ref<T>` — in the template Vue auto-unwraps, but in script you need `.value`.
 **How to avoid:** In `<script setup>` use `domainResults.value` for array operations. In template, use `domainResults` directly.
 
 ### Pitfall 2: HostCountCard references `calc.compute` which no longer exists
+
 **What goes wrong:** Build fails with TS2339 on `calc.compute`.
 **Why it happens:** Phase 10 removed the flat computed properties from calculationStore — only `management`, `domainResults`, `aggregateTotals`, `dedicatedMgmtHostCount` remain.
 **How to avoid:** Do not reuse `HostCountCard` — fold its display into `DomainResultCard` or rewrite it to accept a prop.
 
 ### Pitfall 3: VsanMaxClusterCard reads `input.vsanMaxProfile` (flat) — no longer exists
+
 **What goes wrong:** TS2339 — `vsanMaxProfile` is now per-domain inside `workloadDomains[]`.
 **Why it happens:** Phase 10 moved all per-domain fields into `WorkloadDomainConfig`.
 **How to avoid:** Pass the full `DomainResult` as prop; extract `vsanMax` from `result.vsanMax`; the profile label will need to come from a separate lookup or from the domain config passed alongside.
 
 ### Pitfall 4: StretchNetworkChecklist reads flat `input.deploymentMode` and `input.preferredSiteHosts`
+
 **What goes wrong:** Both are now per-domain fields.
 **How to avoid:** Pass `DomainResult` as prop; render `v-if="result.stretch !== null"`.
 
 ### Pitfall 5: Chart components use `storeToRefs(calc).compute` / `.storage`
+
 **What goes wrong:** TS2339 on `calc.compute` and `calc.storage` (both removed in Phase 10).
 **How to avoid:** Either remove charts from `ResultsPanel` for Phase 13 (cleanest — per REQUIREMENTS.md deferred scope) or rewrite charts to accept typed props.
 
 ### Pitfall 6: Rendering `allValidationErrors` for aggregate — i18n keys not strings
+
 **What goes wrong:** `validationErrors` entries have `messageKey` which is an i18n key (e.g. `'validation.hostCount.tooFew'`), not a human-readable string.
 **How to avoid:** Use `t(w.messageKey)` in the template — this is the established pattern from `WarningBanner.vue`.
 
 ### Pitfall 7: Export composable test mocks expect old flat API
+
 **What goes wrong:** Tests in `usePptxExport.test.ts` and `useMarkdownExport.test.ts` mock `useInputStore()` and `useCalculationStore()` with flat shape objects — these will fail once the composables are updated.
 **How to avoid:** When rewriting composables to use `workloadDomains[0]`, update test mocks to provide `{ workloadDomains: [{ vmCount: ..., ... }], managementArchitecture: '...', managementDomain: {...} }` and `{ domainResults: [{...}], aggregateTotals: {...} }`.
 
 ### Pitfall 8: `v-for :key` must use `result.id` not index
+
 **What goes wrong:** Using index as key causes Vue to reuse DOM nodes incorrectly when domains are added/removed.
 **How to avoid:** Always `:key="result.id"` — locked v3.0 decision.
 
@@ -324,6 +337,7 @@ Step 2.6: SKIPPED — this phase is a pure code/component refactor with no exter
 ## Validation Architecture
 
 ### Test Framework
+
 | Property | Value |
 |----------|-------|
 | Framework | Vitest (node environment) |
@@ -342,11 +356,13 @@ Step 2.6: SKIPPED — this phase is a pure code/component refactor with no exter
 Note: `ResultsPanel.vue` and new card components are Vue components — they run in a DOM environment and are NOT covered by the node-env Vitest setup per CLAUDE.md. The test strategy for RES-01/RES-02 is: fix export composable tests (which exercise the data-mapping helpers that produce the same values the cards display) and verify the build passes.
 
 ### Sampling Rate
+
 - **Per task commit:** `npm run test`
 - **Per wave merge:** `npm run build && npm run test`
 - **Phase gate:** `npm run build` passes green + 164+ tests passing before `/gsd:verify-work`
 
 ### Wave 0 Gaps
+
 - [ ] Update `src/composables/useMarkdownExport.test.ts` mock setup to provide `workloadDomains[0]` shape
 - [ ] Update `src/composables/usePptxExport.test.ts` mock setup to provide `domainResults[0]` shape
 
@@ -376,6 +392,7 @@ Note: `ResultsPanel.vue` and new card components are Vue components — they run
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Direct code inspection: `src/stores/calculationStore.ts` — confirmed `domainResults`, `aggregateTotals`, `management`, `dedicatedMgmtHostCount` are the only exported computed values
 - Direct code inspection: `src/engine/types.ts` — confirmed full shape of `DomainResult` and `AggregateTotals`
 - Direct code inspection: `src/stores/inputStore.ts` — confirmed flat store no longer has per-domain fields
@@ -383,6 +400,7 @@ Note: `ResultsPanel.vue` and new card components are Vue components — they run
 - Test output: `npm run test` — 58 failures (35 in `useMarkdownExport.test.ts`, 23 in `usePptxExport.test.ts`)
 
 ### Secondary (MEDIUM confidence)
+
 - `REQUIREMENTS.md` — "Per-domain Chart.js visualizations" listed under Future Requirements (v3.1+)
 - `STATE.md` — confirms "58 pre-existing test failures in useMarkdownExport and usePptxExport will be FIXED in Phase 13"
 
@@ -391,6 +409,7 @@ Note: `ResultsPanel.vue` and new card components are Vue components — they run
 ## Metadata
 
 **Confidence breakdown:**
+
 - Current component state: HIGH — direct code inspection, build errors confirm broken references
 - DomainResult/AggregateTotals shape: HIGH — direct type inspection
 - Architecture pattern (prop-driven cards): HIGH — consistent with existing Vue 3 + Pinia patterns in codebase

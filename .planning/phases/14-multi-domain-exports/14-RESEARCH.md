@@ -7,6 +7,7 @@
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -54,6 +55,7 @@ For PPTX export: `generatePptxReport()` replaces the single-domain slide sequenc
 `generateMarkdownReport()` uses a `sections: string[]` array that is built up and joined at the end with `'\n'`. This pattern (established in Phase 6) must be preserved — all per-domain content is pushed into the same sections array.
 
 **Per-domain loop pattern for Markdown:**
+
 ```typescript
 // Source: existing useMarkdownExport.ts sections[] pattern
 for (const [index, domain] of store.workloadDomains.entries()) {
@@ -84,6 +86,7 @@ This pattern is unchanged. The master definition happens once before any domain 
 ### New Pattern: Per-Domain Slide Group
 
 The PPTX loop adds a sequence of slides per domain:
+
 1. Domain header slide (domain name, deployment mode)
 2. Compute results slide (reuse `buildComputeResultsData`)
 3. Storage results slide (reuse `buildStorageResultsData`)
@@ -94,6 +97,7 @@ After all domain groups: one aggregate totals slide.
 ### New Pattern: Aggregate Totals Section/Slide
 
 `calc.aggregateTotals` shape (already computed, HIGH confidence):
+
 ```typescript
 interface AggregateTotals {
   totalRecommendedHosts: number  // sum of all domain recommendedHostCount
@@ -130,28 +134,34 @@ Note: `totalEffectiveStorageTB` is the deduplicated effective capacity (after de
 ## Common Pitfalls
 
 ### Pitfall 1: Forgetting to Handle Zero Domains
+
 **What goes wrong:** If `store.workloadDomains` is somehow empty, `domainResults` is an empty array. The existing single-domain bridge assumed at least one domain (no guard needed because DOM-04 guarantees one domain always exists).
 **Why it happens:** Multi-domain loop code might not null-check.
 **How to avoid:** The store guarantees at least one domain — `removeDomain()` guards against removing the last. No special handling needed, but the loop over an empty array is safe by definition.
 
 ### Pitfall 2: Slide Order Dependencies
+
 **What goes wrong:** PPTX slide numbers are implicit (insertion order). Per-domain slides must be emitted in the same order as domains in the array, and aggregate totals slide must be the last slide before the existing Validation Warnings conditional slide.
 **How to avoid:** Keep Validation Warnings slide as the final conditional after the domain loop AND after the aggregate totals slide. Slide order: Title → (Mgmt Overhead) → [per domain: header + compute + storage + conditionals] → aggregate totals → validation warnings.
 
 ### Pitfall 3: Section Heading Collision in Markdown
+
 **What goes wrong:** Current single-domain Markdown has sections named `## Host Configuration`, `## Compute Sizing`, etc. With multiple domains, these headings will repeat verbatim — colliding anchors and ambiguous structure.
 **Why it happens:** Direct lift-and-shift of existing heading strings into a loop.
 **How to avoid:** Wrap each domain's sub-sections under a `## Domain: {domain.name}` H2 heading and use H3 (`###`) for the sub-sections within each domain block. The aggregate totals section gets its own `## Aggregate Totals` H2. Management Architecture section (which is global) stays as a top-level H2 outside the loop.
 
 ### Pitfall 4: Management Architecture Section Placement
+
 **What goes wrong:** `## Management Architecture` reads from `store.managementArchitecture` (global) and `calc.management` (global). If it's placed inside the per-domain loop it will repeat N times.
 **How to avoid:** Keep Management Architecture and Management Domain Overhead sections outside the per-domain loop, as they are today. The loop covers only workload domain content.
 
 ### Pitfall 5: Test Mutation of `workloadDomains[1]` Requires Store Add
+
 **What goes wrong:** Test code that tries to write `store.workloadDomains[1]` will fail with undefined if a second domain hasn't been added via `store.addDomain()`.
 **How to avoid:** Call `store.addDomain()` in test setup before mutating workloadDomains[1]. The `addDomain()` method appends with `createDefaultWorkloadDomain()` defaults.
 
 ### Pitfall 6: aggregateTotals Does Not Include safeUsableCapacityTB
+
 **What goes wrong:** Developer tries to show "Total safe usable storage" in the aggregate section by summing from aggregateTotals — but `safeUsableCapacityTB` is not in `AggregateTotals`.
 **How to avoid:** Use `totalEffectiveStorageTB` (effective after dedup) or `totalRawStorageTB` (raw). If safe usable aggregate is required, it must be computed inline in the composable as `calc.domainResults.reduce((sum, r) => sum + r.storage.safeUsableCapacityTB, 0)` — document this clearly.
 
@@ -314,6 +324,7 @@ Updating signatures is a breaking change for the test file — tests must update
 Following the established Phase 8/9 TDD pattern:
 
 **Wave 0 — Write failing tests first:**
+
 - Add describe block `generateMarkdownReport — EXP-01 per-domain sections` with tests that verify a multi-domain store produces N named domain sections.
 - Add describe block `generateMarkdownReport — EXP-02 aggregate totals` with tests for `## Aggregate Totals` heading presence.
 - Add describe block for new `buildDomainSlideData` helper (or updated helper signatures) for EXP-03.
@@ -414,6 +425,7 @@ All directives from `CLAUDE.md` that constrain Phase 14:
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — no new dependencies; all libraries verified present via test run
 - Architecture: HIGH — both composables read in full; data contracts (AggregateTotals, DomainResult) verified in types.ts and calculationStore.ts
 - Pitfalls: HIGH — derived from first-hand code reading; same patterns as Phases 8/9/13

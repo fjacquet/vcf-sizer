@@ -7,22 +7,26 @@
 ---
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 No CONTEXT.md exists for this phase. Constraints come from STATE.md locked decisions.
 
 ### Locked Decisions (from STATE.md v3.0 decisions)
+
 - v2.x URL backward compatibility — silent reset to default state; document in release notes; no migration code
 - Zod v4 — use factory `.default(() => [createDefaultWorkloadDomain(0)])` for array field, NOT `.default([])`
 - activeTabIndex is ephemeral UI state — never serialized to URL; hydration always activates first tab
 - Zod URL schema updated atomically with every new inputStore field; URL_STATE_FIELDS constant shared by generateShareUrl and hydrateFromUrl (from v2.0 decisions)
 
 ### Claude's Discretion
+
 - Schema organization: whether WorkloadDomainSchema and ManagementDomainSchema are defined inline in useUrlState.ts or imported from a shared location
 - Exact error handling / logging verbosity in hydrateFromUrl for partial v2.x schema parse outcomes
 - Whether to export schema types or keep them internal to the composable
 
 ### Deferred Ideas (OUT OF SCOPE)
+
 - Auto-migration of v2.x flat-schema URLs to single-domain array format (deferred to v3.1+)
 - Domain count UI validation beyond what the engine already enforces
 </user_constraints>
@@ -30,6 +34,7 @@ No CONTEXT.md exists for this phase. Constraints come from STATE.md locked decis
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -55,12 +60,14 @@ All technical patterns were empirically verified against the installed Zod 4.3.6
 ## Standard Stack
 
 ### Core
+
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | zod | ^4.3.6 (installed: 4.3.6) | Schema definition, validation, safe parse | Already project standard; all existing URL state uses it |
 | lz-string | ^1.5.0 (installed: 1.5.0) | URL-safe lossless compression of JSON | Already project standard; default import pattern established |
 
 ### Supporting
+
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | vitest | (project standard) | Test runner for schema validation tests | All schema round-trip tests |
@@ -72,6 +79,7 @@ All technical patterns were empirically verified against the installed Zod 4.3.6
 ## Architecture Patterns
 
 ### File to modify
+
 ```
 src/composables/useUrlState.ts     # Schema replacement + hydration/serialization update
 src/composables/useUrlState.test.ts # Schema test update (schema is replicated in test file)
@@ -104,6 +112,7 @@ const Outer = z.object({
 **What:** `z.array(Schema).min(1).default(() => [...])` — factory returns pre-built default array. Never use `.default([])` (cited Zod v4 issues #5525, #4544; also confirmed by STATE.md locked decision).
 
 **Verified behavior:**
+
 ```typescript
 // CORRECT
 workloadDomains: z.array(WorkloadDomainSchema).min(1).default(() => [
@@ -220,6 +229,7 @@ const state = {
 ### Pitfall 4: 5-Domain URL Length Under 2,048 — But 8 Domains Exceeds It
 
 **Empirical data (verified at research time):**
+
 - 1 domain: 654 chars
 - 3 domains: 1,277 chars
 - 5 domains: 1,789 chars ← under 2,048 (success criterion met)
@@ -406,6 +416,7 @@ Step 2.6: All dependencies already in the project (zod, lz-string, vitest). No e
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Empirical verification against installed `zod@4.3.6` — all patterns run in Node.js during research
 - Empirical verification against installed `lz-string@1.5.0` — compression/decompression tested
 - `/Users/fjacquet/Projects/vcf-sizer/src/composables/useUrlState.ts` — current implementation
@@ -415,6 +426,7 @@ Step 2.6: All dependencies already in the project (zod, lz-string, vitest). No e
 - `.planning/STATE.md` v3.0 decisions section — locked constraints
 
 ### Secondary (MEDIUM confidence)
+
 - STATE.md citation of Zod v4 GitHub issues #5525, #4544 for `.default([])` bug — corroborated by empirical test showing factory pattern works and `.default({})` bypass confirmed
 
 ---
@@ -422,6 +434,7 @@ Step 2.6: All dependencies already in the project (zod, lz-string, vitest). No e
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — installed versions confirmed via `node -e require`
 - Architecture patterns: HIGH — all patterns empirically verified in Node.js
 - Pitfalls: HIGH — most discovered via live testing, not speculation
