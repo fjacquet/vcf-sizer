@@ -62,7 +62,7 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — Global @page CSS, print color fidelity, card break-inside-avoid, grid layout collapse (PRINT-01, PRINT-02, PRINT-03)
 - [x] 07-02-PLAN.md — Print header/footer in ResultsPanel.vue with i18n keys in 4 locales (PRINT-04, PRINT-05)
-- [ ] 07-03-PLAN.md — Chart fallback data tables for CoresChart, RamChart, StorageChart (PRINT-06)
+- [x] 07-03-PLAN.md — Chart fallback data tables for CoresChart, RamChart, StorageChart (PRINT-06)
 
 ### Phase 8: PPTX Core Slides
 **Goal**: Users can download a VCF-branded `.pptx` file containing all always-present slides without impacting initial page-load time

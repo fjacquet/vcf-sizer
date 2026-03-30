@@ -27,7 +27,7 @@
 - [x] **PRINT-03**: Result cards avoid mid-card page breaks (`break-inside-avoid` applied to all result section containers)
 - [x] **PRINT-04**: Printed pages include a running header with the report title and generation date
 - [x] **PRINT-05**: Printed pages include a footer with VCF Sizer attribution
-- [ ] **PRINT-06**: Chart.js canvas elements are hidden in print mode; a plain data table is shown as fallback for each chart
+- [x] **PRINT-06**: Chart.js canvas elements are hidden in print mode; a plain data table is shown as fallback for each chart
 
 ### PPTX Export
 
