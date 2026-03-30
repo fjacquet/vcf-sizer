@@ -138,6 +138,21 @@
       "storageLfs": "Overhead LFS",
       "storageMetadata": "Overhead metadati",
       "storageRaid": "Overhead RAID"
+    },
+    "domain": {
+      "cpuUtilization": "Utilizzo CPU",
+      "ramUtilization": "Utilizzo RAM",
+      "storageUsable": "Storage utilizzabile",
+      "raidScheme": "Schema RAID"
+    },
+    "aggregate": {
+      "title": "Riepilogo totale acquisti",
+      "totalHosts": "Host di carico",
+      "managementHosts": "Host di gestione",
+      "grandTotal": "Totale generale (acquisti)",
+      "totalVms": "Totale VM",
+      "totalRawStorage": "Storage grezzo combinato",
+      "totalEffectiveStorage": "Storage effettivo combinato"
     }
   },
   "management": {

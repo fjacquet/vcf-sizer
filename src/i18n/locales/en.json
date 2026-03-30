@@ -138,6 +138,21 @@
       "storageLfs": "LFS Overhead",
       "storageMetadata": "Metadata Overhead",
       "storageRaid": "RAID Overhead"
+    },
+    "domain": {
+      "cpuUtilization": "CPU Utilization",
+      "ramUtilization": "RAM Utilization",
+      "storageUsable": "Safe Usable Storage",
+      "raidScheme": "RAID Scheme"
+    },
+    "aggregate": {
+      "title": "Total Procurement Summary",
+      "totalHosts": "Workload Hosts",
+      "managementHosts": "Management Hosts",
+      "grandTotal": "Grand Total (Procurement)",
+      "totalVms": "Total VMs",
+      "totalRawStorage": "Combined Raw Storage",
+      "totalEffectiveStorage": "Combined Effective Storage"
     }
   },
   "management": {

@@ -138,6 +138,21 @@
       "storageLfs": "LFS-Overhead",
       "storageMetadata": "Metadaten-Overhead",
       "storageRaid": "RAID-Overhead"
+    },
+    "domain": {
+      "cpuUtilization": "CPU-Auslastung",
+      "ramUtilization": "RAM-Auslastung",
+      "storageUsable": "Nutzbarer Speicher",
+      "raidScheme": "RAID-Schema"
+    },
+    "aggregate": {
+      "title": "Beschaffungsuebersicht",
+      "totalHosts": "Workload-Hosts",
+      "managementHosts": "Management-Hosts",
+      "grandTotal": "Gesamtsumme (Beschaffung)",
+      "totalVms": "Gesamt-VMs",
+      "totalRawStorage": "Kombinierter Rohspeicher",
+      "totalEffectiveStorage": "Kombinierter Nettokapazitaet"
     }
   },
   "management": {

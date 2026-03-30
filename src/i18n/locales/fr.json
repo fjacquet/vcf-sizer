@@ -138,6 +138,21 @@
       "storageLfs": "Surcharge LFS",
       "storageMetadata": "Surcharge métadonnées",
       "storageRaid": "Surcharge RAID"
+    },
+    "domain": {
+      "cpuUtilization": "Utilisation CPU",
+      "ramUtilization": "Utilisation RAM",
+      "storageUsable": "Stockage utilisable",
+      "raidScheme": "Schema RAID"
+    },
+    "aggregate": {
+      "title": "Resume total des achats",
+      "totalHosts": "Hotes de charge",
+      "managementHosts": "Hotes de gestion",
+      "grandTotal": "Total general (achats)",
+      "totalVms": "Total VMs",
+      "totalRawStorage": "Stockage brut combine",
+      "totalEffectiveStorage": "Stockage effectif combine"
     }
   },
   "management": {
