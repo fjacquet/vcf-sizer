@@ -13,7 +13,7 @@ const { stretch } = storeToRefs(calc)
 <template>
   <section
     v-if="input.deploymentMode === 'stretch'"
-    class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3"
+    class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 break-inside-avoid"
   >
     <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
       {{ t('deployment.stretchSites.networkChecklist.title') }}

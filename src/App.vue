@@ -18,7 +18,7 @@ const { t } = useI18n()
       <LanguageSwitcher />
     </header>
 
-    <main class="grid grid-cols-1 md:grid-cols-2 min-h-[calc(100vh-56px)]">
+    <main class="grid grid-cols-1 md:grid-cols-2 min-h-[calc(100vh-56px)] print:grid-cols-1 print:min-h-0">
       <!-- LEFT PANE: inputs -->
       <div class="border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-6 space-y-4 overflow-y-auto print:hidden">
         <DeploymentModelSelector />
