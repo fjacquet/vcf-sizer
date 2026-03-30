@@ -25,7 +25,7 @@ Full details: `.planning/milestones/v2.0-ROADMAP.md`
 - [x] **Phase 6: Markdown Extraction and Enrichment** — Complete, section-rich Markdown report from a dedicated composable (completed 2026-03-30)
 - [x] **Phase 7: Print/PDF CSS Overhaul** — Professional print layout with page geometry, breaks, header, footer, and chart fallbacks (completed 2026-03-30)
 - [x] **Phase 8: PPTX Core Slides** — Downloadable VCF-branded PowerPoint covering all always-present slides (completed 2026-03-30)
-- [ ] **Phase 9: PPTX Conditional Slides and Polish** — Conditional slides for optional features plus integration polish
+- [x] **Phase 9: PPTX Conditional Slides and Polish** — Conditional slides for optional features plus integration polish (completed 2026-03-30)
 
 ---
 
@@ -94,7 +94,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 09-01-PLAN.md — Wave 0 TDD: extend test file with 5 failing describe blocks for conditional slide helpers (PPTX-10..14)
-- [ ] 09-02-PLAN.md — Implement 5 data-mapping helpers + 5 conditional slide blocks in generatePptxReport (PPTX-10..14)
+- [x] 09-02-PLAN.md — Implement 5 data-mapping helpers + 5 conditional slide blocks in generatePptxReport (PPTX-10..14)
 
 ---
 
@@ -110,4 +110,4 @@ Plans:
 | 6. Markdown Extraction and Enrichment | v2.1 | 3/3 | Complete | 2026-03-30 |
 | 7. Print/PDF CSS Overhaul | v2.1 | 3/3 | Complete | 2026-03-30 |
 | 8. PPTX Core Slides | v2.1 | 3/3 | Complete   | 2026-03-30 |
-| 9. PPTX Conditional Slides and Polish | v2.1 | 1/2 | In Progress|  |
+| 9. PPTX Conditional Slides and Polish | v2.1 | 2/2 | Complete   | 2026-03-30 |

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Export Quality
-status: executing
-last_updated: "2026-03-30T08:34:47.913Z"
+status: verifying
+last_updated: "2026-03-30T08:39:16.346Z"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 Phase: 09 (pptx-conditional-slides-and-polish) — EXECUTING
 Plan: 2 of 2
 Next: Phase 09 (pptx-conditional-slides) — NOT STARTED
-Status: Ready to execute
+Status: Phase complete — ready for verification
 
 Progress: [###############-----] 3/4 phases complete
 
@@ -48,6 +48,7 @@ Progress: [###############-----] 3/4 phases complete
 | Phase 08 P03 | 5min | 1 tasks | 5 files |
 | Phase 08 P03 | 5min | 2 tasks | 5 files |
 | Phase 09 P01 | 3min | 1 tasks | 1 files |
+| Phase 09 P02 | 4min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,9 @@ v2.1 decisions:
 - [Phase 08-03]: [08-03]: Button uses disabled:opacity-50 Tailwind class and :disabled binding for loading state visual feedback
 - [Phase 08-03]: [08-03]: i18n key path is results.toolbar.exportPptx / results.toolbar.exportPptxLoading — consistent with existing toolbar keys
 - [Phase 09]: Wave 0 TDD RED gate: 5 failing test describe blocks added to usePptxExport.test.ts for PPTX-10..14 before any helper implementation
+- [Phase 09]: Stretch helper accepts StretchResult directly (not full calc store) for testability
+- [Phase 09]: Validation warnings in PPTX use raw messageKey — no i18n in composable (consistent with Phase 6)
+- [Phase 09]: vSAN Max PPTX guard uses double condition: storageType === 'vsan-max' && calc.vsanMax \!== null
 
 ### Pending Todos
 
