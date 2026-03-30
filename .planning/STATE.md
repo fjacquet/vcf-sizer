@@ -4,8 +4,8 @@ milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
 status: executing
 stopped_at: Completed 15-02-PLAN.md — ENGINE-01/02/03/04 implementation (retrospective)
-last_updated: "2026-03-30T21:00:12.467Z"
-last_activity: 2026-03-30
+last_updated: "2026-03-30T21:03:09.332Z"
+last_activity: 2026-03-30 -- Phase 16 execution started
 progress:
   total_phases: 8
   completed_phases: 6
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 14 — multi-domain-exports
+**Current focus:** Phase 16 — wizard-scaffold-and-state
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Executing Phase 14
-Last activity: 2026-03-30
+Phase: 16 (wizard-scaffold-and-state) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 16
+Last activity: 2026-03-30 -- Phase 16 execution started
 
 Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 
