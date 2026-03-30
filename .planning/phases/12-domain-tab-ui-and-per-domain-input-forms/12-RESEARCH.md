@@ -17,6 +17,7 @@ There is no third-party tab library in the project. HeadlessUI was explicitly re
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -90,6 +91,7 @@ src/
 **When to use:** Any form component that reads/writes workload domain fields.
 
 **Example — HostSpecsForm.vue:**
+
 ```typescript
 // BEFORE (flat storeToRefs — v2.x):
 const { coresPerSocket, socketsPerHost, hostRamGB } = storeToRefs(input)
@@ -122,6 +124,7 @@ The helper `domainField()` avoids 26 individual computed declarations. The fallb
 **When to use:** Any form that reads a calculated value that is now per-domain.
 
 **Example — StorageConfigForm accessing RAID scheme:**
+
 ```typescript
 const calc = useCalculationStore()
 
@@ -148,6 +151,7 @@ const validationErrors = computed(() =>
 **When to use:** Placed in `App.vue` above the input form section.
 
 **HTML/CSS pattern (Tailwind v4):**
+
 ```vue
 <template>
   <div class="flex items-end gap-0 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
@@ -204,6 +208,7 @@ const validationErrors = computed(() =>
 ```
 
 **Key implementation details:**
+
 - `v-for` must use `:key="domain.id"` (never array index) — locked decision.
 - Delete button hidden when `workloadDomains.length === 1` (last domain cannot be deleted).
 - `activeTabIndex` in inputStore is already named `activeDomainIndex` — use that directly.
@@ -236,6 +241,7 @@ function renameDomain(id: string, name: string) {
 **Why native confirm:** No dialog library is installed. A native `confirm()` is sufficient for this use case and adds zero bundle weight. The project already uses `window.print()` for PDF export — same pragmatic pattern.
 
 **Detection function (pure TypeScript, suitable for engine layer if needed, but can live in component):**
+
 ```typescript
 import { createDefaultWorkloadDomain } from '@/engine/defaults'
 
@@ -266,6 +272,7 @@ function updateManagementDomain(patch: Partial<ManagementDomainConfig>) {
 ```
 
 **Component pattern:**
+
 ```typescript
 const input = useInputStore()
 const coresPerSocket = computed({
@@ -287,6 +294,7 @@ const activeDomainId = computed(
 ```
 
 **Template structure (left pane):**
+
 ```
 <DomainTabStrip />            <!-- tab strip with add/delete/rename -->
 <!-- WORKLOAD DOMAIN FORMS (keyed by activeDomainId) -->
@@ -328,39 +336,46 @@ The `ManagementSummary.vue` (read-only overhead table) stays in its current loca
 ## Common Pitfalls
 
 ### Pitfall 1: `calc.validationErrors` / `calc.storage` no longer exist
+
 **What goes wrong:** Forms reference flat computed properties removed in Phase 10.
 **Why it happens:** `calculationStore` now returns `{ management, domainResults, aggregateTotals, dedicatedMgmtHostCount }` only. The old flat `storage`, `stretch`, `vsanMax`, `validationErrors` computed properties are gone.
 **How to avoid:** All form components must use `calc.domainResults.find(r => r.id === props.domainId)` to access per-domain results. Build a local `const domainResult = computed(() => calc.domainResults.find(r => r.id === props.domainId))` at the top of each form's script setup.
 **Warning signs:** TypeScript compile error "Property 'validationErrors' does not exist on type ReturnType<useCalculationStore>".
 
 ### Pitfall 2: Domain deleted while form still mounted
+
 **What goes wrong:** `workloadDomains.find(d => d.id === props.domainId)` returns `undefined` during the tick between domain removal and component unmount.
 **Why it happens:** Vue unmounts on next tick after array mutation; the computed runs during the same tick.
 **How to avoid:** All `domainField()` helpers must include a null-guard fallback (e.g., return `createDefaultWorkloadDomain(0)[key]` when domain not found). `domainResult` computed must also gracefully handle `undefined`.
 **Warning signs:** Runtime TypeError "Cannot read properties of undefined".
 
 ### Pitfall 3: Rename input focus not set on mount
+
 **What goes wrong:** `renamingId` is set but the `<input>` element doesn't receive focus.
 **Why it happens:** When a ref is conditionally rendered via `v-if`, it is not in the DOM yet when the reactive state change occurs.
 **How to avoid:** Use `nextTick(() => renameInputRef.value?.focus())` after setting `renamingId`.
 **Warning signs:** Input renders but is not focused; user must click manually.
 
 ### Pitfall 4: `storeToRefs()` double-wrap with `ref<WorkloadDomainConfig[]>`
+
 **What goes wrong:** `storeToRefs(input).workloadDomains` returns a `Ref<WorkloadDomainConfig[]>` — modifying `.value[i].field` works, but calling `storeToRefs` on individual domain fields (which don't exist as top-level store refs) produces undefined refs.
 **Why it happens:** Phase 10 decision: "inputStore uses ref<WorkloadDomainConfig[]> NOT reactive([]) to avoid storeToRefs() double-wrap bug". Individual domain field access requires array lookup, not storeToRefs.
 **How to avoid:** Never call `storeToRefs` expecting per-domain fields. Use the `domainField()` helper pattern with `computed({ get, set })`.
 
 ### Pitfall 5: Management architecture toggle in wrong component
+
 **What goes wrong:** `managementArchitecture` is moved to per-domain scope accidentally.
 **Why it happens:** It's currently in `DeploymentModelSelector` which is being refactored to accept `domainId`.
 **How to avoid:** Keep `managementArchitecture` as a direct storeToRef binding in `DeploymentModelSelector` — it reads `input.managementArchitecture` directly, not through `domainField()`. Per locked decision: "managementArchitecture remains a global field on inputStore".
 
 ### Pitfall 6: `activeDomainIndex` out of bounds after deletion
+
 **What goes wrong:** Removing the last domain tab leaves `activeDomainIndex` pointing to index N where N >= `workloadDomains.length`.
 **Why it happens:** User deletes domain at the highest index.
 **How to avoid:** `removeDomain()` in inputStore already handles this: `activeDomainIndex.value = Math.min(activeDomainIndex.value, workloadDomains.value.length - 1)`. Do not bypass this via direct array manipulation.
 
 ### Pitfall 7: `DeploymentModelSelector` stretch bandwidth computed reads old flat `calc.stretch`
+
 **What goes wrong:** `stretch.value` is undefined (flat computed removed), causing null-pointer in bandwidth display.
 **Why it happens:** Component previously used `const { stretch } = storeToRefs(calc)` — `calc.stretch` no longer exists.
 **How to avoid:** Derive from `domainResult.value?.stretch` — same pattern as all other per-domain results.
@@ -370,6 +385,7 @@ The `ManagementSummary.vue` (read-only overhead table) stays in its current loca
 ## Code Examples
 
 ### Full `domainField()` helper pattern
+
 ```typescript
 // Source: project pattern derived from Phase 10 store contract
 import type { WorkloadDomainConfig } from '@/engine/types'
@@ -392,6 +408,7 @@ function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
 ```
 
 ### Per-domain calc result access
+
 ```typescript
 // Source: calculationStore.ts domainResults shape
 const calc = useCalculationStore()
@@ -405,6 +422,7 @@ const vsanMax = computed(() => domainResult.value?.vsanMax ?? null)
 ```
 
 ### Inline rename state (local to DomainTabStrip)
+
 ```typescript
 import { ref, nextTick } from 'vue'
 import type { WorkloadDomainConfig } from '@/engine/types'
@@ -431,6 +449,7 @@ function cancelRename() {
 ```
 
 ### Store mutations to add (inputStore.ts)
+
 ```typescript
 // Add to inputStore return — these two are missing from current implementation
 function renameDomain(id: string, name: string) {
@@ -465,6 +484,7 @@ Step 2.6: SKIPPED — Phase 12 is purely frontend component changes. No new exte
 ## Validation Architecture
 
 ### Test Framework
+
 | Property | Value |
 |----------|-------|
 | Framework | Vitest ^4.1.2 |
@@ -477,6 +497,7 @@ Step 2.6: SKIPPED — Phase 12 is purely frontend component changes. No new exte
 `@vue/test-utils` is NOT installed. `vitest.config.ts` sets `environment: 'node'`. Component `.vue` files cannot be mounted in tests. This is by design (CLAUDE.md: "Tests cover `src/engine/**/*.test.ts` and `src/composables/**/*.test.ts` only — no DOM environment needed").
 
 Phase 12 component behavior is validated through:
+
 1. **Store tests** — `inputStore.test.ts` already covers `addDomain`, `removeDomain`, `updateDomain`, `activeDomainIndex`. New mutations (`renameDomain`, `updateManagementDomain`) must have unit tests added.
 2. **Build verification** — `npm run build` (vue-tsc type-check) catches prop type mismatches, missing computed properties, and TypeScript errors in all `.vue` files.
 3. **Manual browser testing** — Tab strip interactions, inline rename, confirmation dialog.
@@ -494,11 +515,13 @@ Phase 12 component behavior is validated through:
 | FORM-01..05 | Type safety of domainId prop contract | build check | `npm run build` | N/A |
 
 ### Sampling Rate
+
 - **Per task commit:** `npx vitest run src/stores/inputStore.test.ts`
 - **Per wave merge:** `npm run test` (full suite — ignore 58 pre-existing composable failures)
 - **Phase gate:** `npm run build` green (type-check passes) AND `npm run test` shows no NEW failures beyond the pre-existing 58
 
 ### Wave 0 Gaps
+
 - [ ] `src/stores/inputStore.test.ts` — add `renameDomain()` tests (covers UI-04)
 - [ ] `src/stores/inputStore.test.ts` — add `updateManagementDomain()` tests (covers UI-05)
 - [ ] `src/stores/inputStore.ts` — add `renameDomain` and `updateManagementDomain` mutations before any component work begins
@@ -555,6 +578,7 @@ Swiss locales (`fr.json`, `de.json`, `it.json`) must include translated values �
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `src/stores/inputStore.ts` — actual store API: `addDomain`, `removeDomain`, `updateDomain`, `activeDomainIndex`
 - `src/stores/calculationStore.ts` — confirmed `domainResults` is the only array computed; no flat `storage`/`stretch`/`validationErrors` top-level properties
 - `src/engine/types.ts` — `WorkloadDomainConfig` (26 fields), `ManagementDomainConfig` (4 fields), `DomainResult`
@@ -563,11 +587,13 @@ Swiss locales (`fr.json`, `de.json`, `it.json`) must include translated values �
 - `.planning/STATE.md` v3.0 decisions — locked decisions: no headlessui, key=domain.id, activeTabIndex ephemeral
 
 ### Secondary (MEDIUM confidence)
+
 - Tailwind v4 class patterns — verified from existing components and `style.css` (`@import "tailwindcss"` with `@tailwindcss/vite`)
 - Vue 3 `computed({ get, set })` pattern — standard Vue 3 API, confirmed present in project's vue ^3.5.31
 - `nextTick` for focus-after-render — standard Vue 3 pattern
 
 ### Tertiary (LOW confidence — needs manual verification)
+
 - i18n key naming conventions for new `domain.*` namespace — consistent with existing flat naming (`storage.vsanMaxProfile` pattern), but requires checking all 4 locale files during implementation
 
 ---
@@ -575,6 +601,7 @@ Swiss locales (`fr.json`, `de.json`, `it.json`) must include translated values �
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all libraries are already installed; no new deps
 - Architecture patterns: HIGH — derived from actual source files, not assumptions
 - Pitfalls: HIGH — derived from reading actual store and component code, not speculation
