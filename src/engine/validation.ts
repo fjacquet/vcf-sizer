@@ -44,7 +44,7 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
     storageType,
     preferredSiteHosts = 3,
     secondarySiteHosts = 3,
-    managementArchitecture = 'shared',
+    managementArchitecture = 'colocated',
     networkSpeedGbE = 25,
     vsanMaxStorageNodes = 4,
   } = inputs

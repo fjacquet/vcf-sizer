@@ -25,7 +25,7 @@ const deploymentMode = mgmtField('deploymentMode')
 
 const managementArchitecture = computed({
   get: () => input.managementArchitecture,
-  set: (val: 'shared' | 'dedicated') => { input.managementArchitecture = val },
+  set: (val: 'colocated' | 'dedicated') => { input.managementArchitecture = val },
 })
 
 const management = computed(() => calc.management)
@@ -46,7 +46,7 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
       <div class="flex gap-2">
         <button
           v-for="arch in [
-            { value: 'shared' as const, labelKey: 'deployment.architecture.shared' },
+            { value: 'colocated' as const, labelKey: 'deployment.architecture.shared' },
             { value: 'dedicated' as const, labelKey: 'deployment.architecture.dedicated' },
           ]"
           :key="arch.value"

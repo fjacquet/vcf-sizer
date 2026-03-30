@@ -23,7 +23,7 @@ describe('inputStore — v3.0 structure (DOM-01)', () => {
 
   it('has managementArchitecture global ref', () => {
     const store = useInputStore()
-    expect(store.managementArchitecture).toBe('shared')
+    expect(store.managementArchitecture).toBe('colocated')
   })
 
   it('does NOT have flat coresPerSocket ref (old shape removed)', () => {

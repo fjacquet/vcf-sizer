@@ -150,7 +150,7 @@ describe('validateInputs -- Dedicated management min hosts (ARCH-01)', () => {
 
   it('shared + hostCount=2 -> no DEDICATED_MGMT_MIN_HOSTS (only fires for dedicated)', () => {
     const errors = validateInputs({
-      managementArchitecture: 'shared',
+      managementArchitecture: 'colocated',
       deploymentMode: 'ha',
       hostCount: 2,
       coresPerSocket: 16,
@@ -247,7 +247,7 @@ describe('validateInputs — Dedup network speed (STOR-05)', () => {
 describe('validateInputs -- Co-located min hosts (ARCH-02)', () => {
   it('shared + vsan-esa + hostCount=2 -> COLLOCATED_MIN_HOSTS warning', () => {
     const errors = validateInputs({
-      managementArchitecture: 'shared',
+      managementArchitecture: 'colocated',
       deploymentMode: 'ha',
       hostCount: 2,
       coresPerSocket: 16,
@@ -260,7 +260,7 @@ describe('validateInputs -- Co-located min hosts (ARCH-02)', () => {
 
   it('shared + fc + hostCount=1 -> COLLOCATED_MIN_HOSTS warning', () => {
     const errors = validateInputs({
-      managementArchitecture: 'shared',
+      managementArchitecture: 'colocated',
       deploymentMode: 'ha',
       hostCount: 1,
       coresPerSocket: 16,
@@ -273,7 +273,7 @@ describe('validateInputs -- Co-located min hosts (ARCH-02)', () => {
 
   it('shared + vsan-esa + hostCount=3 -> no COLLOCATED_MIN_HOSTS', () => {
     const errors = validateInputs({
-      managementArchitecture: 'shared',
+      managementArchitecture: 'colocated',
       deploymentMode: 'ha',
       hostCount: 3,
       coresPerSocket: 16,
@@ -286,7 +286,7 @@ describe('validateInputs -- Co-located min hosts (ARCH-02)', () => {
 
   it('shared + fc + hostCount=2 -> no COLLOCATED_MIN_HOSTS', () => {
     const errors = validateInputs({
-      managementArchitecture: 'shared',
+      managementArchitecture: 'colocated',
       deploymentMode: 'ha',
       hostCount: 2,
       coresPerSocket: 16,

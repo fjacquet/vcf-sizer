@@ -113,10 +113,10 @@ describe('calculationStore — aggregateTotals (DOM-06)', () => {
 })
 
 describe('calculationStore — dedicatedMgmtHostCount (DOM-03)', () => {
-  it('is null when managementArchitecture is "shared"', () => {
+  it('is null when managementArchitecture is "colocated"', () => {
     const input = useInputStore()
     const calc = useCalculationStore()
-    expect(input.managementArchitecture).toBe('shared')
+    expect(input.managementArchitecture).toBe('colocated')
     expect(calc.dedicatedMgmtHostCount).toBeNull()
   })
 
@@ -146,6 +146,80 @@ describe('calculationStore — dedicatedMgmtHostCount (DOM-03)', () => {
     input.workloadDomains[0].coresPerSocket = 8
     const afterWorkloadChange = calc.dedicatedMgmtHostCount!
     expect(afterWorkloadChange).toBe(baseCount) // unchanged — reads from managementDomain
+  })
+})
+
+describe('calculationStore — management overhead routing (ENGINE-01, ENGINE-02)', () => {
+  it('dedicated mode: WLD-1 compute.recommendedHostCount is NOT inflated by management overhead', () => {
+    const input = useInputStore()
+    const calc = useCalculationStore()
+
+    // Set dedicated mode with large management overhead
+    input.managementArchitecture = 'dedicated'
+    input.managementDomain.deploymentMode = 'ha' // ha = full 3x overhead
+
+    // Get WLD-1 host count — should be workload-only, no management overhead
+    const wld1Hosts = calc.domainResults[0].compute.recommendedHostCount
+
+    // Set colocated and verify host count increases (proving management overhead is now added)
+    input.managementArchitecture = 'colocated'
+    const wld1HostsColocated = calc.domainResults[0].compute.recommendedHostCount
+
+    expect(wld1HostsColocated).toBeGreaterThanOrEqual(wld1Hosts)
+  })
+
+  it('dedicated mode: WLD-2 equals WLD-1 with identical config', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    input.addDomain()
+    // Make WLD-2 identical to WLD-1 (addDomain copies defaults, should be same)
+    const calc = useCalculationStore()
+    const id2 = input.workloadDomains[1].id
+    input.updateDomain(id2, { ...input.workloadDomains[0], id: id2, name: 'WLD-2' })
+    expect(calc.domainResults[1].compute.recommendedHostCount).toBe(
+      calc.domainResults[0].compute.recommendedHostCount
+    )
+  })
+
+  it('colocated mode: WLD-1 host count absorbs management overhead', () => {
+    const input = useInputStore()
+    input.addDomain()
+    input.managementArchitecture = 'colocated'
+    input.managementDomain.deploymentMode = 'ha' // maximize management overhead
+    const id2 = input.workloadDomains[1].id
+    input.updateDomain(id2, { ...input.workloadDomains[0], id: id2, name: 'WLD-2' })
+    const calc = useCalculationStore()
+    // WLD-1 absorbs management overhead → host count >= WLD-2
+    expect(calc.domainResults[0].compute.recommendedHostCount).toBeGreaterThanOrEqual(
+      calc.domainResults[1].compute.recommendedHostCount
+    )
+  })
+})
+
+describe('calculationStore — aggregateTotals mgmt host integration (ENGINE-03)', () => {
+  it('dedicated mode: aggregateTotals.totalRecommendedHosts includes dedicatedMgmtHostCount', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    const calc = useCalculationStore()
+    const workloadHosts = calc.domainResults.reduce(
+      (sum, d) => sum + d.compute.recommendedHostCount, 0
+    )
+    const mgmtHosts = calc.dedicatedMgmtHostCount ?? 0
+    expect(calc.aggregateTotals.totalRecommendedHosts).toBe(workloadHosts + mgmtHosts)
+  })
+
+  it('dedicated mode: aggregateTotals.mgmtHostCount equals dedicatedMgmtHostCount', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    const calc = useCalculationStore()
+    expect(calc.aggregateTotals.mgmtHostCount).toBe(calc.dedicatedMgmtHostCount ?? 0)
+  })
+
+  it('colocated mode: aggregateTotals.mgmtHostCount is 0', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'colocated'
+    const calc = useCalculationStore()
+    expect(calc.aggregateTotals.mgmtHostCount).toBe(0)
   })
 })
 

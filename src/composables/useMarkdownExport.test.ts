@@ -83,7 +83,7 @@ describe('generateMarkdownReport — MD-03 Management Architecture', () => {
 
   it('shows management architecture row (default: shared)', () => {
     const report = generateMarkdownReport()
-    expect(report).toContain('shared')
+    expect(report).toContain('colocated')
   })
 
   it('dedicated host count row absent when managementArchitecture=shared (default)', () => {

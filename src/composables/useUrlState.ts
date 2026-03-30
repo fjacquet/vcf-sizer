@@ -56,7 +56,7 @@ export const ManagementDomainSchema = z
 
 export const InputStateSchema = z
   .object({
-    managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
+    managementArchitecture: z.enum(['colocated', 'dedicated']).default('colocated'),
     // Factory defaults required for nested schemas — .default({}) bypasses inner field defaults (Pitfall 1)
     managementDomain: ManagementDomainSchema.default(
       () => ManagementDomainSchema.parse({})

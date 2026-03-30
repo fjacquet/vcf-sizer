@@ -52,7 +52,7 @@ const ManagementDomainSchema = z
 
 const InputStateSchema = z
   .object({
-    managementArchitecture: z.enum(['shared', 'dedicated']).default('shared'),
+    managementArchitecture: z.enum(['colocated', 'dedicated']).default('colocated'),
     managementDomain: ManagementDomainSchema.default(
       () => ManagementDomainSchema.parse({})
     ),
@@ -65,11 +65,11 @@ const InputStateSchema = z
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('URL-01 — New schema structure', () => {
-  it('safeParse({}) succeeds and returns managementArchitecture === "shared"', () => {
+  it('safeParse({}) succeeds and returns managementArchitecture === "colocated"', () => {
     const result = InputStateSchema.safeParse({})
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.managementArchitecture).toBe('shared')
+      expect(result.data.managementArchitecture).toBe('colocated')
     }
   })
 
@@ -189,7 +189,7 @@ describe('URL-03 — Multi-domain round-trip', () => {
   }
 
   const threeDomainsState = {
-    managementArchitecture: 'shared' as const,
+    managementArchitecture: 'colocated' as const,
     managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTB: 3.84 },
     workloadDomains: [domain0, domain1, domain2],
   }
@@ -227,7 +227,7 @@ describe('URL-03 — Multi-domain round-trip', () => {
 
   it('5-domain config serializes to URL param under 2,048 characters', () => {
     const fiveDomains = {
-      managementArchitecture: 'shared' as const,
+      managementArchitecture: 'colocated' as const,
       managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTB: 3.84 },
       workloadDomains: [
         createDefaultWorkloadDomain(0),
@@ -246,7 +246,7 @@ describe('URL-03 — Multi-domain round-trip', () => {
 describe('URL-04 — activeTabIndex exclusion', () => {
   it('serialized payload with activeDomainIndex does NOT contain that key after .strip()', () => {
     const stateWithEphemeral = {
-      managementArchitecture: 'shared',
+      managementArchitecture: 'colocated',
       managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTB: 3.84 },
       workloadDomains: [createDefaultWorkloadDomain(0)],
       activeDomainIndex: 2,  // ephemeral UI state — must be stripped

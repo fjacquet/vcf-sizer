@@ -5,7 +5,7 @@ import type { WorkloadDomainConfig, ManagementDomainConfig } from '@/engine/type
 
 export const useInputStore = defineStore('input', () => {
   // GLOBAL (deployment-level, not per-domain)
-  const managementArchitecture = ref<'shared' | 'dedicated'>('shared')
+  const managementArchitecture = ref<'colocated' | 'dedicated'>('colocated')
 
   // Management domain host specs — independent of workload domains (DOM-03)
   const managementDomain = ref<ManagementDomainConfig>(createDefaultManagementDomain())

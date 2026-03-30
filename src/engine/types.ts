@@ -6,7 +6,7 @@ export type StorageType = 'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'
 export type VsanMaxProfile = 'xs' | 'sm' | 'med' | 'lrg' | 'xl'
 export type RaidType = 'raid1' | 'raid5' | 'raid6'
 export type FttLevel = 1 | 2
-export type ManagementArchitecture = 'shared' | 'dedicated'
+export type ManagementArchitecture = 'colocated' | 'dedicated'
 
 export interface ValidationWarning {
   code: string
@@ -121,7 +121,7 @@ export interface ValidationInputs {
   storageType: StorageType
   preferredSiteHosts?: number   // default 3
   secondarySiteHosts?: number   // default 3
-  managementArchitecture?: ManagementArchitecture  // default 'shared'
+  managementArchitecture?: ManagementArchitecture  // default 'colocated'
   networkSpeedGbE?: 10 | 25 | 100   // default 25
   vsanMaxStorageNodes?: number      // default 4
 }
@@ -191,7 +191,8 @@ export interface DomainResult {
 }
 
 export interface AggregateTotals {
-  totalRecommendedHosts: number
+  totalRecommendedHosts: number    // grand total = workload hosts + management hosts
+  mgmtHostCount: number            // management-only host count (0 when colocated)
   totalVmCount: number
   totalRawStorageTB: number
   totalEffectiveStorageTB: number

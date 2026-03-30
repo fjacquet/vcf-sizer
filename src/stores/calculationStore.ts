@@ -33,12 +33,22 @@ export const useCalculationStore = defineStore('calculation', () => {
   // Per-domain results — maps over array, returns new array each recompute
   // CALC-02 compliant: computed() is the only reactive primitive used here
   const domainResults = computed<DomainResult[]>(() =>
-    input.workloadDomains.map(domain => {
+    input.workloadDomains.map((domain, index) => {
       // Pitfall 6: effectiveHostCount must be computed per-domain inside .map()
       const effectiveHostCount =
         domain.deploymentMode === 'stretch'
           ? domain.preferredSiteHosts + domain.secondarySiteHosts
           : domain.hostCount
+
+      // ENGINE-01/02: management overhead routing
+      // dedicated → 0 for all domains (management runs on its own hosts)
+      // colocated → WLD-1 (index 0) absorbs overhead; all others receive 0
+      const mgmtCoresForDomain = input.managementArchitecture === 'colocated' && index === 0
+        ? management.value.totalCores
+        : 0
+      const mgmtRamForDomain = input.managementArchitecture === 'colocated' && index === 0
+        ? management.value.totalRamGB
+        : 0
 
       return {
         id: domain.id,
@@ -54,8 +64,8 @@ export const useCalculationStore = defineStore('calculation', () => {
           avgVramGbPerVm: domain.avgVramGbPerVm,
           cpuOvercommitRatio: domain.cpuOvercommitRatio,
           ramOvercommitRatio: domain.ramOvercommitRatio,
-          managementCores: management.value.totalCores,
-          managementRamGB: management.value.totalRamGB,
+          managementCores: mgmtCoresForDomain,
+          managementRamGB: mgmtRamForDomain,
           nvmeTieringEnabled: domain.nvmeTieringEnabled,
           activeMemoryPct: domain.activeMemoryPct,
           gpuVmCount: domain.gpuVmCount,
@@ -105,19 +115,21 @@ export const useCalculationStore = defineStore('calculation', () => {
   )
 
   // Aggregate totals — reduces domainResults; second computed, no mutable state
-  const aggregateTotals = computed<AggregateTotals>(() => ({
-    totalRecommendedHosts: domainResults.value.reduce(
+  // ENGINE-03: totalRecommendedHosts = workload hosts + management hosts (grand procurement total)
+  const aggregateTotals = computed<AggregateTotals>(() => {
+    const workloadHosts = domainResults.value.reduce(
       (sum, d) => sum + d.compute.recommendedHostCount, 0
-    ),
-    totalVmCount: input.workloadDomains.reduce((sum, d) => sum + d.vmCount, 0),
-    totalRawStorageTB: domainResults.value.reduce(
-      (sum, d) => sum + d.storage.rawCapacityTB, 0
-    ),
-    totalEffectiveStorageTB: domainResults.value.reduce(
-      (sum, d) => sum + d.storage.effectiveCapacityTB, 0
-    ),
-    allValidationErrors: domainResults.value.flatMap(d => d.validationErrors),
-  }))
+    )
+    const mgmtHosts = dedicatedMgmtHostCount.value ?? 0
+    return {
+      totalRecommendedHosts: workloadHosts + mgmtHosts,
+      mgmtHostCount: mgmtHosts,
+      totalVmCount: input.workloadDomains.reduce((sum, d) => sum + d.vmCount, 0),
+      totalRawStorageTB: domainResults.value.reduce((sum, d) => sum + d.storage.rawCapacityTB, 0),
+      totalEffectiveStorageTB: domainResults.value.reduce((sum, d) => sum + d.storage.effectiveCapacityTB, 0),
+      allValidationErrors: domainResults.value.flatMap(d => d.validationErrors),
+    }
+  })
 
   // ZERO mutable state — CALC-02 compliant
   return { management, domainResults, aggregateTotals, dedicatedMgmtHostCount }
