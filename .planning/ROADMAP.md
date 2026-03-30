@@ -4,7 +4,8 @@
 
 - ✅ **v2.0 Architecture Correctness & vSAN Max** — Phases 1-5 (shipped 2026-03-29)
 - ✅ **v2.1 Export Quality** — Phases 6-9 (shipped 2026-03-30)
-- 🔄 **v3.0 Multi-Domain Support** — Phases 10-14 (active)
+- ✅ **v3.0 Multi-Domain Support** — Phases 10-14 (shipped 2026-03-30)
+- 🔄 **v3.1 Sizing Correctness & Guided Workflow** — Phases 15-17 (active)
 
 ## Phases
 
@@ -33,13 +34,22 @@ Full details: `.planning/milestones/v2.1-ROADMAP.md`
 
 </details>
 
-### v3.0 Multi-Domain Support (Phases 10-14) — Active
+<details>
+<summary>✅ v3.0 Multi-Domain Support (Phases 10-14) — SHIPPED 2026-03-30</summary>
 
-- [x] **Phase 10: Domain Types, Defaults, and Store Refactor** — Core data model and store restructure for multi-domain state (completed 2026-03-30)
-- [x] **Phase 11: URL State Schema Refactor** — Zod array schema with round-trip validation for N-domain configs (completed 2026-03-30)
-- [x] **Phase 12: Domain Tab UI and Per-Domain Input Forms** — Tab strip, add/remove/rename, and all input forms wired per domain (completed 2026-03-30)
-- [x] **Phase 13: Per-Domain Results and Aggregate Totals** — Result cards per domain and aggregate procurement totals display (completed 2026-03-30)
-- [x] **Phase 14: Multi-Domain Exports** — Markdown and PPTX exports with per-domain sections and totals (completed 2026-03-30)
+- [x] Phase 10: Domain Types, Defaults, and Store Refactor (completed 2026-03-30)
+- [x] Phase 11: URL State Schema Refactor (completed 2026-03-30)
+- [x] Phase 12: Domain Tab UI and Per-Domain Input Forms (completed 2026-03-30)
+- [x] Phase 13: Per-Domain Results and Aggregate Totals (completed 2026-03-30)
+- [x] Phase 14: Multi-Domain Exports (completed 2026-03-30)
+
+</details>
+
+### v3.1 Sizing Correctness & Guided Workflow (Phases 15-17) — Active
+
+- [ ] **Phase 15: Engine Correctness** — TDD-first fixes to management overhead routing, aggregate totals, and TypeScript diagnostics
+- [ ] **Phase 16: Wizard Scaffold and State** — WizardStepper shell, uiStore wizard step, navigation, and URL exclusion guarantee
+- [ ] **Phase 17: Wizard Step Content and Export Accuracy** — Step validation gates, management result card, management summary panel, and updated exports
 
 ---
 
@@ -126,8 +136,50 @@ Plans:
   3. Downloading the PPTX produces a presentation with one slide per workload domain showing the domain name, key inputs, and results summary
   4. The PPTX includes an aggregate totals slide after all per-domain domain slides
 **Plans**: 2 plans
-- [ ] 14-01-PLAN.md — Multi-domain Markdown export (EXP-01, EXP-02)
+- [x] 14-01-PLAN.md — Multi-domain Markdown export (EXP-01, EXP-02)
 - [ ] 14-02-PLAN.md — Multi-domain PPTX export (EXP-03, EXP-04)
+
+### Phase 15: Engine Correctness
+
+**Goal**: The calculation engine produces correct sizing numbers — management overhead is never double-counted and aggregate totals include all host populations
+**Depends on**: Phase 14
+**Requirements**: ENGINE-01, ENGINE-02, ENGINE-03, ENGINE-04
+**Success Criteria** (what must be TRUE):
+
+  1. In dedicated architecture mode, workload domain result cards show zero management vCPU/RAM overhead — WLD-1 and all other domains are sized on workload inputs alone
+  2. In colocated architecture mode, WLD-1 host count increases to absorb management vCPU and RAM — WLD-2 and beyond remain unaffected
+  3. The aggregate totals card procurement host count equals the sum of all workload domain host counts plus dedicated management host count (dedicated mode), or workload hosts only (colocated mode)
+  4. `npm run type-check` exits with zero errors — no implicit `any` types and no missing module imports remain in `useMarkdownExport.ts`, `usePptxExport.ts`, or `useUrlState.ts`
+**Plans**: TBD
+
+### Phase 16: Wizard Scaffold and State
+
+**Goal**: Users see a persistent 3-step wizard indicator and can navigate forward and back between steps without losing any data
+**Depends on**: Phase 15
+**Requirements**: WIZARD-01, WIZARD-02, WIZARD-07
+**Success Criteria** (what must be TRUE):
+
+  1. A horizontal 3-step indicator (1: Topology, 2: Management, 3: Workloads) is visible at all times during the sizing workflow with clear active/completed/upcoming visual states
+  2. User can navigate to a previous step at any time — all input values entered in later steps are fully preserved on return
+  3. Copying the shareable URL and pasting it into a new browser tab never restores or encodes the wizard step position — the app always opens at step 1 regardless of which step was active when the URL was copied
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 17: Wizard Step Content and Export Accuracy
+
+**Goal**: Each wizard step enforces the correct VCF design sequence and all export outputs reflect corrected management host counts
+**Depends on**: Phase 16
+**Requirements**: WIZARD-03, WIZARD-04, WIZARD-05, WIZARD-06, EXPORT-01, EXPORT-02
+**Success Criteria** (what must be TRUE):
+
+  1. User cannot advance from step 1 to step 2 until one of the three deployment topologies (Simple / HA / Stretch) is explicitly selected
+  2. User cannot advance from step 2 to step 3 until management domain host count meets the minimum validation threshold — the next button is disabled and an inline message explains the requirement
+  3. At the bottom of step 2, a management domain result card shows the computed host count and utilization figures before the user advances
+  4. At the top of step 3, a collapsed summary panel displays the committed management resource figures (host count, vCPU, RAM) — this panel is read-only and cannot be edited from step 3
+  5. The downloaded Markdown report aggregate totals section contains a management hosts line — dedicated mode shows the host count, colocated mode shows "colocated with WLD-1"
+  6. The downloaded PPTX aggregate totals slide contains a management hosts breakdown row with the same representation as the Markdown output
+**Plans**: TBD
+**UI hint**: yes
 
 ---
 
@@ -144,8 +196,11 @@ Plans:
 | 7. Print/PDF CSS Overhaul | v2.1 | 3/3 | Complete | 2026-03-30 |
 | 8. PPTX Core Slides | v2.1 | 3/3 | Complete | 2026-03-30 |
 | 9. PPTX Conditional Slides and Polish | v2.1 | 2/2 | Complete | 2026-03-30 |
-| 10. Domain Types, Defaults, and Store Refactor | v3.0 | 1/2 | Complete    | 2026-03-30 |
-| 11. URL State Schema Refactor | v3.0 | 1/1 | Complete    | 2026-03-30 |
-| 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | Complete    | 2026-03-30 |
-| 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete    | 2026-03-30 |
-| 14. Multi-Domain Exports | v3.0 | 0/2 | Complete    | 2026-03-30 |
+| 10. Domain Types, Defaults, and Store Refactor | v3.0 | 1/2 | Complete | 2026-03-30 |
+| 11. URL State Schema Refactor | v3.0 | 1/1 | Complete | 2026-03-30 |
+| 12. Domain Tab UI and Per-Domain Input Forms | v3.0 | 1/2 | Complete | 2026-03-30 |
+| 13. Per-Domain Results and Aggregate Totals | v3.0 | 1/2 | Complete | 2026-03-30 |
+| 14. Multi-Domain Exports | v3.0 | 1/2 | In Progress|  |
+| 15. Engine Correctness | v3.1 | 0/? | Not started | - |
+| 16. Wizard Scaffold and State | v3.1 | 0/? | Not started | - |
+| 17. Wizard Step Content and Export Accuracy | v3.1 | 0/? | Not started | - |

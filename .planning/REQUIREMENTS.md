@@ -69,25 +69,25 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| ENGINE-01 | TBD | Pending |
-| ENGINE-02 | TBD | Pending |
-| ENGINE-03 | TBD | Pending |
-| ENGINE-04 | TBD | Pending |
-| WIZARD-01 | TBD | Pending |
-| WIZARD-02 | TBD | Pending |
-| WIZARD-03 | TBD | Pending |
-| WIZARD-04 | TBD | Pending |
-| WIZARD-05 | TBD | Pending |
-| WIZARD-06 | TBD | Pending |
-| WIZARD-07 | TBD | Pending |
-| EXPORT-01 | TBD | Pending |
-| EXPORT-02 | TBD | Pending |
+| ENGINE-01 | Phase 15 | Pending |
+| ENGINE-02 | Phase 15 | Pending |
+| ENGINE-03 | Phase 15 | Pending |
+| ENGINE-04 | Phase 15 | Pending |
+| WIZARD-01 | Phase 16 | Pending |
+| WIZARD-02 | Phase 16 | Pending |
+| WIZARD-07 | Phase 16 | Pending |
+| WIZARD-03 | Phase 17 | Pending |
+| WIZARD-04 | Phase 17 | Pending |
+| WIZARD-05 | Phase 17 | Pending |
+| WIZARD-06 | Phase 17 | Pending |
+| EXPORT-01 | Phase 17 | Pending |
+| EXPORT-02 | Phase 17 | Pending |
 
 **Coverage:**
 - v3.1 requirements: 13 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 13 ⚠️
+- Mapped to phases: 13
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after initial definition*
+*Last updated: 2026-03-30 — traceability updated after roadmap creation*
