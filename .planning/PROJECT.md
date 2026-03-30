@@ -58,6 +58,8 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ Per-domain result cards (DomainResultCard) + AggregateTotalsCard showing procurement total — Validated in Phase 13: Per-Domain Results and Aggregate Totals
 - ✓ Full multi-domain URL state (lz-string/Zod with variable-length domain arrays), v2.x backward compat, activeTabIndex excluded — Validated in Phase 11: URL State Schema Refactor
 - ✓ Per-domain sections in Markdown export (`## Domain: {name}` H2 loop + `## Aggregate Totals`) and PPTX export (per-domain slide groups + aggregate totals slide) — Validated in Phase 14: Multi-Domain Exports
+- ✓ Engine correctness: management overhead routed only to WLD-1 in colocated mode (no double-counting), 'shared' renamed to 'colocated', mgmtHostCount=0 when colocated — Validated in Phase 15: Engine Correctness
+- ✓ 3-step wizard shell: WizardStepper indicator (active/completed/upcoming states), TopologySelector for Step 1, App.vue v-show panels, currentWizardStep in uiStore (never in URL) — Validated in Phase 16: Wizard Scaffold and State
 
 ### Deferred (post-v3.0)
 
@@ -144,4 +146,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 — Phase 14 complete (multi-domain Markdown + PPTX exports)*
+*Last updated: 2026-03-30 — Phase 16 complete (wizard scaffold: WizardStepper, TopologySelector, App.vue v-show panels)*
