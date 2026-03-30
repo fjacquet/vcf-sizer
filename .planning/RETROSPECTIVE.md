@@ -56,14 +56,64 @@
 
 ---
 
+## Milestone: v2.1 — Export Quality
+
+**Shipped:** 2026-03-30
+**Phases:** 4 | **Plans:** 11 | **Duration:** 1 day (2026-03-30)
+
+### What Was Built
+
+1. **Phase 6 (Markdown):** Extracted `generateMarkdownReport()` into `useMarkdownExport.ts` composable (pure TS, no lifecycle hooks). Grew from 4 to 11 sections covering workload profile, management architecture, NVMe tiering, AI/GPU, stretch topology, vSAN Max, validation warnings, and network config. Full Pinia-backed TDD suite (Wave 0 RED → Wave 1 GREEN).
+2. **Phase 7 (Print/PDF):** `@page` A4 portrait rule in global `style.css`; `break-inside-avoid` on all result cards; fixed-position print header/footer in `ResultsPanel.vue` using `hidden print:flex` pattern; chart print fallbacks as `hidden print:table` semantic tables in all 3 chart components.
+3. **Phase 8 (PPTX Core):** Installed `pptxgenjs 4.0.1` as dynamic-import-only production dependency. `usePptxExport.ts` composable with local `TableCell`/`TableRow` interface definitions (namespace import pattern fails), Broadcom blue slide master, 7 always-present slides. "Download PPTX" button in `ExportToolbar.vue` with i18n in 4 locales.
+4. **Phase 9 (PPTX Conditional):** 5 conditional data-mapping helpers + 5 feature-guarded slide blocks in `generatePptxReport()` (AI/GPU, NVMe tiering, stretch topology, vSAN Max, validation warnings) matching guard conditions from `useMarkdownExport.ts`.
+
+### What Worked
+
+- **TDD Wave 0 discipline continued:** RED → GREEN pattern maintained across all 4 phases. Having failing tests first made implementation unambiguous and caught integration issues early.
+- **Export composable pattern:** Pure-TS composables with no Vue lifecycle hooks made all data-mapping helpers fully unit-testable in Vitest node env. No need for DOM mounting or browser APIs in tests.
+- **Dynamic import pattern for pptxgenjs:** `(await import('pptxgenjs')).default` inside the function body keeps the 200 kB library out of the initial bundle. Vite code-splits it automatically.
+- **Local type definitions over namespace imports:** `import type PptxGenJS from 'pptxgenjs'` doesn't expose `TableCell`/`TableRow` with dynamic import pattern. Local interface definitions matching actual usage worked cleanly and are easier to maintain.
+- **`hidden print:table` fallback pattern:** Using Tailwind `hidden print:table` on semantic `<table>` elements (not `print:block`) preserved proper table rendering in all browsers.
+- **`@page` in global style.css:** Scoped Vue component styles don't apply `@page` rules. Putting print geometry in `src/style.css` was the correct approach.
+
+### What Was Inefficient
+
+- **SUMMARY.md one-liners stale (again):** Several SUMMARY.md files had "One-liner:" as the placeholder value — executor agents omitted the one-liner field. Still not fixed in the tooling.
+- **pptxgenjs type discovery:** The namespace import pattern failure (`PptxGenJS.TableCell`) wasn't in any documentation. Required a debugging loop to discover that local interface definitions were the solution.
+- **Print header/footer checkpoint:** Plan 07-02 had a `autonomous: false` human-verify checkpoint for visual print confirmation. In an autonomous session this required auto-approval, which defeats the purpose. A "visual verification deferred" annotation would be better than blocking execution.
+- **Phase 9 TS diagnostic noise:** After Wave 1, IDE reported `StretchResult`/`VsanMaxResult` as "unused" and callback parameters as implicit `any` — these were false positives (`vue-tsc` exits 0). Language server disagreeing with compiler is a friction point.
+
+### Patterns Established
+
+- **Export composable pattern:** `src/composables/use[X]Export.ts` — pure TS, no lifecycle hooks, exports one main async `generate[X]Report()` function + pure data-mapping helpers. Helpers are unit-testable; main function uses browser APIs and must be manually verified.
+- **pptxgenjs pitfall list:** (1) bare hex without `#`; (2) `defineSlideMaster()` before any `addSlide()`; (3) local interface defs over namespace import; (4) `background: { color: '...' }` not deprecated `fill:`; (5) `await pres.writeFile({ fileName: '...' })`; (6) fresh `new PptxGenJS()` per call.
+- **Conditional slide guard pattern:** Mirror `useMarkdownExport.ts` guard conditions exactly in `usePptxExport.ts`. Single source of truth for which features are "active".
+
+### Key Lessons
+
+1. **Namespace imports from dynamic-import libraries are unreliable.** For libraries loaded only via `import()`, define local interfaces matching actual usage rather than trying to extract types from the library namespace.
+2. **`@page` CSS is global scope only.** Vue scoped styles, CSS modules, and component-level `<style>` blocks cannot define `@page` rules — only global `src/style.css` works.
+3. **`print:table` not `print:block` for table fallbacks.** `display: table` preserves semantic table layout in print; `display: block` makes table cells stack vertically.
+4. **pptxgenjs instance statefulness.** Each call to `generatePptxReport()` must create a fresh `new PptxGenJS()` instance — previous call's slides accumulate on the same instance.
+
+### Cost Observations
+
+- Model mix: Planner = opus, Researcher + Executor + Checker + Verifier = sonnet
+- Sessions: 1 day, ~43 commits across 4 phases
+- Notable: All 4 phases planned and executed in a single day. Wave 0 TDD gate (RED state) added upfront cost but eliminated debugging time during implementation waves.
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v2.0 |
-|--------|------|
-| Phases | 5 |
-| Plans | 11 |
-| Tests at completion | 120 |
-| TypeScript errors at completion | 0 |
-| Build size (gzip) | 159 kB |
-| Locales | 4 (en/fr/de/it) |
-| Duration | 2 days |
+| Metric | v2.0 | v2.1 |
+|--------|------|------|
+| Phases | 5 | 4 |
+| Plans | 11 | 11 |
+| Tests at completion | 120 | 182 |
+| TypeScript errors at completion | 0 | 0 |
+| Build size (gzip) | 159 kB | ~175 kB (est.) |
+| Locales | 4 (en/fr/de/it) | 4 (en/fr/de/it) |
+| Duration | 2 days | 1 day |
+| Export formats | 2 (Markdown, Print) | 3 (+PowerPoint) |

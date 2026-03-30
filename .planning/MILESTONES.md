@@ -1,5 +1,25 @@
 # Milestones
 
+## v2.1 Export Quality (Shipped: 2026-03-30)
+
+**Phases completed:** 4 phases, 11 plans, 13 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- generateMarkdownReport() extracted verbatim from useUrlState.ts into dedicated useMarkdownExport.ts composable, wiring ExportToolbar.vue to the new location — MD-01 satisfied
+- One-liner:
+- A4 portrait @page rule with 25mm/15mm margins, print-color-adjust for background preservation, and break-inside-avoid on all result cards to prevent mid-card page splits
+- Fixed-position print header (title + date) and footer (attribution) added to ResultsPanel.vue using hidden print:flex pattern with i18n keys in all 4 locales
+- Chart.js canvas hidden in print via print:hidden, replaced by semantic data tables using hidden print:table pattern in all three chart components (CoresChart, RamChart, StorageChart)
+- One-liner:
+- One-liner:
+- "Download PPTX" button added to ExportToolbar.vue with async loading state and i18n keys in all 4 locales, wiring generatePptxReport into the existing toolbar UI.
+- One-liner:
+- 5 conditional PPTX slides for AI/GPU, NVMe tiering, stretch topology, vSAN Max, and validation warnings wired to generatePptxReport() with feature-guard conditions matching useMarkdownExport.ts
+
+---
+
 ## v2.0 Architecture Correctness & vSAN Max (Shipped: 2026-03-29)
 
 **Phases completed:** 5 phases, 11 plans, 12 tasks

@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Export Quality
-status: verifying
-last_updated: "2026-03-30T08:39:16.346Z"
+status: complete
+last_updated: "2026-03-30T10:45:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -15,19 +15,18 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-29)
+See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 09 — pptx-conditional-slides-and-polish
+**Current focus:** Between milestones — v2.1 archived, planning v2.2
 
 ## Current Position
 
-Phase: 09 (pptx-conditional-slides-and-polish) — EXECUTING
+Phase: 09 (pptx-conditional-slides-and-polish) — COMPLETE
 Plan: 2 of 2
-Next: Phase 09 (pptx-conditional-slides) — NOT STARTED
-Status: Phase complete — ready for verification
+Status: Phase verified — all 5 conditional PPTX slides implemented and tested
 
-Progress: [###############-----] 3/4 phases complete
+Progress: [####################] 4/4 phases complete
 
 ## Performance Metrics
 
@@ -117,12 +116,11 @@ v2.1 decisions:
 - [Phase 09]: Wave 0 TDD RED gate: 5 failing test describe blocks added to usePptxExport.test.ts for PPTX-10..14 before any helper implementation
 - [Phase 09]: Stretch helper accepts StretchResult directly (not full calc store) for testability
 - [Phase 09]: Validation warnings in PPTX use raw messageKey — no i18n in composable (consistent with Phase 6)
-- [Phase 09]: vSAN Max PPTX guard uses double condition: storageType === 'vsan-max' && calc.vsanMax \!== null
+- [Phase 09]: vSAN Max PPTX guard uses double condition: storageType === 'vsan-max' && calc.vsanMax !== null
 
 ### Pending Todos
 
 - Verify ReadyNode profile constants (MED/LRG/XL NVMe counts, XS 128 GB RAM minimum) against compatibilityguide.broadcom.com at Phase 5 implementation time
-- Phase 9: Add conditional slides for AI/GPU, NVMe tiering, stretch topology, vSAN Max, and validation warnings
 
 ### Blockers/Concerns
 
@@ -130,8 +128,4 @@ v2.1 decisions:
 
 ## Session Continuity
 
-To resume:
-
-1. Read .planning/ROADMAP.md for full phase structure (Phases 6-9)
-2. Read .planning/REQUIREMENTS.md for v2.1 requirement IDs (PPTX-10..14)
-3. Run: `/gsd:plan-phase 9` to begin PPTX Conditional Slides and Polish
+v2.1 milestone (Export Quality) is complete. All 4 phases verified. 182 tests passing.
