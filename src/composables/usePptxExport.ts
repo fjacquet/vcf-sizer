@@ -4,7 +4,7 @@
 
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
-import type { MgmtDomainResult, ComputeResult, StorageResult } from '@/engine/types'
+import type { MgmtDomainResult, ComputeResult, StorageResult, StretchResult, VsanMaxResult } from '@/engine/types'
 // Local type definitions matching pptxgenjs TableCell/TableRow shapes.
 // We use local types rather than importing from pptxgenjs to avoid
 // namespace resolution issues with the dynamic-import-only pattern (PPTX-15).
@@ -174,6 +174,89 @@ export function buildRecommendationsData(
     recs.push(`Active warnings: ${calc.validationErrors.length}`)
   }
   return recs
+}
+
+/**
+ * buildAiGpuSlideData — returns label/value rows for AI/GPU workloads slide (PPTX-10)
+ */
+export function buildAiGpuSlideData(
+  store: ReturnType<typeof useInputStore>
+): Array<{ label: string; value: string }> {
+  return [
+    { label: 'GPU VM count', value: String(store.gpuVmCount) },
+    { label: 'vGPU memory per VM', value: `${store.vgpuMemoryGB} GB` },
+  ]
+}
+
+/**
+ * buildNvmeTieringSlideData — returns label/value rows for NVMe memory tiering slide (PPTX-11)
+ */
+export function buildNvmeTieringSlideData(
+  store: ReturnType<typeof useInputStore>
+): Array<{ label: string; value: string }> {
+  return [
+    { label: 'Status', value: 'Enabled' },
+    { label: 'Active memory percentage', value: `${store.activeMemoryPct}%` },
+  ]
+}
+
+/**
+ * buildStretchTopologySlideData — returns topology rows + network checklist for stretch slide (PPTX-12)
+ * Accepts stretch: StretchResult directly (not full calc store) to keep function pure/testable.
+ */
+export function buildStretchTopologySlideData(
+  store: ReturnType<typeof useInputStore>,
+  stretch: StretchResult,
+): { topology: Array<{ label: string; value: string }>; checklist: string[] } {
+  const topology = [
+    { label: 'Preferred site hosts', value: String(store.preferredSiteHosts) },
+    { label: 'Secondary site hosts', value: String(store.secondarySiteHosts) },
+    { label: 'Total hosts', value: String(stretch.totalHosts) },
+    { label: 'Min inter-site bandwidth', value: `${stretch.minBandwidthGbps} Gbps` },
+    { label: 'Witness vCPU', value: String(stretch.witnessCores) },
+    { label: 'Witness RAM', value: `${stretch.witnessRamGB} GB` },
+    { label: 'Effective per-site storage', value: `${stretch.effectivePerSiteStorageTB.toFixed(2)} TB` },
+  ]
+  const nc = stretch.networkChecklist
+  const checklist = [
+    `Min inter-site bandwidth: ${nc.minInterSiteBandwidthGbps} Gbps`,
+    `Max inter-site latency: ${nc.maxInterSiteLatencyMs} ms`,
+    `Max witness latency: ${nc.maxWitnessLatencyMs} ms`,
+    `Jumbo frames required: ${nc.jumboFramesRequired ? 'Yes' : 'No'}`,
+    `Min witness bandwidth: ${nc.witnessMinBandwidthMbps} Mbps`,
+  ]
+  return { topology, checklist }
+}
+
+/**
+ * buildVsanMaxSlideData — returns label/value rows for vSAN Max cluster slide (PPTX-13)
+ * Accepts vsanMax: VsanMaxResult directly — caller guards against null.
+ */
+export function buildVsanMaxSlideData(
+  store: ReturnType<typeof useInputStore>,
+  vsanMax: VsanMaxResult,
+): Array<{ label: string; value: string }> {
+  return [
+    { label: 'ReadyNode profile', value: store.vsanMaxProfile.toUpperCase() },
+    { label: 'Storage node count', value: String(vsanMax.storageNodeCount) },
+    { label: 'Compute node count', value: String(vsanMax.computeNodeCount) },
+    { label: 'RAID scheme', value: vsanMax.raidScheme },
+    { label: 'Raw capacity', value: `${vsanMax.rawCapacityTB.toFixed(2)} TB` },
+    { label: 'Usable capacity', value: `${vsanMax.usableCapacityTB.toFixed(2)} TB` },
+  ]
+}
+
+/**
+ * buildValidationWarningsSlideData — returns severity + messageKey rows for warnings slide (PPTX-14)
+ * messageKey rendered as literal string — no i18n resolution in composable (Phase 6 decision).
+ */
+export function buildValidationWarningsSlideData(
+  calc: ReturnType<typeof useCalculationStore>
+): Array<{ severity: string; messageKey: string }> {
+  return calc.validationErrors.map((w) => ({
+    severity: w.severity,
+    messageKey: w.messageKey,
+  }))
 }
 
 // ─── Main export function ──────────────────────────────────────────────────────
