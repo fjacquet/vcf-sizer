@@ -111,7 +111,9 @@
       "share": "Condividi URL",
       "copied": "Copiato!",
       "exportMd": "Esporta Markdown",
-      "print": "Stampa / PDF"
+      "print": "Stampa / PDF",
+      "exportPptx": "Scarica PPTX",
+      "exportPptxLoading": "Generazione..."
     },
     "hostCount": {
       "title": "Numero di host consigliato",

@@ -3,9 +3,11 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { generateShareUrl } from '@/composables/useUrlState'
 import { generateMarkdownReport } from '@/composables/useMarkdownExport'
+import { generatePptxReport } from '@/composables/usePptxExport'
 
 const { t } = useI18n()
 const copied = ref(false)
+const pptxLoading = ref(false)
 
 async function handleShare() {
   const url = generateShareUrl()
@@ -36,6 +38,15 @@ function handleExportMarkdown() {
 function handlePrint() {
   window.print()
 }
+
+async function handleExportPptx() {
+  pptxLoading.value = true
+  try {
+    await generatePptxReport()
+  } finally {
+    pptxLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -57,6 +68,13 @@ function handlePrint() {
       @click="handlePrint"
     >
       {{ t('results.toolbar.print') }}
+    </button>
+    <button
+      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+      :disabled="pptxLoading"
+      @click="handleExportPptx"
+    >
+      {{ pptxLoading ? t('results.toolbar.exportPptxLoading') : t('results.toolbar.exportPptx') }}
     </button>
   </div>
 </template>
