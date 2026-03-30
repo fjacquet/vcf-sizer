@@ -23,7 +23,7 @@
 - [x] **UI-02**: User can add a new workload domain via an "Add Domain" button; new domain appends with default name "WLD-N" (N = current count + 1) and all default values
 - [x] **UI-03**: User can remove a workload domain via a per-tab delete button; a confirmation dialog appears only when the domain has non-default data; the last remaining domain cannot be deleted
 - [x] **UI-04**: User can rename a workload domain by double-clicking its tab label; inline edit field with blur/Enter to confirm, Escape to cancel
-- [ ] **UI-05**: Management domain inputs (host specs + architecture toggle) are displayed in a dedicated section separate from the workload domain tab strip — not as a tab
+- [x] **UI-05**: Management domain inputs (host specs + architecture toggle) are displayed in a dedicated section separate from the workload domain tab strip — not as a tab
 
 ### URL State
 
