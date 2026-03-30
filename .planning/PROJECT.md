@@ -76,18 +76,18 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - Per-locale export file naming — deferred
 - Server-side PDF rendering — `jsPDF`/`html2canvas` rejected: bundle cost and quality
 
-## Current Milestone: v3.0 Multi-Domain Support
+## Current Milestone: v3.1 Sizing Correctness & Guided Workflow
 
-**Goal:** Support N independent workload domains in a single VCF sizing session, each with its own host specs, workload profile, storage config, and optional features — plus an independent management domain with its own hardware.
+**Goal:** Fix management-domain-first sizing order and introduce a 3-step guided wizard (Topology → Management → Workloads) to enforce the correct VCF design sequence.
 
 **Target features:**
 
-- Tab-based domain UI — unlimited named workload domains, add/remove dynamically
-- Per-domain full independence: host specs, workload profile, storage type/config, NVMe tiering, AI/GPU, stretch topology, vSAN Max
-- Management domain: independent host specs decoupled from workload domains
-- Results: per-domain host count + utilization + aggregate totals
-- URL state: full multi-domain config (lz-string/Zod with variable-length domain arrays)
-- Exports: per-domain sections in Markdown and PPTX
+- Guided stepper/wizard UI: 3 steps — Topology selection, Management domain design, Workload domains + Export
+- Calculation order fix: management domain sized before workloads; aggregate = mgmt hosts + workload hosts (dedicated) or workload hosts with mgmt overhead included (colocated)
+- Colocated overhead: engine adds management vCPU/RAM to WLD-1 host sizing automatically when architecture is colocated
+- Management domain result card: displays correctly-ordered sizing results
+- Aggregate totals: recomputed correctly after engine fix
+- Export accuracy: Markdown and PPTX reflect corrected numbers
 
 ## Context
 
@@ -144,4 +144,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 — Phase 12 complete (domain tab UI + per-domain input forms)*
+*Last updated: 2026-03-30 — Milestone v3.1 started (Sizing Correctness & Guided Workflow)*

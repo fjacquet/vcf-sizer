@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: Multi-Domain Support
-status: verifying
-last_updated: "2026-03-30T15:38:44.245Z"
+milestone: v3.1
+milestone_name: Sizing Correctness & Guided Workflow
+status: planning
+last_updated: "2026-03-30T00:00:00.000Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 8
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -23,10 +23,10 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: 14
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-30
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-30 — Milestone v3.1 started
 
 Progress bar: [----------] 0/5 phases complete
 
