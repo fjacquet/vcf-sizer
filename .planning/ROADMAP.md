@@ -186,7 +186,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 
-- [ ] 17-01-PLAN.md — Wizard gates: topologyConfirmed, step-specific canGoForward, TopologySelector + main.ts hydration (WIZARD-03, WIZARD-04)
+- [x] 17-01-PLAN.md — Wizard gates: topologyConfirmed, step-specific canGoForward, TopologySelector + main.ts hydration (WIZARD-03, WIZARD-04)
 - [ ] 17-02-PLAN.md — ManagementResultCard, ManagementCommittedSummary, App.vue integration, i18n (WIZARD-05, WIZARD-06)
 - [ ] 17-03-PLAN.md — Export accuracy: Markdown + PPTX management hosts row (EXPORT-01, EXPORT-02)
 **UI hint**: yes
@@ -213,4 +213,4 @@ Plans:
 | 14. Multi-Domain Exports | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 15. Engine Correctness | v3.1 | 2/2 | Complete   | 2026-03-30 |
 | 16. Wizard Scaffold and State | v3.1 | 2/2 | Complete    | 2026-03-30 |
-| 17. Wizard Step Content and Export Accuracy | v3.1 | 0/3 | Not started | - |
+| 17. Wizard Step Content and Export Accuracy | v3.1 | 1/3 | In Progress|  |
