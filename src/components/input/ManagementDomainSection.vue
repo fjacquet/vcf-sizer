@@ -63,30 +63,17 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
       </div>
     </div>
 
-    <!-- Management deployment mode -->
-    <div class="space-y-2">
+    <!-- Management deployment mode — read-only, inherited from Step 1 topology -->
+    <div class="space-y-1">
       <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
         {{ t('deployment.label') }}
       </label>
-      <div class="flex gap-2">
-        <button
-          v-for="mode in [
-            { value: 'simple' as const, labelKey: 'deployment.simple' },
-            { value: 'ha' as const, labelKey: 'deployment.ha' },
-            { value: 'stretch' as const, labelKey: 'deployment.stretch' },
-          ]"
-          :key="mode.value"
-          :class="[
-            'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
-            deploymentMode === mode.value
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
-          ]"
-          @click="deploymentMode = mode.value"
-        >
-          {{ t(mode.labelKey) }}
-        </button>
-      </div>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        <span class="inline-block px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 font-medium mr-2">
+          {{ t('deployment.' + deploymentMode) }}
+        </span>
+        <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('wizard.step2.topologyLockedHint') }}</span>
+      </p>
     </div>
 
     <!-- Management host specs -->

@@ -191,7 +191,8 @@
     "step2": {
       "number": "2",
       "label": "Gestion",
-      "mgmtInvalid": "La configuration du domaine de gestion est incomplete"
+      "mgmtInvalid": "La configuration du domaine de gestion est incomplete",
+      "topologyLockedHint": "Défini à l'étape 1"
     },
     "step3": {
       "number": "3",

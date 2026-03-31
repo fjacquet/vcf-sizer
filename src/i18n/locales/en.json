@@ -191,7 +191,8 @@
     "step2": {
       "number": "2",
       "label": "Management",
-      "mgmtInvalid": "Management domain configuration is incomplete"
+      "mgmtInvalid": "Management domain configuration is incomplete",
+      "topologyLockedHint": "Set in Step 1"
     },
     "step3": {
       "number": "3",

@@ -191,7 +191,8 @@
     "step2": {
       "number": "2",
       "label": "Verwaltung",
-      "mgmtInvalid": "Die Konfiguration der Verwaltungsdomaene ist unvollstaendig"
+      "mgmtInvalid": "Die Konfiguration der Verwaltungsdomaene ist unvollstaendig",
+      "topologyLockedHint": "In Schritt 1 festgelegt"
     },
     "step3": {
       "number": "3",
