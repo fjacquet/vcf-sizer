@@ -183,7 +183,12 @@ Plans:
   4. At the top of step 3, a collapsed summary panel displays the committed management resource figures (host count, vCPU, RAM) — this panel is read-only and cannot be edited from step 3
   5. The downloaded Markdown report aggregate totals section contains a management hosts line — dedicated mode shows the host count, colocated mode shows "colocated with WLD-1"
   6. The downloaded PPTX aggregate totals slide contains a management hosts breakdown row with the same representation as the Markdown output
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+
+- [ ] 17-01-PLAN.md — Wizard gates: topologyConfirmed, step-specific canGoForward, TopologySelector + main.ts hydration (WIZARD-03, WIZARD-04)
+- [ ] 17-02-PLAN.md — ManagementResultCard, ManagementCommittedSummary, App.vue integration, i18n (WIZARD-05, WIZARD-06)
+- [ ] 17-03-PLAN.md — Export accuracy: Markdown + PPTX management hosts row (EXPORT-01, EXPORT-02)
 **UI hint**: yes
 
 ---
@@ -208,4 +213,4 @@ Plans:
 | 14. Multi-Domain Exports | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 15. Engine Correctness | v3.1 | 2/2 | Complete   | 2026-03-30 |
 | 16. Wizard Scaffold and State | v3.1 | 2/2 | Complete    | 2026-03-30 |
-| 17. Wizard Step Content and Export Accuracy | v3.1 | 0/? | Not started | - |
+| 17. Wizard Step Content and Export Accuracy | v3.1 | 0/3 | Not started | - |
