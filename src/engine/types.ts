@@ -140,3 +140,14 @@ export interface VsanMaxResult {
   computeNodeCount: number
   belowMinNodes: boolean
 }
+
+/**
+ * AggregateTotals — procurement summary across all domains (EXPORT-01/02)
+ * In the single-domain v2.1 era, this aggregates from the single compute + storage result.
+ */
+export interface AggregateTotals {
+  totalRecommendedHosts: number
+  totalVmCount: number
+  totalRawStorageTB: number
+  totalEffectiveStorageTB: number
+}

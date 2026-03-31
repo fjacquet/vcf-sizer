@@ -109,6 +109,15 @@ export const useCalculationStore = defineStore('calculation', () => {
     })
   )
 
+  // Aggregate totals across all domains (single-domain bridge for v2.1; multi-domain in v3.0+)
+  // EXPORT-01/02: provides procurement summary row for Markdown and PPTX aggregate sections
+  const aggregateTotals = computed(() => ({
+    totalRecommendedHosts: compute.value.recommendedHostCount,
+    totalVmCount: input.vmCount,
+    totalRawStorageTB: storage.value.rawCapacityTB,
+    totalEffectiveStorageTB: storage.value.safeUsableCapacityTB,
+  }))
+
   // All returned values are computed — ZERO ref() in this store (CALC-02)
-  return { management, compute, storage, validationErrors, stretch, dedicatedMgmtHostCount, vsanMax }
+  return { management, compute, storage, validationErrors, stretch, dedicatedMgmtHostCount, vsanMax, aggregateTotals }
 })

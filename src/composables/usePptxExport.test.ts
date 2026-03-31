@@ -22,6 +22,7 @@ import {
   buildStretchTopologySlideData,
   buildVsanMaxSlideData,
   buildValidationWarningsSlideData,
+  buildAggregateSlideData,
 } from './usePptxExport'
 
 // ─── PPTX_MASTER_COLOR constant — PPTX-02 ────────────────────────────────────
@@ -469,5 +470,56 @@ describe('buildValidationWarningsSlideData — PPTX-14', () => {
       const result = buildValidationWarningsSlideData(calc)
       expect(Array.isArray(result)).toBe(true)
     }
+  })
+})
+
+// ─── buildAggregateSlideData -- EXPORT-02 management hosts row ────────────────
+
+describe('buildAggregateSlideData -- EXPORT-02 management hosts row', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('returns 5 rows with 3-argument signature (colocated)', () => {
+    const calc = useCalculationStore()
+    const result = buildAggregateSlideData(
+      calc.aggregateTotals,
+      'colocated',
+      null
+    )
+    expect(result).toHaveLength(5)
+  })
+
+  it('contains a Management hosts label', () => {
+    const calc = useCalculationStore()
+    const result = buildAggregateSlideData(
+      calc.aggregateTotals,
+      'colocated',
+      null
+    )
+    const mgmtRow = result.find(r => r.label === 'Management hosts')
+    expect(mgmtRow).toBeDefined()
+  })
+
+  it('shows "colocated with WLD-1" for colocated architecture', () => {
+    const calc = useCalculationStore()
+    const result = buildAggregateSlideData(
+      calc.aggregateTotals,
+      'colocated',
+      null
+    )
+    const mgmtRow = result.find(r => r.label === 'Management hosts')
+    expect(mgmtRow!.value).toBe('colocated with WLD-1')
+  })
+
+  it('shows numeric count for dedicated architecture', () => {
+    const calc = useCalculationStore()
+    const result = buildAggregateSlideData(
+      calc.aggregateTotals,
+      'dedicated',
+      4
+    )
+    const mgmtRow = result.find(r => r.label === 'Management hosts')
+    expect(mgmtRow!.value).toBe('4')
   })
 })

@@ -274,3 +274,27 @@ describe('generateMarkdownReport — no regression', () => {
     expect(report).toMatch(/\d+\.\d%/)
   })
 })
+
+describe('generateMarkdownReport -- EXPORT-01 management hosts in aggregate', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('aggregate section contains Management hosts row (default colocated)', () => {
+    const report = generateMarkdownReport()
+    expect(report).toContain('| Management hosts |')
+    expect(report).toContain('colocated with WLD-1')
+  })
+
+  it('aggregate section shows numeric host count when dedicated', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    const report = generateMarkdownReport()
+    expect(report).toContain('| Management hosts |')
+    // Should NOT contain "colocated" in the management hosts row
+    const lines = report.split('\n').filter(l => l.includes('Management hosts'))
+    expect(lines.length).toBeGreaterThanOrEqual(1)
+    const mgmtLine = lines.find(l => l.includes('Aggregate') === false) ?? lines[0]
+    expect(mgmtLine).not.toContain('colocated')
+  })
+})
