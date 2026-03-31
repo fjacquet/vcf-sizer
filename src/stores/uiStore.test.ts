@@ -53,3 +53,35 @@ describe('uiStore — wizard step state (WIZARD-02)', () => {
     expect(JSON.stringify(inputStore.workloadDomains)).toBe(originalWorkloads)
   })
 })
+
+describe('uiStore -- topologyConfirmed (WIZARD-03)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('topologyConfirmed initializes to false', () => {
+    const store = useUiStore()
+    expect(store.topologyConfirmed).toBe(false)
+  })
+
+  it('confirmTopology() sets topologyConfirmed to true', () => {
+    const store = useUiStore()
+    store.confirmTopology()
+    expect(store.topologyConfirmed).toBe(true)
+  })
+
+  it('topologyConfirmed remains false after setWizardStep() calls (orthogonal)', () => {
+    const store = useUiStore()
+    store.setWizardStep(2)
+    store.setWizardStep(3)
+    store.setWizardStep(1)
+    expect(store.topologyConfirmed).toBe(false)
+  })
+
+  it('confirmTopology() is idempotent (calling twice still true)', () => {
+    const store = useUiStore()
+    store.confirmTopology()
+    store.confirmTopology()
+    expect(store.topologyConfirmed).toBe(true)
+  })
+})
