@@ -4,7 +4,7 @@
 
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
-import type { MgmtDomainResult, ComputeResult, StorageResult, StretchResult, VsanMaxResult } from '@/engine/types'
+import type { MgmtDomainResult, ComputeResult, StorageResult, StretchResult, VsanMaxResult, AggregateTotals } from '@/engine/types'
 // Local type definitions matching pptxgenjs TableCell/TableRow shapes.
 // We use local types rather than importing from pptxgenjs to avoid
 // namespace resolution issues with the dynamic-import-only pattern (PPTX-15).
@@ -257,6 +257,27 @@ export function buildValidationWarningsSlideData(
     severity: w.severity,
     messageKey: w.messageKey,
   }))
+}
+
+/**
+ * buildAggregateSlideData — returns 5 label/value rows for aggregate totals slide (EXPORT-02)
+ * Management hosts row shows numeric count for dedicated architecture, or 'colocated with WLD-1'.
+ */
+export function buildAggregateSlideData(
+  totals: AggregateTotals,
+  managementArchitecture: string,
+  dedicatedMgmtHostCount: number | null
+): Array<{ label: string; value: string }> {
+  const mgmtLine = managementArchitecture === 'dedicated' && dedicatedMgmtHostCount !== null
+    ? String(dedicatedMgmtHostCount)
+    : 'colocated with WLD-1'
+  return [
+    { label: 'Total recommended hosts (all domains)', value: String(totals.totalRecommendedHosts) },
+    { label: 'Management hosts', value: mgmtLine },
+    { label: 'Total VM count', value: String(totals.totalVmCount) },
+    { label: 'Total raw storage', value: `${totals.totalRawStorageTB.toFixed(2)} TB` },
+    { label: 'Total effective storage', value: `${totals.totalEffectiveStorageTB.toFixed(2)} TB` },
+  ]
 }
 
 // ─── Main export function ──────────────────────────────────────────────────────

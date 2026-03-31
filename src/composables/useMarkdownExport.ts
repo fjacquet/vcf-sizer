@@ -59,6 +59,12 @@ export function generateMarkdownReport(): string {
     sections.push(`| Dedicated host count | ${calc.dedicatedMgmtHostCount} |`)
   }
 
+  // Management hosts line (EXPORT-01)
+  const mgmtHostsDisplay = store.managementArchitecture === 'dedicated' && calc.dedicatedMgmtHostCount !== null
+    ? String(calc.dedicatedMgmtHostCount)
+    : 'colocated with WLD-1'
+  sections.push(`| Management hosts | ${mgmtHostsDisplay} |`)
+
   // MD-04: NVMe Memory Tiering (conditional: nvmeTieringEnabled)
   if (store.nvmeTieringEnabled) {
     sections.push(
