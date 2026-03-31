@@ -12,7 +12,10 @@ const VCFA_MIN_CORES_PER_HOST = 12
 const STRETCH_MIN_HOSTS_PER_SITE = 3
 
 // Dedicated management cluster requires minimum 4 hosts (Broadcom KB 392993 — ARCH-01)
-const DEDICATED_MGMT_MIN_HOSTS = 4
+export const DEDICATED_MGMT_MIN_HOSTS = 4
+
+// Stretch topology requires min 4 hosts per site × 2 sites = 8 total (Broadcom KB 392993)
+export const STRETCH_DEDICATED_MGMT_MIN_HOSTS = 8
 
 // Co-located management minimum hosts by storage type (ARCH-02)
 const COLLOCATED_MIN_HOSTS_VSAN = 3

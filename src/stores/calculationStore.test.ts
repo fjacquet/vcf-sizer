@@ -147,6 +147,32 @@ describe('calculationStore — dedicatedMgmtHostCount (DOM-03)', () => {
     const afterWorkloadChange = calc.dedicatedMgmtHostCount!
     expect(afterWorkloadChange).toBe(baseCount) // unchanged — reads from managementDomain
   })
+
+  it('is >= 8 when dedicated and deploymentMode is "stretch"', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    input.managementDomain.deploymentMode = 'stretch'
+    const calc = useCalculationStore()
+    expect(calc.dedicatedMgmtHostCount).toBeGreaterThanOrEqual(8)
+  })
+
+  it('returns exactly 8 when stretch floor applies and compute-driven count would be < 8', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    input.managementDomain.deploymentMode = 'stretch'
+    input.managementDomain.coresPerSocket = 64  // 64×4=256 cores/host → ceil(118/256)=1
+    input.managementDomain.socketsPerHost = 4
+    const calc = useCalculationStore()
+    expect(calc.dedicatedMgmtHostCount).toBe(8)
+  })
+
+  it('is >= 4 (not forced to 8) when dedicated and deploymentMode is "ha"', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    input.managementDomain.deploymentMode = 'ha'
+    const calc = useCalculationStore()
+    expect(calc.dedicatedMgmtHostCount).toBeGreaterThanOrEqual(4)
+  })
 })
 
 describe('calculationStore — management overhead routing (ENGINE-01, ENGINE-02)', () => {
