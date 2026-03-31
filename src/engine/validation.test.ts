@@ -160,6 +160,118 @@ describe('validateInputs -- Dedicated management min hosts (ARCH-01)', () => {
     })
     expect(errors.filter(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS').length).toBe(0)
   })
+
+  it('dedicated + FC + hostCount=1 -> DEDICATED_MGMT_MIN_HOSTS error', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'ha',
+      hostCount: 1,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      managementStorageType: 'fc',
+    })
+    expect(errors.some(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS' && e.severity === 'error')).toBe(true)
+  })
+
+  it('dedicated + FC + hostCount=2 -> no DEDICATED_MGMT_MIN_HOSTS error (KB 416270)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'ha',
+      hostCount: 2,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      managementStorageType: 'fc',
+    })
+    expect(errors.filter(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS').length).toBe(0)
+  })
+
+  it('dedicated + NFS + hostCount=2 -> no DEDICATED_MGMT_MIN_HOSTS error (KB 416270)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'ha',
+      hostCount: 2,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      managementStorageType: 'nfs',
+    })
+    expect(errors.filter(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS').length).toBe(0)
+  })
+
+  it('dedicated + vSAN + hostCount=3 -> still errors (vSAN floor unchanged)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'ha',
+      hostCount: 3,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      managementStorageType: 'vsan-esa',
+    })
+    expect(errors.some(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS')).toBe(true)
+  })
+
+  it('dedicated + FC + hostCount=4 -> no error (above FC minimum)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'ha',
+      hostCount: 4,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      managementStorageType: 'fc',
+    })
+    expect(errors.filter(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS').length).toBe(0)
+  })
+
+  it('dedicated + FC + stretch + hostCount=3 -> DEDICATED_MGMT_MIN_HOSTS error (floor=4)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'stretch',
+      hostCount: 3,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      managementStorageType: 'fc',
+    })
+    expect(errors.some(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS')).toBe(true)
+  })
+
+  it('dedicated + FC + stretch + hostCount=4 -> no error (KB 416270 stretch floor)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'stretch',
+      hostCount: 4,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      managementStorageType: 'fc',
+    })
+    expect(errors.filter(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS').length).toBe(0)
+  })
+
+  it('dedicated + vSAN + stretch + hostCount=7 -> DEDICATED_MGMT_MIN_HOSTS error (floor=8)', () => {
+    const errors = validateInputs({
+      managementArchitecture: 'dedicated',
+      deploymentMode: 'stretch',
+      hostCount: 7,
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+      managementStorageType: 'vsan-esa',
+    })
+    expect(errors.some(e => e.code === 'DEDICATED_MGMT_MIN_HOSTS')).toBe(true)
+  })
 })
 
 describe('validateInputs — vSAN Max min nodes (VMAX-03)', () => {

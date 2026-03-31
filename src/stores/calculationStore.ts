@@ -10,7 +10,7 @@ import { calcCompute } from '../engine/compute'
 import { calcStorage } from '../engine/storage'
 import { calcVsanMax } from '../engine/vsanMax'
 import { calcStretch } from '../engine/stretch'
-import { validateInputs, DEDICATED_MGMT_MIN_HOSTS, STRETCH_DEDICATED_MGMT_MIN_HOSTS } from '../engine/validation'
+import { validateInputs, DEDICATED_MGMT_MIN_HOSTS, STRETCH_DEDICATED_MGMT_MIN_HOSTS, DEDICATED_MGMT_MIN_HOSTS_EXTERNAL, STRETCH_DEDICATED_MGMT_MIN_HOSTS_EXTERNAL } from '../engine/validation'
 import type { DomainResult, AggregateTotals } from '../engine/types'
 
 export const useCalculationStore = defineStore('calculation', () => {
@@ -27,9 +27,11 @@ export const useCalculationStore = defineStore('calculation', () => {
   const dedicatedMgmtHostCount = computed<number | null>(() => {
     if (input.managementArchitecture !== 'dedicated') return null
     const coresPerHost = input.managementDomain.coresPerSocket * input.managementDomain.socketsPerHost
+    const isExternal = input.managementDomain.storageType === 'fc'
+      || input.managementDomain.storageType === 'nfs'
     const minHosts = input.managementDomain.deploymentMode === 'stretch'
-      ? STRETCH_DEDICATED_MGMT_MIN_HOSTS
-      : DEDICATED_MGMT_MIN_HOSTS
+      ? (isExternal ? STRETCH_DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : STRETCH_DEDICATED_MGMT_MIN_HOSTS)
+      : (isExternal ? DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : DEDICATED_MGMT_MIN_HOSTS)
     return Math.max(minHosts, Math.ceil(management.value.totalCores / coresPerHost))
   })
 
@@ -110,6 +112,7 @@ export const useCalculationStore = defineStore('calculation', () => {
           preferredSiteHosts: domain.preferredSiteHosts,
           secondarySiteHosts: domain.secondarySiteHosts,
           managementArchitecture: input.managementArchitecture,
+          managementStorageType: input.managementDomain.storageType ?? 'vsan-esa',
           networkSpeedGbE: domain.networkSpeedGbE,
           vsanMaxStorageNodes: domain.vsanMaxStorageNodes,
         }),

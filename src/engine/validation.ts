@@ -11,11 +11,15 @@ const VCFA_MIN_CORES_PER_HOST = 12
 // Stretch Cluster requires minimum 3 data hosts per site (STRCH-01)
 const STRETCH_MIN_HOSTS_PER_SITE = 3
 
-// Dedicated management cluster requires minimum 4 hosts (Broadcom KB 392993 — ARCH-01)
+// Dedicated management cluster requires minimum 4 hosts with vSAN (Broadcom KB 392993 — ARCH-01)
 export const DEDICATED_MGMT_MIN_HOSTS = 4
 
-// Stretch topology requires min 4 hosts per site × 2 sites = 8 total (Broadcom KB 392993)
+// Stretch topology requires min 4 hosts per site × 2 sites = 8 total with vSAN (Broadcom KB 392993)
 export const STRETCH_DEDICATED_MGMT_MIN_HOSTS = 8
+
+// FC/NFS dedicated management — VCF 9.0 installer minimum (Broadcom KB 416270 — ARCH-01)
+export const DEDICATED_MGMT_MIN_HOSTS_EXTERNAL = 2
+export const STRETCH_DEDICATED_MGMT_MIN_HOSTS_EXTERNAL = 4
 
 // Co-located management minimum hosts by storage type (ARCH-02)
 const COLLOCATED_MIN_HOSTS_VSAN = 3
@@ -48,6 +52,7 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
     preferredSiteHosts = 3,
     secondarySiteHosts = 3,
     managementArchitecture = 'colocated',
+    managementStorageType = 'vsan-esa' as const,
     networkSpeedGbE = 25,
     vsanMaxStorageNodes = 4,
   } = inputs
@@ -97,13 +102,22 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
   }
 
   // Rule 4: DEDICATED_MGMT_MIN_HOSTS — ARCH-01
-  // Dedicated management cluster requires at least 4 hosts (Broadcom KB 392993)
-  if (managementArchitecture === 'dedicated' && hostCount < DEDICATED_MGMT_MIN_HOSTS) {
-    errors.push({
-      code: 'DEDICATED_MGMT_MIN_HOSTS',
-      severity: 'error',
-      messageKey: 'validation.dedicatedMgmtMinHosts',
-    })
+  // vSAN: min 4 hosts (simple/HA) / 8 (stretch) — Broadcom KB 392993
+  // FC/NFS: min 2 hosts (simple/HA) / 4 (stretch) — VCF 9.0 installer, KB 416270
+  if (managementArchitecture === 'dedicated') {
+    const isExternal = managementStorageType === 'fc' || managementStorageType === 'nfs'
+    const minHosts = deploymentMode === 'stretch'
+      ? (isExternal ? STRETCH_DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : STRETCH_DEDICATED_MGMT_MIN_HOSTS)
+      : (isExternal ? DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : DEDICATED_MGMT_MIN_HOSTS)
+    if (hostCount < minHosts) {
+      errors.push({
+        code: 'DEDICATED_MGMT_MIN_HOSTS',
+        severity: 'error',
+        messageKey: isExternal
+          ? 'validation.dedicatedMgmtMinHostsExternal'
+          : 'validation.dedicatedMgmtMinHosts',
+      })
+    }
   }
 
   // Rule 5: COLLOCATED_MIN_HOSTS — ARCH-02

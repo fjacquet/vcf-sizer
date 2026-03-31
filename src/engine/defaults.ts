@@ -43,5 +43,6 @@ export function createDefaultManagementDomain(): ManagementDomainConfig {
     hostRamGB: 512,
     hostStorageTB: 3.84,
     deploymentMode: 'ha',
+    storageType: 'vsan-esa',
   }
 }

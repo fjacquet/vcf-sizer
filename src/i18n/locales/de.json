@@ -102,7 +102,8 @@
   },
   "validation": {
     "stretchMinHosts": "Der Stretch-Cluster benötigt mindestens 3 Hosts pro Standort.",
-    "dedicatedMgmtMinHosts": "Dedizierter Management-Cluster erfordert mindestens 4 Hosts (Broadcom KB 392993).",
+    "dedicatedMgmtMinHosts": "Dedizierter Management-Cluster erfordert mindestens 4 Hosts (vSAN — Broadcom KB 392993).",
+    "dedicatedMgmtMinHostsExternal": "Dedizierter Management-Cluster erfordert mindestens 2 Hosts (FC/NFS — Broadcom KB 416270).",
     "colocatedMinHosts": "Zusammengefasster Modus: Mindestens {min} Hosts fuer diesen Speichertyp erforderlich.",
     "vsanMaxMinNodes": "Mindestens 4 Speicherknoten fuer vSAN Max-Cluster erforderlich.",
     "dedupNetworkSpeed": "Globale Deduplizierung erfordert 25 GbE oder schnellere Netzwerkgeschwindigkeit (STOR-05)."

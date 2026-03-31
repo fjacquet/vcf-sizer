@@ -3,6 +3,7 @@
 
 export type DeploymentMode = 'simple' | 'ha' | 'stretch'
 export type StorageType = 'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'
+export type ManagementStorageType = Exclude<StorageType, 'vsan-max'>  // vsan-max not valid for management domain
 export type VsanMaxProfile = 'xs' | 'sm' | 'med' | 'lrg' | 'xl'
 export type RaidType = 'raid1' | 'raid5' | 'raid6'
 export type FttLevel = 1 | 2
@@ -122,6 +123,7 @@ export interface ValidationInputs {
   preferredSiteHosts?: number   // default 3
   secondarySiteHosts?: number   // default 3
   managementArchitecture?: ManagementArchitecture  // default 'colocated'
+  managementStorageType?: ManagementStorageType    // default 'vsan-esa' (ARCH-01)
   networkSpeedGbE?: 10 | 25 | 100   // default 25
   vsanMaxStorageNodes?: number      // default 4
 }
@@ -178,6 +180,7 @@ export interface ManagementDomainConfig {
   hostRamGB: number
   hostStorageTB: number
   deploymentMode: DeploymentMode
+  storageType?: ManagementStorageType  // default 'vsan-esa' when absent (ARCH-01)
 }
 
 export interface DomainResult {
