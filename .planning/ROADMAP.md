@@ -49,7 +49,7 @@ Full details: `.planning/milestones/v2.1-ROADMAP.md`
 
 - [x] **Phase 15: Engine Correctness** — TDD-first fixes to management overhead routing, aggregate totals, and TypeScript diagnostics (completed 2026-03-30)
 - [x] **Phase 16: Wizard Scaffold and State** — WizardStepper shell, uiStore wizard step, navigation, and URL exclusion guarantee (completed 2026-03-30)
-- [ ] **Phase 17: Wizard Step Content and Export Accuracy** — Step validation gates, management result card, management summary panel, and updated exports
+- [x] **Phase 17: Wizard Step Content and Export Accuracy** — Step validation gates, management result card, management summary panel, and updated exports (completed 2026-03-31)
 
 ---
 
@@ -187,8 +187,8 @@ Plans:
 Plans:
 
 - [x] 17-01-PLAN.md — Wizard gates: topologyConfirmed, step-specific canGoForward, TopologySelector + main.ts hydration (WIZARD-03, WIZARD-04)
-- [ ] 17-02-PLAN.md — ManagementResultCard, ManagementCommittedSummary, App.vue integration, i18n (WIZARD-05, WIZARD-06)
-- [ ] 17-03-PLAN.md — Export accuracy: Markdown + PPTX management hosts row (EXPORT-01, EXPORT-02)
+- [x] 17-02-PLAN.md — ManagementResultCard, ManagementCommittedSummary, App.vue integration, i18n (WIZARD-05, WIZARD-06)
+- [x] 17-03-PLAN.md — Export accuracy: Markdown + PPTX management hosts row (EXPORT-01, EXPORT-02)
 **UI hint**: yes
 
 ---
@@ -213,4 +213,4 @@ Plans:
 | 14. Multi-Domain Exports | v3.0 | 1/2 | Complete    | 2026-03-30 |
 | 15. Engine Correctness | v3.1 | 2/2 | Complete   | 2026-03-30 |
 | 16. Wizard Scaffold and State | v3.1 | 2/2 | Complete    | 2026-03-30 |
-| 17. Wizard Step Content and Export Accuracy | v3.1 | 1/3 | In Progress|  |
+| 17. Wizard Step Content and Export Accuracy | v3.1 | 3/3 | Complete   | 2026-03-31 |

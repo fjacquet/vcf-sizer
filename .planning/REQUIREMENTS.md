@@ -27,8 +27,8 @@
 
 ### Export Accuracy
 
-- [ ] **EXPORT-01**: Markdown export aggregate totals section includes a management hosts line: dedicated mode shows host count; colocated mode shows "colocated with WLD-1"
-- [ ] **EXPORT-02**: PPTX aggregate totals slide includes a management hosts breakdown row matching the Markdown representation
+- [x] **EXPORT-01**: Markdown export aggregate totals section includes a management hosts line: dedicated mode shows host count; colocated mode shows "colocated with WLD-1"
+- [x] **EXPORT-02**: PPTX aggregate totals slide includes a management hosts breakdown row matching the Markdown representation
 
 ---
 
@@ -80,8 +80,8 @@
 | WIZARD-04 | Phase 17 | Complete |
 | WIZARD-05 | Phase 17 | Pending |
 | WIZARD-06 | Phase 17 | Pending |
-| EXPORT-01 | Phase 17 | Pending |
-| EXPORT-02 | Phase 17 | Pending |
+| EXPORT-01 | Phase 17 | Complete |
+| EXPORT-02 | Phase 17 | Complete |
 
 **Coverage:**
 
