@@ -21,8 +21,8 @@
 - [x] **WIZARD-02**: User can navigate back to a previous step without losing any entered data
 - [x] **WIZARD-03**: User cannot advance from step 1 until a deployment topology (Simple / HA / Stretch) is selected
 - [x] **WIZARD-04**: User cannot advance from step 2 until management domain inputs are valid (host count meets minimum)
-- [ ] **WIZARD-05**: User sees the management domain result card (computed host count + utilization) at the end of step 2 before advancing to step 3
-- [ ] **WIZARD-06**: User sees a collapsed summary of committed management resources (host count, vCPU, RAM) at the top of step 3
+- [x] **WIZARD-05**: User sees the management domain result card (computed host count + utilization) at the end of step 2 before advancing to step 3
+- [x] **WIZARD-06**: User sees a collapsed summary of committed management resources (host count, vCPU, RAM) at the top of step 3
 - [ ] **WIZARD-07**: Shareable URL never encodes wizard step position (ephemeral UI state excluded from lz-string payload)
 
 ### Export Accuracy
@@ -78,8 +78,8 @@
 | WIZARD-07 | Phase 16 | Pending |
 | WIZARD-03 | Phase 17 | Complete |
 | WIZARD-04 | Phase 17 | Complete |
-| WIZARD-05 | Phase 17 | Pending |
-| WIZARD-06 | Phase 17 | Pending |
+| WIZARD-05 | Phase 17 | Complete |
+| WIZARD-06 | Phase 17 | Complete |
 | EXPORT-01 | Phase 17 | Pending |
 | EXPORT-02 | Phase 17 | Pending |
 
