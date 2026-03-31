@@ -200,6 +200,18 @@
     "nav": {
       "previous": "Precedent",
       "next": "Suivant"
+    },
+    "mgmtResult": {
+      "title": "Resultat du domaine de gestion",
+      "hostCount": "Nombre d'hotes",
+      "vcpu": "vCPU requis",
+      "ram": "RAM requise",
+      "dedicated": "Dedie",
+      "colocated": "Colocalise",
+      "colocatedLabel": "Colocalise avec WLD-1"
+    },
+    "mgmtCommitted": {
+      "title": "Domaine de gestion (valide)"
     }
   }
 }

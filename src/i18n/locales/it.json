@@ -200,6 +200,18 @@
     "nav": {
       "previous": "Precedente",
       "next": "Avanti"
+    },
+    "mgmtResult": {
+      "title": "Risultato dominio di gestione",
+      "hostCount": "Conteggio host",
+      "vcpu": "vCPU richiesti",
+      "ram": "RAM richiesta",
+      "dedicated": "Dedicato",
+      "colocated": "Colocalizzato",
+      "colocatedLabel": "Colocalizzato con WLD-1"
+    },
+    "mgmtCommitted": {
+      "title": "Dominio di gestione (confermato)"
     }
   }
 }
