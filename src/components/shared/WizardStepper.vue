@@ -46,12 +46,12 @@ function goForward() {
   <div class="flex items-center justify-between gap-4 mb-4">
     <!-- Previous button -->
     <button
-      @click="goBack"
       :disabled="!canGoBack"
       :class="['px-3 py-1.5 text-sm rounded border font-medium transition-colors',
         canGoBack
           ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
           : 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200']"
+      @click="goBack"
     >
       {{ t('wizard.nav.previous') }}
     </button>
@@ -81,12 +81,12 @@ function goForward() {
     <!-- Next button + validation hint -->
     <div class="flex flex-col items-end">
       <button
-        @click="goForward"
         :disabled="!canGoForward"
         :class="['px-3 py-1.5 text-sm rounded border font-medium transition-colors',
           canGoForward
             ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
             : 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200']"
+        @click="goForward"
       >
         {{ t('wizard.nav.next') }}
       </button>

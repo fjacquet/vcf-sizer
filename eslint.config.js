@@ -35,4 +35,11 @@ export default typescriptEslint.config(
     },
   },
   eslintConfigPrettier,
+  // Test files: relax unused-vars (stores are often initialized for side-effects only)
+  {
+    files: ['**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
 )
