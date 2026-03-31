@@ -200,6 +200,18 @@
     "nav": {
       "previous": "Previous",
       "next": "Next"
+    },
+    "mgmtResult": {
+      "title": "Management Domain Result",
+      "hostCount": "Host Count",
+      "vcpu": "vCPU Required",
+      "ram": "RAM Required",
+      "dedicated": "Dedicated",
+      "colocated": "Colocated",
+      "colocatedLabel": "Colocated with WLD-1"
+    },
+    "mgmtCommitted": {
+      "title": "Management Domain (committed)"
     }
   }
 }

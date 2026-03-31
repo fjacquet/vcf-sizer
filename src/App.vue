@@ -13,6 +13,8 @@ import WorkloadProfileForm from '@/components/input/WorkloadProfileForm.vue'
 import StorageConfigForm from '@/components/input/StorageConfigForm.vue'
 import ManagementDomainSection from '@/components/input/ManagementDomainSection.vue'
 import ManagementSummary from '@/components/shared/ManagementSummary.vue'
+import ManagementResultCard from '@/components/shared/ManagementResultCard.vue'
+import ManagementCommittedSummary from '@/components/shared/ManagementCommittedSummary.vue'
 import ResultsPanel from '@/components/results/ResultsPanel.vue'
 
 const { t } = useI18n()
@@ -49,10 +51,14 @@ const activeDomainId = computed(
         <div v-show="ui.currentWizardStep === 2" class="space-y-4">
           <ManagementDomainSection />
           <ManagementSummary />
+          <!-- ManagementResultCard at bottom of step 2 (WIZARD-05) -->
+          <ManagementResultCard />
         </div>
 
         <!-- Step 3: Workloads (WIZARD-01 step 3) -->
         <div v-show="ui.currentWizardStep === 3" class="space-y-4">
+          <!-- ManagementCommittedSummary at top of step 3, collapsed by default (WIZARD-06) -->
+          <ManagementCommittedSummary />
           <DomainTabStrip />
           <DeploymentModelSelector :domainId="activeDomainId" />
           <HostSpecsForm :domainId="activeDomainId" />

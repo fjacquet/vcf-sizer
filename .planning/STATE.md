@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
 status: executing
-stopped_at: Completed 17-03-PLAN.md — export accuracy with Management hosts rows in Markdown and PPTX
-last_updated: "2026-03-31T05:38:52.892Z"
+stopped_at: Completed 17-02-PLAN.md — ManagementResultCard, ManagementCommittedSummary, App.vue integration
+last_updated: "2026-03-31T05:38:29.130Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 8
-  completed_phases: 8
+  completed_phases: 7
   total_plans: 16
-  completed_plans: 16
+  completed_plans: 14
 ---
 
 # Project State
@@ -61,7 +61,7 @@ Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 | Phase 15 P02 | retrospective | 3 tasks | 12 files |
 | Phase 16 P01 | 12min | 3 tasks | 7 files |
 | Phase 16 P02 | 3min | 3 tasks | 3 files |
-| Phase 17 P03 | 4min | 2 tasks | 6 files |
+| Phase 17 P02 | 4min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -160,8 +160,8 @@ v3.0 decisions:
 - [Phase 13]: DomainResultCard absorbs HostCountCard layout; chart components use first-domain bridge (domainResults[0]) for Phase 13 compat
 - [Phase 14]: buildAggregateSlideData(totals) replaces buildRecommendationsData — summarizes all domains in 4 rows instead of single-domain read
 - [Phase 14]: All PPTX helper functions now accept WorkloadDomainConfig directly — no store bridge pattern in export composable
-- [Phase 17]: AggregateTotals interface added to engine/types.ts as bridge for single-domain v2.1 to multi-domain migration path
-- [Phase 17]: buildAggregateSlideData uses 3-arg signature: (totals, managementArchitecture, dedicatedMgmtHostCount) — Management hosts value is numeric (dedicated) or 'colocated with WLD-1' (non-dedicated)
+- [Phase 17]: [Phase 17-02]: ManagementCommittedSummary uses v-show (not v-if) for expand content — data preservation consistent with WIZARD-02 convention
+- [Phase 17]: [Phase 17-02]: hostCountDisplay branching: dedicated returns String(calc.dedicatedMgmtHostCount ?? 0), colocated returns colocatedLabel i18n key — same logic in both step 2 and step 3 components
 
 ### Pending Todos
 
@@ -175,7 +175,7 @@ v3.0 decisions:
 
 ## Session Continuity
 
-Last session: 2026-03-31T05:38:52.889Z
-Stopped at: Completed 17-03-PLAN.md — export accuracy with Management hosts rows in Markdown and PPTX
+Last session: 2026-03-31T05:38:29.127Z
+Stopped at: Completed 17-02-PLAN.md — ManagementResultCard, ManagementCommittedSummary, App.vue integration
 Next action: Continue to next phase after Phase 16
 Resume file: None

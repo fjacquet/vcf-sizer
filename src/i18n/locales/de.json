@@ -200,6 +200,18 @@
     "nav": {
       "previous": "Zurueck",
       "next": "Weiter"
+    },
+    "mgmtResult": {
+      "title": "Management-Domane Ergebnis",
+      "hostCount": "Anzahl Hosts",
+      "vcpu": "vCPU erforderlich",
+      "ram": "RAM erforderlich",
+      "dedicated": "Dediziert",
+      "colocated": "Kolokalisiert",
+      "colocatedLabel": "Kolokalisiert mit WLD-1"
+    },
+    "mgmtCommitted": {
+      "title": "Management-Domane (festgelegt)"
     }
   }
 }
