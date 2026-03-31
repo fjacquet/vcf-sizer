@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Dedicated management cluster minimum hosts for FC/NFS storage reduced from 4 to 2
+  (simple/HA) and from 8 to 4 (stretch) per VCF 9.0 installer requirements (Broadcom KB 416270).
+  vSAN management minimums are unchanged (4 / 8). The `ManagementDomainConfig` type
+  gains an optional `storageType` field (defaults to `vsan-esa`).
+
 ### Added
 - ESLint + Prettier configuration with CI enforcement
 - CI workflow with test, lint, and type-check gates on PRs

@@ -122,6 +122,7 @@ export interface ValidationInputs {
   preferredSiteHosts?: number   // default 3
   secondarySiteHosts?: number   // default 3
   managementArchitecture?: ManagementArchitecture  // default 'colocated'
+  managementStorageType?: StorageType              // default 'vsan-esa' (ARCH-01)
   networkSpeedGbE?: 10 | 25 | 100   // default 25
   vsanMaxStorageNodes?: number      // default 4
 }
@@ -178,6 +179,7 @@ export interface ManagementDomainConfig {
   hostRamGB: number
   hostStorageTB: number
   deploymentMode: DeploymentMode
+  storageType?: StorageType  // default 'vsan-esa' when absent (ARCH-01)
 }
 
 export interface DomainResult {

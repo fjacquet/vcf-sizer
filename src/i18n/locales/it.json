@@ -102,7 +102,8 @@
   },
   "validation": {
     "stretchMinHosts": "Lo Stretch Cluster richiede un minimo di 3 host per sito.",
-    "dedicatedMgmtMinHosts": "Il cluster di gestione dedicato richiede almeno 4 host (Broadcom KB 392993).",
+    "dedicatedMgmtMinHosts": "Il cluster di gestione dedicato richiede almeno 4 host (vSAN — Broadcom KB 392993).",
+    "dedicatedMgmtMinHostsExternal": "Il cluster di gestione dedicato richiede almeno 2 host (FC/NFS — Broadcom KB 416270).",
     "colocatedMinHosts": "Modalita co-locata: minimo {min} host richiesti per questo tipo di storage.",
     "vsanMaxMinNodes": "Minimo 4 nodi di archiviazione richiesti per un cluster vSAN Max.",
     "dedupNetworkSpeed": "La deduplica globale richiede una velocita di rete di 25 GbE o superiore (STOR-05)."

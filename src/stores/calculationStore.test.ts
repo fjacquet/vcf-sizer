@@ -11,7 +11,6 @@ beforeEach(() => {
 
 describe('calculationStore — domainResults (DOM-05)', () => {
   it('domainResults has length 1 with default store state', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.domainResults).toHaveLength(1)
   })
@@ -30,13 +29,11 @@ describe('calculationStore — domainResults (DOM-05)', () => {
   })
 
   it('domainResults[0].name matches workloadDomains[0].name', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.domainResults[0].name).toBe('WLD-1')
   })
 
   it('domainResults[0].compute.recommendedHostCount is a positive number', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.domainResults[0].compute.recommendedHostCount).toBeGreaterThan(0)
   })
@@ -56,7 +53,6 @@ describe('calculationStore — domainResults (DOM-05)', () => {
   })
 
   it('domainResults[0].validationErrors is an array', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(Array.isArray(calc.domainResults[0].validationErrors)).toBe(true)
   })
@@ -64,7 +60,6 @@ describe('calculationStore — domainResults (DOM-05)', () => {
 
 describe('calculationStore — aggregateTotals (DOM-06)', () => {
   it('totalRecommendedHosts equals domainResults[0].compute.recommendedHostCount with 1 domain', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalRecommendedHosts).toBe(
       calc.domainResults[0].compute.recommendedHostCount
@@ -72,7 +67,6 @@ describe('calculationStore — aggregateTotals (DOM-06)', () => {
   })
 
   it('totalVmCount equals 100 with default single domain', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalVmCount).toBe(100)
   })
@@ -94,19 +88,16 @@ describe('calculationStore — aggregateTotals (DOM-06)', () => {
   })
 
   it('allValidationErrors is flat array combining all domain errors', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(Array.isArray(calc.aggregateTotals.allValidationErrors)).toBe(true)
   })
 
   it('totalRawStorageTB is a positive number', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalRawStorageTB).toBeGreaterThan(0)
   })
 
   it('totalEffectiveStorageTB is a positive number', () => {
-    const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalEffectiveStorageTB).toBeGreaterThan(0)
   })
@@ -172,6 +163,39 @@ describe('calculationStore — dedicatedMgmtHostCount (DOM-03)', () => {
     input.managementDomain.deploymentMode = 'ha'
     const calc = useCalculationStore()
     expect(calc.dedicatedMgmtHostCount).toBeGreaterThanOrEqual(4)
+  })
+
+  it('floor = 2 when dedicated + FC + HA (KB 416270)', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    input.managementDomain.deploymentMode = 'ha'
+    input.managementDomain.storageType = 'fc'
+    input.managementDomain.coresPerSocket = 64  // 64×4=256 cores/host → ceil(overhead/256)=1 < 2
+    input.managementDomain.socketsPerHost = 4
+    const calc = useCalculationStore()
+    expect(calc.dedicatedMgmtHostCount).toBe(2)
+  })
+
+  it('floor = 4 when dedicated + FC + stretch (KB 416270)', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    input.managementDomain.deploymentMode = 'stretch'
+    input.managementDomain.storageType = 'fc'
+    input.managementDomain.coresPerSocket = 64
+    input.managementDomain.socketsPerHost = 4
+    const calc = useCalculationStore()
+    expect(calc.dedicatedMgmtHostCount).toBe(4)
+  })
+
+  it('floor = 4 when dedicated + vSAN + HA (KB 392993, unchanged)', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    input.managementDomain.deploymentMode = 'ha'
+    input.managementDomain.storageType = 'vsan-esa'
+    input.managementDomain.coresPerSocket = 64
+    input.managementDomain.socketsPerHost = 4
+    const calc = useCalculationStore()
+    expect(calc.dedicatedMgmtHostCount).toBe(4)
   })
 })
 

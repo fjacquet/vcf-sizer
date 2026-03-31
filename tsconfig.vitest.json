@@ -11,7 +11,9 @@
     "moduleDetection": "force",
     "noEmit": true,
     "strict": true,
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "node"],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
