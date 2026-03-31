@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
-status: completed
-stopped_at: Completed 17-01-PLAN.md — topologyConfirmed gate and WizardStepper step guards
-last_updated: "2026-03-31T05:28:54.049Z"
-last_activity: 2026-03-30
+status: executing
+stopped_at: Completed 16-02-PLAN.md — WizardStepper, TopologySelector, App.vue wizard restructure
+last_updated: "2026-03-31T05:20:42.595Z"
+last_activity: 2026-03-31 -- Phase 17 execution started
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 13
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** Phase 16 — wizard-scaffold-and-state
+**Current focus:** Phase 17 — wizard-step-content-and-export-accuracy
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
-Status: Phase 16 complete — all plans executed
-Last activity: 2026-03-30
+Phase: 17 (wizard-step-content-and-export-accuracy) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 17
+Last activity: 2026-03-31 -- Phase 17 execution started
 
 Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 
@@ -61,7 +61,6 @@ Progress: [---       ] 0/3 phases formally verified (Phase 15 implemented)
 | Phase 15 P02 | retrospective | 3 tasks | 12 files |
 | Phase 16 P01 | 12min | 3 tasks | 7 files |
 | Phase 16 P02 | 3min | 3 tasks | 3 files |
-| Phase 17 P01 | 5min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -160,8 +159,6 @@ v3.0 decisions:
 - [Phase 13]: DomainResultCard absorbs HostCountCard layout; chart components use first-domain bridge (domainResults[0]) for Phase 13 compat
 - [Phase 14]: buildAggregateSlideData(totals) replaces buildRecommendationsData — summarizes all domains in 4 rows instead of single-domain read
 - [Phase 14]: All PPTX helper functions now accept WorkloadDomainConfig directly — no store bridge pattern in export composable
-- [Phase 17]: topologyConfirmed is ephemeral UI state in uiStore only — never serialized to URL or InputStateSchema (WIZARD-07)
-- [Phase 17]: URL hydration check uses window.location.search.includes('s=') — auto-confirms topology only when URL state is present
 
 ### Pending Todos
 
@@ -175,7 +172,7 @@ v3.0 decisions:
 
 ## Session Continuity
 
-Last session: 2026-03-31T05:28:54.045Z
-Stopped at: Completed 17-01-PLAN.md — topologyConfirmed gate and WizardStepper step guards
+Last session: 2026-03-30T21:06:43Z
+Stopped at: Completed 16-02-PLAN.md — WizardStepper, TopologySelector, App.vue wizard restructure
 Next action: Continue to next phase after Phase 16
 Resume file: None
