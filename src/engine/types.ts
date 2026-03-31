@@ -6,7 +6,7 @@ export type StorageType = 'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'
 export type VsanMaxProfile = 'xs' | 'sm' | 'med' | 'lrg' | 'xl'
 export type RaidType = 'raid1' | 'raid5' | 'raid6'
 export type FttLevel = 1 | 2
-export type ManagementArchitecture = 'colocated' | 'dedicated'
+export type ManagementArchitecture = 'shared' | 'dedicated'
 
 export interface ValidationWarning {
   code: string
@@ -121,7 +121,7 @@ export interface ValidationInputs {
   storageType: StorageType
   preferredSiteHosts?: number   // default 3
   secondarySiteHosts?: number   // default 3
-  managementArchitecture?: ManagementArchitecture  // default 'colocated'
+  managementArchitecture?: ManagementArchitecture  // default 'shared'
   networkSpeedGbE?: 10 | 25 | 100   // default 25
   vsanMaxStorageNodes?: number      // default 4
 }
@@ -141,60 +141,13 @@ export interface VsanMaxResult {
   belowMinNodes: boolean
 }
 
-export interface WorkloadDomainConfig {
-  id: string
-  name: string
-  coresPerSocket: number
-  socketsPerHost: number
-  hostRamGB: number
-  hostStorageTB: number
-  hostCount: number
-  nvmeTieringEnabled: boolean
-  activeMemoryPct: number
-  preferredSiteHosts: number
-  secondarySiteHosts: number
-  vmCount: number
-  avgVcpuPerVm: number
-  avgVramGbPerVm: number
-  avgStorageGbPerVm: number
-  cpuOvercommitRatio: number
-  ramOvercommitRatio: number
-  gpuVmCount: number
-  vgpuMemoryGB: number
-  storageType: StorageType
-  fttLevel: FttLevel
-  raidType: RaidType
-  dedupEnabled: boolean
-  dedupRatio: number
-  vsanMaxProfile: VsanMaxProfile
-  vsanMaxStorageNodes: number
-  networkSpeedGbE: 10 | 25 | 100
-  deploymentMode: DeploymentMode
-}
-
-export interface ManagementDomainConfig {
-  coresPerSocket: number
-  socketsPerHost: number
-  hostRamGB: number
-  hostStorageTB: number
-  deploymentMode: DeploymentMode
-}
-
-export interface DomainResult {
-  id: string
-  name: string
-  compute: ComputeResult
-  storage: StorageResult
-  stretch: StretchResult | null
-  vsanMax: VsanMaxResult | null
-  validationErrors: ValidationWarning[]
-}
-
+/**
+ * AggregateTotals — procurement summary across all domains (EXPORT-01/02)
+ * In the single-domain v2.1 era, this aggregates from the single compute + storage result.
+ */
 export interface AggregateTotals {
-  totalRecommendedHosts: number    // grand total = workload hosts + management hosts
-  mgmtHostCount: number            // management-only host count (0 when colocated)
+  totalRecommendedHosts: number
   totalVmCount: number
   totalRawStorageTB: number
   totalEffectiveStorageTB: number
-  allValidationErrors: ValidationWarning[]
 }
