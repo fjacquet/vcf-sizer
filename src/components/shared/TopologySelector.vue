@@ -2,9 +2,11 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputStore } from '@/stores/inputStore'
+import { useUiStore } from '@/stores/uiStore'
 
 const { t } = useI18n()
 const input = useInputStore()
+const ui = useUiStore()
 
 const currentMode = computed(() => input.managementDomain.deploymentMode)
 
@@ -19,6 +21,8 @@ function setGlobalTopology(mode: 'simple' | 'ha' | 'stretch') {
   // Mixed topologies are not supported (STATE.md decision)
   input.updateManagementDomain({ deploymentMode: mode })
   input.workloadDomains.forEach(d => input.updateDomain(d.id, { deploymentMode: mode }))
+  // Confirm topology selection — enables Next button on step 1 (WIZARD-03)
+  ui.confirmTopology()
 }
 </script>
 

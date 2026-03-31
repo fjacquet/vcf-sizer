@@ -34,5 +34,14 @@ export const useUiStore = defineStore('ui', () => {
     currentWizardStep.value = step
   }
 
-  return { locale, setLocale, currentWizardStep, setWizardStep }
+  // Topology confirmation flag — WIZARD-03
+  // Ephemeral flag: NEVER in InputStateSchema (WIZARD-07 structural guarantee)
+  // Set when user clicks a topology button in TopologySelector, or when URL state is hydrated
+  const topologyConfirmed = ref<boolean>(false)
+
+  function confirmTopology(): void {
+    topologyConfirmed.value = true
+  }
+
+  return { locale, setLocale, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology }
 })

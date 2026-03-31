@@ -2,9 +2,13 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/uiStore'
+import { useInputStore } from '@/stores/inputStore'
+import { useCalculationStore } from '@/stores/calculationStore'
 
 const { t } = useI18n()
 const ui = useUiStore()
+const input = useInputStore()
+const calc = useCalculationStore()
 
 const steps = [
   { step: 1 as const, labelKey: 'wizard.step1.label' },
@@ -13,7 +17,21 @@ const steps = [
 ]
 
 const canGoBack = computed(() => ui.currentWizardStep > 1)
-const canGoForward = computed(() => ui.currentWizardStep < 3)
+
+// Step-specific forward gate (WIZARD-03, WIZARD-04)
+// Step 1: requires topology confirmation
+// Step 2: requires valid management config (dedicated -> mgmtHostCount != null; colocated -> always valid)
+// Step 3: no forward navigation
+const canGoForward = computed(() => {
+  if (ui.currentWizardStep === 1) return ui.topologyConfirmed
+  if (ui.currentWizardStep === 2) {
+    if (input.managementArchitecture === 'dedicated') {
+      return calc.dedicatedMgmtHostCount !== null
+    }
+    return true // colocated always valid
+  }
+  return false // step 3 has no forward
+})
 
 function goBack() {
   if (canGoBack.value) ui.setWizardStep((ui.currentWizardStep - 1) as 1 | 2 | 3)
@@ -60,16 +78,21 @@ function goForward() {
       </template>
     </div>
 
-    <!-- Next button -->
-    <button
-      @click="goForward"
-      :disabled="!canGoForward"
-      :class="['px-3 py-1.5 text-sm rounded border font-medium transition-colors',
-        canGoForward
-          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-          : 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200']"
-    >
-      {{ t('wizard.nav.next') }}
-    </button>
+    <!-- Next button + validation hint -->
+    <div class="flex flex-col items-end">
+      <button
+        @click="goForward"
+        :disabled="!canGoForward"
+        :class="['px-3 py-1.5 text-sm rounded border font-medium transition-colors',
+          canGoForward
+            ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+            : 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200']"
+      >
+        {{ t('wizard.nav.next') }}
+      </button>
+      <p v-if="!canGoForward && ui.currentWizardStep < 3" class="text-xs text-amber-600 dark:text-amber-400 mt-1 text-right">
+        {{ ui.currentWizardStep === 1 ? t('wizard.step1.topologyRequired') : t('wizard.step2.mgmtInvalid') }}
+      </p>
+    </div>
   </div>
 </template>

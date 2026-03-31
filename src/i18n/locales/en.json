@@ -185,11 +185,13 @@
   "wizard": {
     "step1": {
       "number": "1",
-      "label": "Topology"
+      "label": "Topology",
+      "topologyRequired": "Please select a topology to continue"
     },
     "step2": {
       "number": "2",
-      "label": "Management"
+      "label": "Management",
+      "mgmtInvalid": "Management domain configuration is incomplete"
     },
     "step3": {
       "number": "3",

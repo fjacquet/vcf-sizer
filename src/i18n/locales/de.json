@@ -185,11 +185,13 @@
   "wizard": {
     "step1": {
       "number": "1",
-      "label": "Topologie"
+      "label": "Topologie",
+      "topologyRequired": "Bitte waehlen Sie eine Topologie, um fortzufahren"
     },
     "step2": {
       "number": "2",
-      "label": "Verwaltung"
+      "label": "Verwaltung",
+      "mgmtInvalid": "Die Konfiguration der Verwaltungsdomaene ist unvollstaendig"
     },
     "step3": {
       "number": "3",

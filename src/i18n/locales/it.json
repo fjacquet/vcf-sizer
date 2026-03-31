@@ -185,11 +185,13 @@
   "wizard": {
     "step1": {
       "number": "1",
-      "label": "Topologia"
+      "label": "Topologia",
+      "topologyRequired": "Selezionare una topologia per continuare"
     },
     "step2": {
       "number": "2",
-      "label": "Gestione"
+      "label": "Gestione",
+      "mgmtInvalid": "La configurazione del dominio di gestione e incompleta"
     },
     "step3": {
       "number": "3",
