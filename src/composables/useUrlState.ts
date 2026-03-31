@@ -51,7 +51,7 @@ export const ManagementDomainSchema = z
     hostRamGB: z.number().positive().default(512),
     hostStorageTB: z.number().positive().default(3.84),
     deploymentMode: z.enum(['simple', 'ha', 'stretch']).default('ha'),
-    storageType: z.enum(['vsan-esa', 'fc', 'nfs', 'vsan-max']).default('vsan-esa'),
+    storageType: z.enum(['vsan-esa', 'fc', 'nfs']).default('vsan-esa'),
   })
   .strip()
 

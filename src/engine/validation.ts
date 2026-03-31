@@ -106,7 +106,9 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
   // FC/NFS: min 2 hosts (simple/HA) / 4 (stretch) — VCF 9.0 installer, KB 416270
   if (managementArchitecture === 'dedicated') {
     const isExternal = managementStorageType === 'fc' || managementStorageType === 'nfs'
-    const minHosts = isExternal ? DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : DEDICATED_MGMT_MIN_HOSTS
+    const minHosts = deploymentMode === 'stretch'
+      ? (isExternal ? STRETCH_DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : STRETCH_DEDICATED_MGMT_MIN_HOSTS)
+      : (isExternal ? DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : DEDICATED_MGMT_MIN_HOSTS)
     if (hostCount < minHosts) {
       errors.push({
         code: 'DEDICATED_MGMT_MIN_HOSTS',
