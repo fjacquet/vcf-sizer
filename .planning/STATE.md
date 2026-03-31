@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: Sizing Correctness & Guided Workflow
 status: complete
-stopped_at: Phase 17 verified — all 6 requirements PASS (WIZARD-03..06, EXPORT-01..02)
+stopped_at: Post-phase-17 bug fixes: topology lock in step 2 + stretch dedicated host floor (8 not 4)
 last_updated: "2026-03-31T12:00:00.000Z"
 last_activity: 2026-03-31
 progress:
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** v3.1 milestone complete — all phases 15-17 verified
+**Current focus:** v3.1 milestone complete — all phases 15-17 verified + 2 post-release bug fixes
 
 ## Current Position
 
@@ -162,6 +162,8 @@ v3.0 decisions:
 - [Phase 14]: All PPTX helper functions now accept WorkloadDomainConfig directly — no store bridge pattern in export composable
 - [Phase 17]: [Phase 17-02]: ManagementCommittedSummary uses v-show (not v-if) for expand content — data preservation consistent with WIZARD-02 convention
 - [Phase 17]: [Phase 17-02]: hostCountDisplay branching: dedicated returns String(calc.dedicatedMgmtHostCount ?? 0), colocated returns colocatedLabel i18n key — same logic in both step 2 and step 3 components
+- [Post-17]: ManagementDomainSection step 2 deployment mode is read-only (badge + hint) — editable selector was wrong; topology locked by step 1 selection atomically writing to all domains
+- [Post-17]: STRETCH_DEDICATED_MGMT_MIN_HOSTS = 8 (Broadcom KB 392993): dedicated management in stretch topology requires min 4 hosts per site × 2 sites; Math.max(4) was incorrect for stretch
 
 ### Pending Todos
 
