@@ -1,5 +1,30 @@
 # Milestones
 
+## v3.1 Sizing Correctness & Guided Workflow (Shipped: 2026-04-04)
+
+**Phases completed:** 8 phases, 16 plans, 33 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- calculationStore rewritten with domainResults computed<DomainResult[]> array and aggregateTotals computed<AggregateTotals> reducer, CALC-02 maintained with zero ref()
+- One-liner:
+- 1. [Rule 2 - Missing functionality] Added domain i18n keys to all 4 locales
+- ManagementDomainSection.vue
+- Found during:
+- DomainResultCard.vue
+- Full multi-domain Markdown loop replacing first-domain bridge: per-domain H2 sections with H3 sub-sections, plus Aggregate Totals after loop
+- Full multi-domain PPTX loop with per-domain slide groups, aggregate totals slide, and all helpers accepting WorkloadDomainConfig directly (EXP-03, EXP-04)
+- Six regression tests for management overhead routing (dedicated vs colocated) and aggregate host count correctness — all pass because Wave-2 implementation preceded this executor.
+- Management overhead routing corrected with index-aware .map(), 'shared' renamed to 'colocated' throughout, AggregateTotals extended with mgmtHostCount, and 242 tests passing with clean build
+- uiStore extended with ref<1 | 2 | 3> currentWizardStep + setWizardStep action, 8 TDD tests proving WIZARD-02/WIZARD-07, and wizard i18n keys added to all 4 locales
+- 3-step guided wizard UI delivered: WizardStepper indicator, TopologySelector with atomic global writes, and App.vue restructured into v-show panels (WIZARD-01/WIZARD-02)
+- topologyConfirmed ephemeral flag in uiStore with step-aware WizardStepper canGoForward gates enforcing VCF design sequence (topology before management before workloads)
+- ManagementResultCard (step 2 bottom) and ManagementCommittedSummary (step 3 top) integrated into wizard with dedicated/colocated host count display and i18n keys in all 4 locales
+- Management hosts row added to Markdown and PPTX exports with TDD: shows numeric count (dedicated) or 'colocated with WLD-1' (non-dedicated), backed by new AggregateTotals type and aggregateTotals computed
+
+---
+
 ## v2.1 Export Quality (Shipped: 2026-03-30)
 
 **Phases completed:** 4 phases, 11 plans, 13 tasks

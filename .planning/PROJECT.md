@@ -4,7 +4,7 @@
 
 A fast, client-side, interactive sizing calculator for VCF 9.x deployments. Cloud architects, VI admins, and VMware Cloud Service Providers use it to accurately estimate compute, memory, and storage requirements — preventing under-provisioning and optimizing hardware purchasing decisions.
 
-The tool runs entirely in the browser with no backend dependency, supports four languages (FR/EN/DE/IT), and covers all VCF 9 deployment topologies: Simple, HA, Stretch Cluster, and vSAN Max (disaggregated storage clusters). As of v2.1, users can export professional sizing reports as enriched Markdown, print-optimized PDF (via browser print), and a VCF-branded multi-slide PowerPoint presentation.
+The tool runs entirely in the browser with no backend dependency, supports four languages (FR/EN/DE/IT), and covers all VCF 9 deployment topologies: Simple, HA, Stretch Cluster, and vSAN Max (disaggregated storage clusters). As of v3.1, the tool guides users through a 3-step wizard (Topology → Management → Workloads) enforcing the correct VCF design sequence, and supports unlimited independently-configured workload domains with per-domain result cards, aggregate totals, and full export in Markdown, PDF, and PowerPoint.
 
 ## Core Value
 
@@ -35,7 +35,7 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ 10 Gbps bandwidth floor for stretch inter-site bandwidth — v2.0
 - ✓ Bandwidth floor indicator surfaced in UI — v2.0
 - ✓ Stretch network checklist (MTU 9000, RTT, witness RTT) — v2.0
-- ✓ Dedicated management cluster toggle (4-host minimum per KB 392993) — v2.0
+- ✓ Dedicated management cluster toggle (4-host minimum per KB 392993 for vSAN; 2-host minimum for FC/NFS per KB 416270) — v2.0 / v3.2
 - ✓ Co-located minimum host validation (3 for vSAN, 2 for FC/NFS) — v2.0
 - ✓ vSAN Max storage cluster sizing (5 ReadyNode profiles, disaggregated topology) — v2.0
 - ✓ vSAN Max dual output: storage cluster + compute cluster independently sized — v2.0
@@ -46,27 +46,33 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ Print/PDF: chart print fallbacks as semantic data tables — v2.1
 - ✓ PPTX export: 7 always-present slides with Broadcom blue (#003087) slide master, dynamic import (zero bundle impact) — v2.1
 - ✓ PPTX export: 5 conditional slides (AI/GPU, NVMe, Stretch, vSAN Max, Warnings) — v2.1
+- ✓ Domain data model: WorkloadDomainConfig (26 fields + id/name), ManagementDomainConfig (independent host specs), DomainResult, AggregateTotals — v3.0
+- ✓ Multiple workload domains with independent host specs, workload profiles, storage configs, and optional features per domain — v3.0
+- ✓ Tab-based domain UI with unlimited add/remove of named workload domains, inline rename, confirmation on delete — v3.0
+- ✓ Full multi-domain URL state (lz-string/Zod with variable-length domain arrays), v2.x backward compat — v3.0
+- ✓ Per-domain result cards + AggregateTotalsCard showing procurement total — v3.0
+- ✓ Per-domain sections in Markdown and PPTX exports + aggregate totals — v3.0
+- ✓ Engine correctness: management overhead routed only to WLD-1 in colocated mode (no double-counting) — v3.1
+- ✓ 3-step wizard: WizardStepper indicator, TopologySelector gate (step 1), management validation gate (step 2) — v3.1
+- ✓ Management result card at end of step 2; committed summary panel at top of step 3 — v3.1
+- ✓ Shareable URL never encodes wizard step position — v3.1
+- ✓ Management hosts line in Markdown and PPTX aggregate exports (dedicated: count, colocated: "colocated with WLD-1") — v3.1
 
 ### Active
 
-- ✓ Domain data model: WorkloadDomainConfig (26 fields + id/name), ManagementDomainConfig (independent host specs), DomainResult, AggregateTotals — Validated in Phase 10: Domain Types, Defaults, and Store Refactor
-- ✓ inputStore refactored: workloadDomains[] array + managementDomain object, default "WLD-1" domain, CALC-02 maintained — Validated in Phase 10
-- ✓ calculationStore: domainResults computed array + aggregateTotals reducer, zero ref(), dedicatedMgmtHostCount reads managementDomain — Validated in Phase 10
-- ✓ Multiple workload domains with independent host specs, workload profiles, storage configs, and optional features per domain — Validated in Phase 12: Domain Tab UI and Per-Domain Input Forms
-- ✓ Management domain with independent host specs (decoupled from workload domains), architecture toggle in dedicated section — Validated in Phase 12
-- ✓ Tab-based domain UI with unlimited add/remove of named workload domains, inline rename, confirmation on delete — Validated in Phase 12
-- ✓ Per-domain result cards (DomainResultCard) + AggregateTotalsCard showing procurement total — Validated in Phase 13: Per-Domain Results and Aggregate Totals
-- ✓ Full multi-domain URL state (lz-string/Zod with variable-length domain arrays), v2.x backward compat, activeTabIndex excluded — Validated in Phase 11: URL State Schema Refactor
-- ✓ Per-domain sections in Markdown export (`## Domain: {name}` H2 loop + `## Aggregate Totals`) and PPTX export (per-domain slide groups + aggregate totals slide) — Validated in Phase 14: Multi-Domain Exports
-- ✓ Engine correctness: management overhead routed only to WLD-1 in colocated mode (no double-counting), 'shared' renamed to 'colocated', mgmtHostCount=0 when colocated — Validated in Phase 15: Engine Correctness
-- ✓ 3-step wizard shell: WizardStepper indicator (active/completed/upcoming states), TopologySelector for Step 1, App.vue v-show panels, currentWizardStep in uiStore (never in URL) — Validated in Phase 16: Wizard Scaffold and State
+*(Next milestone requirements defined via `/gsd:new-milestone`)*
 
-### Deferred (post-v3.0)
+### Deferred (post-v3.1)
 
 - Chart images embedded in PPTX slides (rasterized from Chart.js canvas)
 - Localized PPTX and Markdown exports (EN-only; localization pipeline deferred)
 - In-app Markdown preview panel before download
 - Dark mode print stylesheet
+- Domain duplication ("Copy domain" button)
+- Domain reordering (drag-and-drop tab reordering)
+- Per-domain Chart.js visualizations
+- Wizard enhancements: click step indicator to jump back, landing view on first load, topology change confirmation dialog
+- Advanced mode: toggle between wizard and classic flat layout
 
 ### Out of Scope
 
@@ -78,37 +84,21 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - Per-locale export file naming — deferred
 - Server-side PDF rendering — `jsPDF`/`html2canvas` rejected: bundle cost and quality
 
-## Current Milestone: v3.1 Sizing Correctness & Guided Workflow
+## Current State
 
-**Goal:** Fix management-domain-first sizing order and introduce a 3-step guided wizard (Topology → Management → Workloads) to enforce the correct VCF design sequence.
+**Shipped v3.1 (2026-04-04)** — 7,176 LOC TypeScript + Vue 3. 271 tests passing.
 
-**Target features:**
-
-- Guided stepper/wizard UI: 3 steps — Topology selection, Management domain design, Workload domains + Export
-- Calculation order fix: management domain sized before workloads; aggregate = mgmt hosts + workload hosts (dedicated) or workload hosts with mgmt overhead included (colocated)
-- Colocated overhead: engine adds management vCPU/RAM to WLD-1 host sizing automatically when architecture is colocated
-- Management domain result card: displays correctly-ordered sizing results
-- Aggregate totals: recomputed correctly after engine fix
-- Export accuracy: Markdown and PPTX reflect corrected numbers
-
-## Context
-
-**Shipped v2.1 with ~5,400 LOC TypeScript + Vue 3.**
-Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.js, vue-i18n v11, Chart.js via vue-chartjs, lz-string + Zod for URL state, pptxgenjs 4.0.1 (dynamic import), Vitest for unit tests.
-
-236 tests passing. 4 locale files (en/fr/de/it). 3 export formats: Markdown, Print/PDF, PowerPoint.
-
-**Phase 14 complete (2026-03-30):** Multi-domain Markdown and PPTX exports implemented. useMarkdownExport loops over all workloadDomains emitting `## Domain: {name}` sections plus `## Aggregate Totals`. usePptxExport loops over all workloadDomains generating per-domain slide groups plus an aggregate totals slide. All PPTX helpers now accept WorkloadDomainConfig directly. v3.0 Multi-Domain Support milestone COMPLETE.
+Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.js, vue-i18n v11, Chart.js via vue-chartjs, lz-string + Zod for URL state, pptxgenjs 4.0.1 (dynamic import), Vitest for unit tests. Deployed on GitHub Pages at `/vcf-sizer/`.
 
 **Architecture patterns established:**
 
 - Engine layer: pure TypeScript, zero Vue imports (CALC-01)
 - State layer: calculationStore exposes only `computed()`, zero `ref()` (CALC-02)
-- URL state: atomic Zod triple-sync (schema + hydrate + serialize)
+- URL state: atomic Zod triple-sync (schema + hydrate + serialize); wizard step never serialized
 - TDD discipline: failing tests before implementation throughout (Wave 0 pattern)
 - Export composables: plain TypeScript (no Vue lifecycle hooks), pure data-mapping helpers for testability
 - pptxgenjs: dynamic `import()` inside function body keeps it out of initial bundle (PPTX-15)
-- pptxgenjs colors: bare 6-digit hex (no `#` prefix); `defineSlideMaster()` must precede any `addSlide()`
+- ManagementStorageType = Exclude<StorageType, 'vsan-max'> — narrower type for management domain (v3.2)
 
 **Known pending:** Verify ReadyNode profile hardware minimums (NVMe counts, RAM minimums) against Broadcom compatibility guide at production deployment time.
 
@@ -136,14 +126,18 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 | vSAN Max separate engine module | Disaggregated topology != HCI; distinct storageNodeCount | ✓ Clean separation |
 | networkSpeedGbE global input | Affects dedup eligibility + stretch bandwidth cap | ✓ Single source of truth |
 | useMarkdownExport.ts composable | Extract from useUrlState.ts; pure TS, no lifecycle hooks | ✓ Testable, clean separation — v2.1 |
-| usePptxExport.ts composable | Same pattern as markdown; dynamic import keeps bundle clean | ✓ 182 tests pass, zero bundle impact — v2.1 |
-| pptxgenjs local type defs | Namespace import from dynamic import fails; local interfaces match actual usage | ✓ vue-tsc clean — v2.1 |
-| Print chart fallback as `<table>` | `print:table` on hidden semantic tables; `print:hidden` on canvas | ✓ Cross-browser compatible — v2.1 |
-| @page in global style.css | Scoped Vue styles ignore @page; global CSS required for print page geometry | ✓ A4 portrait margins applied — v2.1 |
+| usePptxExport.ts composable | Same pattern as markdown; dynamic import keeps bundle clean | ✓ 271 tests pass, zero bundle impact |
+| pptxgenjs local type defs | Namespace import from dynamic import fails; local interfaces match actual usage | ✓ vue-tsc clean |
+| Print chart fallback as `<table>` | `print:table` on hidden semantic tables; `print:hidden` on canvas | ✓ Cross-browser compatible |
+| @page in global style.css | Scoped Vue styles ignore @page; global CSS required for print page geometry | ✓ A4 portrait margins applied |
+| currentWizardStep in uiStore only | Wizard step is ephemeral UI state — never serialized to URL (WIZARD-07) | ✓ URL sharing always opens at step 1 — v3.1 |
+| topologyConfirmed ephemeral flag | Gates step 1→2 transition without polluting URL state | ✓ Clean wizard flow — v3.1 |
+| ManagementStorageType = Exclude<StorageType, 'vsan-max'> | vSAN Max is not a valid management domain storage type | ✓ Type-safe, CodeRabbit-validated — v3.2 |
+| FC/NFS dedicated management min = 2 (HA) / 4 (stretch) | VCF 9.0 installer allows 2 hosts with external storage (KB 416270) | ✓ Confirmed by Broadcom techdocs — v3.2 |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-03-30 — Phase 16 complete (wizard scaffold: WizardStepper, TopologySelector, App.vue v-show panels)*
+*Last updated: 2026-04-04 after v3.1 milestone*
