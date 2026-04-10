@@ -105,15 +105,61 @@
 
 ---
 
+## Milestone: v3.1 — Sizing Correctness & Guided Workflow
+
+**Shipped:** 2026-04-04
+**Phases:** 3 (15-17) | **Plans:** 7 | **Duration:** ~5 days (2026-03-30 → 2026-04-04)
+
+### What Was Built
+
+1. **Phase 15 (Engine Correctness):** Management overhead routing fixed — in dedicated mode workloads no longer absorb mgmt overhead; in colocated mode WLD-1 absorbs it correctly. `'shared'` renamed to `'colocated'` throughout. `dedicatedMgmtHostCount` added to `aggregateTotals`. 242 tests passing.
+2. **Phase 16 (Wizard Scaffold):** `currentWizardStep ref<1|2|3>` added to `uiStore` (never serialized to URL — WIZARD-07). `WizardStepper.vue` horizontal 3-step indicator. `TopologySelector.vue` with atomic global write. `App.vue` restructured into `v-show` panels.
+3. **Phase 17 (Wizard Content + Exports):** `topologyConfirmed` ephemeral flag gates step 1→2. Management validation gate on step 2→3. `ManagementResultCard` at step 2 bottom; `ManagementCommittedSummary` at step 3 top. Management hosts row added to Markdown and PPTX aggregate exports.
+4. **Post-milestone (v3.2):** FC/NFS dedicated management minimum reduced 4→2 (HA) and 8→4 (stretch) per VCF 9.0 KB 416270. `ManagementStorageType = Exclude<StorageType, 'vsan-max'>` narrower type. tsconfig.vitest.json hardened with node types + noUnusedLocals.
+
+### What Worked
+
+- **Wizard design kept UX and state clean:** Placing `currentWizardStep` in `uiStore` (not URL) from day one meant URL sharing works correctly with zero special-casing. The WIZARD-07 test suite locked this guarantee structurally.
+- **TDD Wave 0 discipline continued:** All 3 phases maintained RED → GREEN commit order. Engine correctness tests (Phase 15) were written first as regressions — they all passed immediately because the engine had already been partially fixed.
+- **CodeRabbit review caught two real bugs:** `vsan-max` allowed in management type (wrong) and stretch mode ignored in validator Rule 4. Both were legitimate issues that would have been silent misbehavior without the review.
+- **Out-of-band hotfixes integrated smoothly:** v3.2 FC/NFS minimum change was a clean PR with full test coverage, merged and released in one session without disrupting the milestone close.
+- **i18n first pattern:** All new UI strings had i18n keys in all 4 locales before any PR — no locale debt accumulated.
+
+### What Was Inefficient
+
+- **REQUIREMENTS.md not updated at phase completion:** WIZARD-07, EXPORT-01, EXPORT-02 were all completed in Phase 16/17 but checkboxes weren't ticked. Required manual correction at milestone close. The executor agent should tick requirements off at plan completion.
+- **v3.2 shipped before v3.1 milestone was formally closed:** The FC/NFS minimum change was discovered and shipped before the milestone archive happened, creating a slight version number mismatch (the CHANGELOG shows v3.2 changes before v3.1 milestone was closed).
+- **SUMMARY.md one-liners incomplete (recurring):** The gsd-tools `summary-extract --fields one_liner` returned fallbacks because the one_liner field wasn't in the SUMMARY.md front matter. This is a recurring issue across all milestones.
+
+### Patterns Established
+
+- **Ephemeral UI state in uiStore, never InputStateSchema:** Any state that should not survive URL sharing lives in uiStore. WIZARD-07 test suite serves as a structural regression guard for future ephemeral state.
+- **`ManagementStorageType = Exclude<StorageType, 'vsan-max'>`:** When a type needs to be restricted for a specific domain, use TypeScript `Exclude<>` rather than duplicating the union type.
+- **Step guard pattern:** `canGoForward` computed in uiStore checks per-step conditions; WizardStepper binds Next button `:disabled` to `!canGoForward`. Clean separation of validation from navigation.
+
+### Key Lessons
+
+1. **Tick requirements at plan completion, not milestone close:** Three requirements sat unchecked for weeks. The fix is mechanical — add requirement checkbox update to the executor's post-plan checklist.
+2. **Review before milestone close, not after:** The FC/NFS minimum fix should have been part of v3.1, not a post-release patch. A quick VCF docs review before milestone close would have caught it.
+3. **tsconfig.vitest.json should mirror tsconfig.app.json strictness:** Missing `noUnusedLocals` and Node types in the vitest config caused pre-existing warnings to accumulate silently. Any tsconfig that includes source files should have the same strict flags.
+
+### Cost Observations
+
+- Model mix: Planner = opus, Executor/Researcher/Verifier = sonnet
+- Sessions: Multiple context windows across ~5 days; milestone close was a separate session
+- Notable: Phase 15 engine correctness was the highest-value phase — 7 TDD tests caught a double-counting bug that had been shipping since v3.0
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v2.0 | v2.1 |
-|--------|------|------|
-| Phases | 5 | 4 |
-| Plans | 11 | 11 |
-| Tests at completion | 120 | 182 |
-| TypeScript errors at completion | 0 | 0 |
-| Build size (gzip) | 159 kB | ~175 kB (est.) |
-| Locales | 4 (en/fr/de/it) | 4 (en/fr/de/it) |
-| Duration | 2 days | 1 day |
-| Export formats | 2 (Markdown, Print) | 3 (+PowerPoint) |
+| Metric | v2.0 | v2.1 | v3.0 | v3.1 |
+|--------|------|------|------|------|
+| Phases | 5 | 4 | 5 | 3 |
+| Plans | 11 | 11 | 8 | 7 |
+| Tests at completion | 120 | 182 | 236 | 271 |
+| TypeScript errors at completion | 0 | 0 | 0 | 0 |
+| Locales | 4 (en/fr/de/it) | 4 | 4 | 4 |
+| Duration | 2 days | 1 day | 1 day | ~5 days |
+| Export formats | 2 (Markdown, Print) | 3 (+PowerPoint) | 3 | 3 |
+| Total LOC (TS+Vue) | ~3,200 | ~5,400 | ~6,800 | ~7,176 |

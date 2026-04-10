@@ -21,6 +21,7 @@ const coresPerSocket = mgmtField('coresPerSocket')
 const socketsPerHost = mgmtField('socketsPerHost')
 const hostRamGB = mgmtField('hostRamGB')
 const hostStorageTB = mgmtField('hostStorageTB')
+const storageType = mgmtField('storageType')
 const deploymentMode = mgmtField('deploymentMode')
 
 const managementArchitecture = computed({
@@ -59,6 +60,32 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
           @click="managementArchitecture = arch.value"
         >
           {{ t(arch.labelKey) }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Management storage type — determines min host count (vSAN: 4, FC/NFS: 2) -->
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {{ t('management.storageType') }}
+      </label>
+      <div class="flex gap-2 flex-wrap">
+        <button
+          v-for="opt in [
+            { value: 'vsan-esa' as const, labelKey: 'storage.vsanEsa' },
+            { value: 'fc'       as const, labelKey: 'storage.fc'      },
+            { value: 'nfs'      as const, labelKey: 'storage.nfs'     },
+          ]"
+          :key="opt.value"
+          :class="[
+            'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
+            storageType === opt.value
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+          ]"
+          @click="storageType = opt.value"
+        >
+          {{ t(opt.labelKey) }}
         </button>
       </div>
     </div>
@@ -107,6 +134,7 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
           :step="64"
         />
         <NumberSliderInput
+          v-if="storageType === 'vsan-esa'"
           v-model="hostStorageTB"
           :label="t('host.storageTB')"
           unit="TB"

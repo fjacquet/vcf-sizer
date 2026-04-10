@@ -167,7 +167,8 @@
     "ops": "VCF Operations",
     "automation": "VCF Automation (VCFA)",
     "totalCores": "Gesamte Management-Kerne",
-    "totalRam": "Gesamter Management-RAM"
+    "totalRam": "Gesamter Management-RAM",
+    "storageType": "Speichertyp"
   },
   "domain": {
     "addDomain": "Domäne hinzufügen",
