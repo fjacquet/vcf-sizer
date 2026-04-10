@@ -54,15 +54,15 @@ Improve user experience through wizard navigation enhancements and domain manage
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| WIZARD-01 | — | pending |
-| WIZARD-02 | — | pending |
-| WIZARD-03 | — | pending |
-| DOMAIN-01 | — | pending |
-| CHART-01 | — | pending |
-| EXPORT-01 | — | pending |
-| EXPORT-02 | — | pending |
-| EXPORT-03 | — | pending |
-| STOR-01 | — | pending |
-| STOR-02 | — | pending |
-| STOR-03 | — | pending |
-| STOR-04 | — | pending |
+| WIZARD-01 | Phase 18 | Pending |
+| WIZARD-02 | Phase 18 | Pending |
+| WIZARD-03 | Phase 19 | Pending |
+| DOMAIN-01 | Phase 19 | Pending |
+| STOR-01 | Phase 20 | Pending |
+| STOR-02 | Phase 20 | Pending |
+| STOR-03 | Phase 20 | Pending |
+| STOR-04 | Phase 20 | Pending |
+| CHART-01 | Phase 21 | Pending |
+| EXPORT-01 | Phase 22 | Pending |
+| EXPORT-02 | Phase 22 | Pending |
+| EXPORT-03 | Phase 23 | Pending |
