@@ -1,246 +1,384 @@
-# Feature Research
+# Feature Landscape
 
-**Domain:** VCF 9.x sizing calculator — Milestone v3.1: Sizing Correctness & Guided Workflow
-**Researched:** 2026-03-30
-**Confidence:** MEDIUM (wizard UX: HIGH from multiple sources; VCF sizing order: MEDIUM from official docs; colocated overhead: LOW — no VCF 9 authoritative spec found)
-
----
-
-## Context: This Is a Subsequent Milestone
-
-The v3.0 multi-domain foundation is complete. This research targets the three new capability clusters introduced in v3.1:
-
-1. Guided 3-step wizard UX (Topology → Management → Workloads)
-2. Calculation order fix: management-first sizing
-3. Colocated mode: management overhead absorbed into WLD-1 cluster
+**Domain:** v3.3 UX Polish & Export Quality — Vue 3 SPA (VCF Sizer)
+**Researched:** 2026-04-10
+**Overall confidence:** HIGH (codebase directly inspected; patterns verified against official docs and library sources)
 
 ---
 
-## Feature Landscape
+## Context: What Already Exists
 
-### Table Stakes (Users Expect These)
+Before categorizing the 8 new features, key existing constraints that shape implementation:
 
-Features that must be present for the wizard to feel correct and trustworthy.
+- `uiStore` owns `currentWizardStep ref<1|2|3>` and `topologyConfirmed ref<boolean>`. WIZARD-07 prohibits these from ever entering URL state.
+- Wizard panels use `v-show` (not `v-if`) intentionally — data preserved when navigating back.
+- `DomainTabStrip` already uses `window.confirm()` for delete confirmation (inline, not modal).
+- Charts (`CoresChart.vue`, `RamChart.vue`, `StorageChart.vue`) are hardcoded to `domainResults.value[0]` — a known first-domain bridge with a comment acknowledging it.
+- `generateMarkdownReport()` in `useMarkdownExport.ts` is a plain TS function that does NOT call `useI18n()` — validation `messageKey` strings are exported raw (i18n keys, not translated text). This is the existing gap for localization.
+- `i18n` is exported from `src/i18n/index.ts` as a named export. `i18n.global.t()` is already callable outside components.
+- `createDefaultWorkloadDomain(index)` is a CALC-01-compliant pure function — safe to call in store actions.
+- `WorkloadDomainConfig` has 26 typed fields plus `id` and `name`.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Persistent step indicator (3 steps numbered) | Users need to see total steps and current position at all times; this is universal wizard UX | LOW | Horizontal layout preferred for 3-step desktop flows; show step number + label |
-| Step labels that describe content | "Step 1" alone is insufficient; labels like "Topology", "Management", "Workloads" reduce cognitive load | LOW | Already defined in milestone scope |
-| Completed-step visual differentiation | Checkmark or filled icon for done steps vs current vs future; industry standard since Material Design | LOW | Three states: completed, active, upcoming |
-| Forward/back navigation on every step | Blocking back navigation increases anxiety and form abandonment; all tested patterns include back | LOW | Back must not lose data entered in previous steps |
-| Per-step validation before advancing | Advancing with invalid data causes confusing downstream errors; users expect inline blocking | MEDIUM | Only block advance, never block back; show inline error summary |
-| Data persistence across step transitions | Users expect entered values to survive navigation between steps; loss is experienced as a bug | LOW | Already handled by Pinia store; wizard just controls visibility |
-| Clear "finish" entry point to results | After step 3 (Workloads), the existing results view must be immediately accessible | LOW | Current tab UI becomes the results view; wizard wraps it |
-| Step state NOT persisted in shareable URL | Wizard position is ephemeral UI state, not configuration data; URL encodes domain config only | MEDIUM | activeTabIndex exclusion precedent already set in v3.0 |
+---
 
-### Differentiators (Competitive Advantage)
+## Table Stakes
 
-Features that make the sizing wizard authoritative rather than generic.
+Features users of this type of tool expect. Missing = product feels incomplete or broken.
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Domain-aware step ordering (Topology → Mgmt → Workloads) | Mirrors the actual VCF deployment sequence; forces correct design thinking; differentiates from generic calculators | MEDIUM | This is the core v3.1 thesis: wizard enforces correct mental model |
-| Management-first result display before workload entry | Users see management overhead committed before they add workload domains; builds confidence in total | MEDIUM | Show management DomainResultCard at end of step 2 |
-| Step 2 summary panel showing management overhead committed | At step 3, display a collapsed summary of management resource commitment as context for workload sizing | MEDIUM | Prevents "where did those hosts go?" confusion |
-| Colocated mode: automatic overhead absorption into WLD-1 | When colocated, no separate management hosts are procured; engine adds mgmt vCPU/RAM to WLD-1 sizing | HIGH | Core correctness fix; most complex engine change in v3.1 |
-| Aggregate totals recalculated after management-first pass | Procurement total = mgmt hosts (dedicated) OR workload hosts with overhead (colocated); accurate BOM | MEDIUM | Currently the aggregate double-counts or ignores mgmt overhead |
-| Validation warning when colocated minimum hosts are insufficient | Colocated requires >= 3 hosts (vSAN) or >= 2 (FC/NFS); must accommodate management overhead | MEDIUM | Already partially implemented; needs colocated-overhead-aware recalculation |
+| Feature | Why Expected | Complexity | Dependencies |
+|---------|--------------|------------|--------------|
+| Click stepper to navigate back | Any multi-step wizard allows backward navigation — forward-only feels broken | Low | `uiStore.setWizardStep()` already exists; only `WizardStepper.vue` needs click handler |
+| Topology change confirmation | Destroying workload data silently is a data-loss bug, not a missing feature | Medium | `inputStore.workloadDomains`, dialog component, `hasNonDefaultData()` pattern already in `DomainTabStrip` |
+| Domain duplication | "Copy domain" is expected in any multi-domain configurator — re-entering 26 fields is a UX failure | Medium | `inputStore.addDomain()` + deep clone using `structuredClone(toRaw(...))` pattern |
+| Per-domain charts in result cards | Charts that show only WLD-1 data when multiple domains exist is a visible bug | Medium | Chart components need `domainId` prop; remove hardcoded `[0]` bridge |
+| Localized exports (MD + PPTX) | Exports in English while UI is in French/German/Italian is jarring and unprofessional | Medium | `i18n.global.t()` is already accessible outside components via named export |
 
-### Anti-Features (Commonly Requested, Often Problematic)
+## Differentiators
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Non-linear step navigation (click any step from indicator) | Power users want to jump between sections quickly | Breaks the management-first design sequence that is the core correctness guarantee of v3.1; users would re-order topology after sizing management | Allow back navigation freely; keep forward navigation linear with validation |
-| Saving wizard progress to localStorage | Some users request "resume later" | Adds implementation complexity; URL sharing (lz-string) already covers the use case; localStorage has stale-state risk | URL sharing already provides shareable state; document it clearly |
-| Animated step transitions (slide/fade effects) | Modern aesthetic appeal | Adds CSS complexity for zero correctness value; increases perceived latency for users iterating on sizing numbers | Instant transitions; focus on validation feedback animations instead |
-| Wizard-only mode that hides the full tab UI forever | Simplicity request | Power users (cloud architects, VI admins) need direct access to the multi-domain tab UI for complex scenarios; wizard should be an onboarding path, not a prison | Wizard as default entry point; "advanced mode" or "edit directly" escape hatch to full tab UI |
-| Per-step separate URLs (route-based wizard) | Clean browser history | Requires Vue Router integration; adds significant router config for no functional benefit; back button behavior becomes ambiguous | Internal component state drives step; URL encodes domain data only, not UI step |
+Features that set this tool apart. Not universally expected, but add meaningful value.
+
+| Feature | Value Proposition | Complexity | Dependencies |
+|---------|-------------------|------------|--------------|
+| Chart images in PPTX slides | Transforms text-only slides into visual deliverables; meaningful for customer presentations | High | `vue-chartjs` ref to `.chart.toBase64Image()` then pptxgenjs `slide.addImage({ data: ... })` |
+| In-app Markdown preview before download | Lets users verify content before downloading; reduces the export-open-re-export cycle | Medium | `marked` library (not currently a dependency) + DOMPurify for safe `v-html` rendering |
+| Landing / intro view on first load | Reduces cold-start confusion for new users; explains the 3-step flow | Low-Medium | `uiStore` or `sessionStorage` for "has seen intro" flag; ephemeral state only |
+
+## Anti-Features
+
+Features to explicitly NOT build for this milestone.
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| `window.confirm()` for topology change dialog | Blocks the event loop; not stylable; fails on mobile browsers; visually inconsistent | Build a proper Vue modal component with `<Teleport to="body">` and Tailwind backdrop |
+| `window.confirm()` escalation for intro skip | Same modal consistency concern | Use sessionStorage flag + simple conditional render |
+| `html2canvas` for chart rasterization | Already rejected in PITFALLS.md — web fonts fail, bundle 5-15 MB, layout collapses | Use `chartInstance.toBase64Image()` — Chart.js native method, zero extra dependency |
+| Server-side PDF with chart images embedded | Client-only constraint — no backend | `window.print()` already has `print:hidden` on canvas and `print:table` fallback |
+| `localStorage` for "has seen intro" | Persists too long; URL-shared links should show the tool directly | `sessionStorage` or a simple in-memory ref in `uiStore` |
+| Markdown editor in preview panel | Overkill; this is a read-only preview before download | Read-only rendered HTML via `marked` + DOMPurify |
+| Per-locale export file naming (e.g., `rapport-vcf.md`) | Deferred to post-v3.3 per PROJECT.md Out of Scope | Hardcode filename, translate content only |
+
+---
+
+## Feature Details
+
+### F1: Click WizardStepper Step to Navigate Back
+
+**Category:** Table stakes
+
+**Expected UX behavior:**
+- Completed steps (green badges, `currentWizardStep > s.step`) are clickable.
+- The active step badge is not clickable (already there).
+- Future steps (grayed out, `currentWizardStep < s.step`) are not clickable — the forward gate still enforces validation.
+- Clicking a completed step calls `ui.setWizardStep(s.step)` directly.
+- No confirmation needed — going back does not destroy data (panels use `v-show`, data preserved).
+
+**Edge cases:**
+- Step 3 to Step 1 jump must be allowed (skipping step 2 on back-nav).
+- URL-hydrated sessions: topology is auto-confirmed in `main.ts`, so all step indicators will show as completed. User should be able to jump to step 2 or 3 from step 1 after URL hydration, but this is gated by the existing `topologyConfirmed` flag — acceptable.
+- Cursor: clickable steps need `cursor-pointer`; non-clickable steps need `cursor-default`.
+
+**Implementation pattern:**
+In `WizardStepper.vue`, compute `isClickable(s.step)` as `s.step < ui.currentWizardStep`, add `@click="if (isClickable(s.step)) ui.setWizardStep(s.step)"`, and add visual affordance (hover ring or underline on clickable completed steps).
+
+**Complexity:** Low — 10 to 20 lines of change in one component.
+**Dependencies on existing:** `uiStore.setWizardStep()` already exists; no new store mutations required.
+
+---
+
+### F2: Landing / Intro View on First Load
+
+**Category:** Differentiator
+
+**Expected UX behavior:**
+- On first page load (no URL state), show a brief intro screen before the wizard.
+- Intro shows: tool name, purpose (1-2 sentences), the 3-step flow, and a "Get started" button.
+- Clicking "Get started" dismisses the intro and shows step 1 of the wizard.
+- If URL state is present (shared link), skip the intro entirely — jump directly to step 1 with data hydrated.
+- Refreshing the page during a session does not re-show the intro (sessionStorage or uiStore ref).
+
+**Edge cases:**
+- URL hydration path in `main.ts` must set the "has seen intro" flag to avoid showing the intro on shared-link open.
+- Must NOT serialize the "has seen intro" flag to URL state (WIZARD-07 analogy — ephemeral UI state only).
+- The intro is not a blocking modal — it replaces the wizard view for first load only.
+
+**Implementation pattern:**
+Add `introSeen ref<boolean>` to `uiStore`. Set it on: (a) user clicks "Get started", (b) `hydrateFromUrl()` finds URL state. In `App.vue`, wrap the wizard content with `v-if="ui.introSeen"` and add a `LandingView` component shown with `v-else`. Do NOT use `localStorage` — session-scoped only.
+
+**Content for intro (must be i18n-keyed):** Tool title, one-line purpose, 3-step description, "Get started" button label.
+
+**Complexity:** Low-Medium — new `LandingView.vue` component, 2 lines in `uiStore`, 1 condition in `App.vue`. All text via i18n keys.
+**Dependencies on existing:** `uiStore`, `i18n`, URL hydration path in `main.ts`.
+
+---
+
+### F3: Topology Change Confirmation Dialog
+
+**Category:** Table stakes
+
+**Expected UX behavior:**
+- When user changes topology (step 1) AND at least one workload domain has non-default data, show a confirmation dialog.
+- Dialog explains: "Changing topology resets all workload domain configurations. Continue?"
+- Two actions: "Cancel" (dismiss, keep current topology) and "Confirm" (apply new topology, proceed).
+- If no workload domain has non-default data (fresh session or all defaults), change topology silently — no dialog shown.
+- The `hasNonDefaultData()` function already exists in `DomainTabStrip.vue` — extract to a shared utility.
+
+**Edge cases:**
+- `window.confirm()` is already used in `DomainTabStrip` for delete — this feature must NOT continue that pattern; use a proper Vue modal for visual consistency and mobile compatibility.
+- The topology change triggers `setGlobalTopology()` which atomically writes to `managementDomain.deploymentMode` AND all `workloadDomains[].deploymentMode` — this must still happen on confirmation.
+- Dialog must be accessible: `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, Escape key dismisses.
+- Vue `<Teleport to="body">` for correct stacking context above the fixed header.
+
+**Implementation pattern:**
+- Extract `hasAnyDomainNonDefaultData()` to `src/engine/defaults.ts` or a shared composable (CALC-01 compliant if in engine).
+- Create `ConfirmDialog.vue` in `src/components/shared/` accepting `title`, `message`, `confirmLabel`, `cancelLabel` props plus `confirm`/`cancel` emits.
+- In `TopologySelector.vue`, intercept topology button clicks: if `hasAnyDomainNonDefaultData()`, show the dialog; on confirm proceed with `setGlobalTopology()`.
+- Store dialog open state locally in `TopologySelector.vue` — not in `uiStore` (ephemeral interaction state).
+
+**Complexity:** Medium — new modal component, logic extraction, event wiring.
+**Dependencies on existing:** `TopologySelector`, `inputStore.workloadDomains`, `createDefaultWorkloadDomain`.
+
+---
+
+### F4: Domain Duplication ("Copy Domain" Button)
+
+**Category:** Table stakes
+
+**Expected UX behavior:**
+- A "Copy" button appears on the active domain tab (or as an action button near the tab strip).
+- Clicking it creates a new domain that is an exact copy of the active domain.
+- The copy gets a new unique `id` (via `crypto.randomUUID()`).
+- The copy gets a name like "WLD-1 (copy)" — append " (copy)" to the source domain name.
+- The active tab switches to the newly created copy domain.
+
+**Edge cases:**
+- Deep clone is required. `WorkloadDomainConfig` has 26 scalar fields — shallow spread `{ ...domain }` works here because there are no nested objects or arrays in the type. However, `structuredClone(toRaw(domain))` is the safe, future-proof pattern given Pinia Proxy wrapping.
+- The `deploymentMode` on the copy must match the global topology (already guaranteed since it is set from `managementDomain.deploymentMode` atomically — the copy will preserve the correct value).
+- Name collision: if user already has "WLD-1 (copy)", creating another copy should not silently produce a duplicate name. Simple approach: append incrementing suffix "(copy 2)", "(copy 3)".
+- The copy should appear immediately after the source domain in the tab order, not at the end.
+
+**Implementation pattern:**
+Add `duplicateDomain(id: string)` to `inputStore`:
+- Find source domain by id.
+- Create copy with `{ ...structuredClone(toRaw(source)), id: crypto.randomUUID(), name: computedCopyName }`.
+- Insert after the source position using `splice(idx + 1, 0, copy)`.
+- Set `activeDomainIndex` to `idx + 1`.
+
+Add a "Copy" button in `DomainTabStrip.vue` adjacent to the active tab, or as a dedicated action near the "+ Add domain" button.
+
+**Complexity:** Medium — store action + button + i18n key. Deep clone safety is the main concern.
+**Dependencies on existing:** `inputStore`, `DomainTabStrip`, `createDefaultWorkloadDomain` (for `hasNonDefaultData` reference), `toRaw` from Vue.
+
+---
+
+### F5: Chart Images (PNG) Embedded in PPTX Slides
+
+**Category:** Differentiator (HIGH value — transforms text slides into visual deliverables)
+
+**Expected UX behavior:**
+- PPTX slides include chart images alongside or in place of the existing data tables.
+- Charts show required vs available data (cores, RAM, storage) — matching what the user sees in the UI.
+- Image resolution is sufficient for projector/screen (Chart.js default 96 DPI canvas is acceptable for PPTX).
+- Graceful fallback: if chart canvas is not available (e.g., called before DOM renders), skip the image and keep the table.
+
+**Technical mechanism (HIGH confidence — verified against official docs):**
+1. `vue-chartjs` exposes the underlying Chart.js instance via template ref: `const barRef = ref(null)` then `barRef.value.chart` gives the `Chart` instance.
+2. `Chart.toBase64Image()` returns `"data:image/png;base64,..."` — a full data URL including the `data:image/png;base64,` prefix.
+3. pptxgenjs `slide.addImage({ data: "image/png;base64,...", x, y, w, h })` expects the string WITHOUT the `data:` prefix — just `"image/png;base64,..."`. Strip `"data:"` from the Chart.js output before passing to pptxgenjs.
+4. Coordinates in pptxgenjs are in inches. A typical chart image: `w: 4, h: 2.5` fits on a standard 10 x 7.5 inch slide with a table beside it.
+
+**Critical constraint:** `generatePptxReport()` is called from `ExportToolbar.vue` (a component context) but the export logic lives in `usePptxExport.ts` (a plain TS module, not a Vue component). The chart canvas elements live in `DomainResultCard` child components. There is no direct access to chart canvas refs from within the composable.
+
+**Resolution pattern:** Charts must pass their `toBase64Image()` data upward. Two options:
+
+Option A (recommended): Add a `getChartImages()` helper that chart sub-components expose via `defineExpose({ chart })`. `ResultsPanel.vue` or `ExportToolbar.vue` collects refs and builds an image data map keyed by `domainId`. This map is passed as an argument to `generatePptxReport(chartImages)`.
+
+Option B: Add a `chartImages` ref to `uiStore` that chart components populate on mount and update. `usePptxExport.ts` reads from `uiStore`. This couples uiStore to chart rendering — acceptable but less clean.
+
+Option A keeps CALC-01/CALC-02 constraints clean. Option B is simpler but creates a new uiStore concern.
+
+**Edge cases:**
+- Chart animation must complete before `toBase64Image()` is called, or the image will be blank or partially rendered. Solution: add `animation: false` to chart options, or call `chart.stop()` followed by `chart.update('none')` before capture.
+- Each workload domain has 3 charts (Cores, RAM, Storage). With 5 domains = 15 chart images. PPTX file size will grow. Per-domain slides already exist — one image set per domain slide is the correct mapping.
+- The `data:` prefix strip: `toBase64Image().replace('data:', '')` — straightforward string operation.
+
+**Complexity:** High — requires component ref chain, `defineExpose`, data passing to composable, pptxgenjs image placement layout.
+**Dependencies on existing:** `usePptxExport.ts`, chart components, `ExportToolbar.vue`, vue-chartjs chart instance access. Requires F6 to be implemented first.
+
+---
+
+### F6: Per-Domain Chart.js Visualizations in Result Cards
+
+**Category:** Table stakes (existing charts show only WLD-1 — a visible defect when multiple domains exist)
+
+**Expected UX behavior:**
+- Each `DomainResultCard` shows its own Cores, RAM, and Storage bar charts reflecting that domain's data.
+- Charts are scoped to the domain they appear in, not shared/global.
+- The three chart components currently accept no props and read from `domainResults.value[0]` directly. They need a `domainId` prop or `result` data props to scope their data.
+
+**Implementation pattern:**
+- Refactor `CoresChart.vue`, `RamChart.vue`, `StorageChart.vue` to accept a `ComputeResult` or `StorageResult` directly as props (preferred over domainId for testability — no store access needed).
+- In `DomainResultCard.vue`, pass the per-domain result data as props to each chart component.
+- The hardcoded bridge comment `// First-domain bridge — charts show first domain until Phase 14 multi-domain export` explicitly calls out this debt — this is the phase to clear it.
+
+**Edge cases:**
+- After refactoring, chart components should NOT access the store at all — they should receive all needed data as props. This makes them pure presentational components and improves testability.
+- The print fallback tables inside each chart component must also be scoped to the domain data (currently reference `compute?.totalCoresRequired` — these will naturally follow the prop if refactored correctly).
+- Dark mode coloring logic uses `usePreferredDark()` — this stays in the component and remains correct.
+
+**Complexity:** Medium — prop interface change on 3 components + 1 card component update. The main work is removing store coupling from chart components.
+**Dependencies on existing:** `DomainResultCard.vue`, `CoresChart.vue`, `RamChart.vue`, `StorageChart.vue`, `DomainResult` type from `src/engine/types`.
+
+---
+
+### F7: Localized Markdown + PPTX Exports
+
+**Category:** Table stakes (Swiss multi-language audience; EN-only exports are a professionalism gap)
+
+**Expected UX behavior:**
+- When user has selected FR, DE, or IT in the UI, the exported Markdown and PPTX use translated labels and section headings matching the active locale.
+- Numbers follow locale formatting (Markdown/PPTX currently use raw `.toFixed()` strings — acceptable for this milestone as a first pass).
+- Validation warning messages in exports are translated (currently exported as i18n keys like `validation.hostCount.tooFew`).
+- The generated file is still named `vcf-sizing-report.md` / `.pptx` regardless of locale (per-locale filenames are explicitly deferred post-v3.3).
+
+**Technical mechanism (HIGH confidence — verified in codebase):**
+The `i18n` instance is a named export from `src/i18n/index.ts`. The instance uses `legacy: false`, so `i18n.global.locale` is a `Ref<string>`. The `t()` function is accessible as `i18n.global.t('key')` from any plain TS module without component context.
+
+`generateMarkdownReport()` and `generatePptxReport()` are both plain TS functions that already import from `@/stores/...`. Adding `import { i18n } from '@/i18n'` and replacing hardcoded English strings with `i18n.global.t('some.key')` is the complete change required.
+
+**Sections that need translation in Markdown:**
+- Section headings: "Management Architecture", "Management Domain Overhead", "Domain: {name}", "Host Configuration", "Workload Profile", etc.
+- Table headers: "Parameter", "Value", "Resource", "Required", "Metric", etc.
+- Dynamic values: `'dedicated'` / `'colocated'` mapped to `t('deployment.architecture.dedicated')`, etc.
+- Validation severity labels: `[ERROR]` / `[WARNING]` translated.
+
+**Sections that need translation in PPTX:**
+- Slide titles and table row headers in all `buildXxxSlideData()` helper functions.
+- `buildAggregateSlideData()` row labels ("Management hosts", "Total VM count", etc.).
+
+**Edge cases:**
+- When `locale` is `'fr'` in `uiStore`, the actual i18n locale is `'fr-CH'` (set by `loadLocale()`). `i18n.global.locale.value` returns `'fr-CH'`. The `t()` function will resolve against `'fr-CH'` messages — correct behavior.
+- If locale messages for a key are not loaded yet (lazy-loading scenario), `i18n.global.t()` falls back to `'en'`. This is safe — the export is triggered by user action after the locale file is already loaded.
+- PPTX table cells with translated German text may have different widths. Column width is fixed in pptxgenjs — German labels are typically 30% longer. Monitor for text overflow in slides; widen label column or use smaller `fontSize` if needed.
+- New i18n keys will be required for export-specific labels not currently in locale files (section headings like "Host Configuration" that only appear in exports, not in the UI).
+
+**Complexity:** Medium — mechanical replacement of hardcoded strings with `i18n.global.t()` calls, plus new i18n keys in all 4 locale JSON files.
+**Dependencies on existing:** `src/i18n/index.ts` (exports `i18n`), `useMarkdownExport.ts`, `usePptxExport.ts`, locale JSON files.
+
+---
+
+### F8: In-App Markdown Preview Panel Before Download
+
+**Category:** Differentiator
+
+**Expected UX behavior:**
+- A "Preview" button in `ExportToolbar` (or inline in the results panel) shows a modal/panel with the rendered Markdown as formatted HTML.
+- Panel has a scrollable content area, a "Download" button (triggers the existing `handleExportMarkdown()` flow), and a "Close" button.
+- Preview renders Markdown as formatted HTML (headings, bold text, tables, code blocks) — not raw Markdown text.
+- Preview matches active locale (calls `generateMarkdownReport()` which will use `i18n.global.t()` after F7 is implemented).
+- No editing — read-only.
+
+**Library choice: `marked` (recommended):**
+- `marked` is the standard Markdown-to-HTML library. Latest version is v17.x (2025). Zero dependencies. ~10 KB gzipped for browser.
+- Does NOT sanitize output — `DOMPurify` must be used with `v-html` binding to prevent XSS.
+- The report content is generated from typed store data (no user-provided free text), so XSS risk is low, but DOMPurify is still the correct pattern. Domain names entered by the user pass through templates and could contain Markdown syntax.
+- Alternative: `micromark` (lower-level, more complex). Avoid: `showdown` (older, larger bundle).
+- Combined option: `safe-marked` (npm package wrapping `marked` + DOMPurify together) — zero-config safe default.
+
+**XSS safety:** `DOMPurify.sanitize(html)` removes script injection while preserving legitimate table and heading HTML.
+
+**Implementation pattern:**
+```
+marked(generateMarkdownReport()) → raw HTML string
+DOMPurify.sanitize(rawHtml) → safe HTML string
+<div v-html="safeHtml" class="prose prose-sm max-w-none" />
+```
+
+Use Tailwind `prose` typography classes from `@tailwindcss/typography` plugin for styled rendering, OR write minimal custom table/heading styles (avoids adding another dependency).
+
+**Edge cases:**
+- Preview panel must be `print:hidden` — it must not appear in print/PDF output.
+- The panel should be lazy — only call `generateMarkdownReport()` when the panel is opened, not on every render cycle.
+- Long reports (many domains) produce large HTML. Scrollable container with `max-h-[70vh] overflow-y-auto` is required.
+- "Download" inside preview should trigger download and optionally close the panel.
+
+**Complexity:** Medium — new modal component, `marked` plus DOMPurify as new dependencies, lazy invocation.
+**Dependencies on existing:** `ExportToolbar.vue`, `generateMarkdownReport()`, F7 (export localization — ideally implemented first so preview shows localized content).
+**New dependencies:** `marked` (~10 KB gzipped), `dompurify` (~7 KB gzipped). Total bundle addition: ~17 KB — acceptable.
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Step 1: Topology Selection]
-    └──gates──> [Step 2: Management Domain Design]
-                    └──gates──> [Step 3: Workload Domains + Export]
-                                    └──requires──> [Aggregate Totals (management-first)]
+F6 (per-domain charts) must precede F5 (chart PNG in PPTX)
+  Chart components need domainId/result props before chart refs can be collected for export.
 
-[Management-First Engine Fix]
-    └──enables──> [Colocated Overhead Absorption into WLD-1]
-    └──enables──> [Correct Aggregate Totals]
-    └──enables──> [Accurate Export (Markdown + PPTX)]
+F7 (localized exports) should precede F8 (Markdown preview)
+  Preview shows the same content as the download. If F7 is implemented first,
+  preview is localized from day one. Building F8 before F7 produces an English-only preview.
 
-[Colocated Architecture Toggle] (already built)
-    └──drives──> [Colocated Overhead Engine Logic] (new in v3.1)
-    └──drives──> [Colocated Minimum Host Validation] (already built, needs update)
-
-[Step 2 Completion]
-    └──unlocks──> [Management DomainResultCard display]
-
-[Step 3 = Current Tab UI]
-    └──requires──> [No structural change to per-domain input forms]
-    └──requires──> [No change to DomainResultCard or AggregateTotalsCard]
+F3 (topology confirmation dialog) has no upstream dependencies — self-contained.
+F1 (clickable stepper) has no upstream dependencies — purely additive.
+F2 (landing view) has no upstream dependencies — new component plus uiStore flag.
+F4 (domain duplication) has no upstream dependencies — additive store action plus button.
 ```
 
-### Dependency Notes
+---
 
-- **Wizard step gating requires management engine fix first:** The step 2 to 3 gate is only meaningful if management sizing is calculated independently of workload domains. Engine fix must land before wizard step 2 validation is meaningful.
-- **Colocated overhead requires management-first pass:** To know how much overhead to absorb into WLD-1, the engine must calculate management vCPU/RAM first, then pass that delta into WLD-1's host sizing function.
-- **Export accuracy depends on engine fix:** Markdown and PPTX exports inherit from calculationStore; once engine is correct, exports are automatically correct (no separate export work required for v3.1 correctness).
-- **Step 3 = existing UI:** The workload domain tab UI built in v3.0 becomes the content of step 3 unchanged. Wizard is a wrapper, not a replacement.
+## MVP Recommendation
+
+Ship in this order to maximize value and minimize rework:
+
+**First batch (independent, low-risk):**
+1. F1 — Clickable stepper steps (trivial, immediate UX win)
+2. F4 — Domain duplication (independent, high practical value)
+3. F2 — Landing intro view (independent, first-impression improvement)
+
+**Second batch (medium complexity, foundational for export):**
+4. F6 — Per-domain charts (clears the known WLD-1 bridge debt; prerequisite for F5)
+5. F7 — Localized exports (foundational for F8; mechanical but requires many i18n key additions)
+
+**Third batch (higher complexity, depends on second batch):**
+6. F3 — Topology change confirmation dialog (requires new modal component; share ConfirmDialog.vue with F8)
+7. F8 — Markdown preview panel (depends on modal infrastructure from F3; benefits from F7 localization)
+8. F5 — Chart images in PPTX (highest complexity; depends on F6 prop refactor)
+
+**Defer from this milestone (per PROJECT.md):**
+- Dark mode print stylesheet
+- Domain drag-and-drop reordering
+- Per-locale export file naming
 
 ---
 
-## MVP Definition for v3.1
+## Phase-Specific Warnings
 
-### Launch With (v3.1)
-
-Minimum feature set to deliver the stated milestone goal.
-
-- [ ] 3-step wizard component with horizontal step indicator (numbered + labeled) — required to enforce management-first sequence
-- [ ] Step 1 (Topology): deployment model selector (Simple / HA / Stretch / vSAN Max) — currently in inputStore, needs to be surfaced as dedicated step
-- [ ] Step 2 (Management): management domain host specs + architecture toggle (dedicated/colocated) — already built; wrap in step 2 container
-- [ ] Step 2 to Step 3 gate: management sizing must be complete (host count >= minimum) before advancing
-- [ ] Management DomainResultCard displayed at end of Step 2 — gives user immediate feedback on management overhead committed
-- [ ] Step 3 (Workloads + Export): existing workload domain tab UI unchanged
-- [ ] Engine fix: management vCPU/RAM calculated independently, aggregate = mgmt hosts + workload hosts (dedicated) OR colocated absorption into WLD-1
-- [ ] Colocated overhead absorption: when architectureMode is colocated, engine adds management component vCPU/RAM to WLD-1 required resources before computing WLD-1 host count
-- [ ] Aggregate totals: recomputed after management-first engine fix reflects correct procurement total
-- [ ] Back navigation: step 3 to step 2 to step 1 without data loss
-
-### Add After Validation (v3.1.x)
-
-- [ ] Step 2 summary panel collapsed at top of step 3 showing committed management resources — adds clarity but not correctness
-- [ ] Step indicator "click to revisit completed step" navigation — convenience for power users
-- [ ] Wizard intro/landing view ("Start Sizing" CTA) — only if user research shows confusion at cold start
-
-### Future Consideration (v4+)
-
-- [ ] Guided tooltips and contextual help overlays per step — reduces cold-start friction for less experienced users
-- [ ] Wizard state exportable as "project file" (JSON download) — complementary to URL sharing for very large domain configs
-
----
-
-## VCF 9.x Sizing Order: What the Docs Say
-
-### Official Sizing Sequence (MEDIUM confidence)
-
-Source: Broadcom TechDocs, VMware Cloud Foundation blog posts, community deployment guides.
-
-**The management domain is always deployed and sized first.** This is architecturally mandated:
-
-> "Each VCF instance is configured with a single management domain which is used to house VCF core management components which includes a SDDC Manager appliance. After the management domain is created, you can deploy or import workload domains."
-> — VMware Cloud Foundation blog, July 2025
-
-**Sizing order implications for the engine:**
-
-1. Size management domain hosts first (vCenter + NSX Manager + SDDC Manager + VCF Operations + VCF Automation)
-2. Determine architecture mode (dedicated vs. colocated)
-3. If dedicated: management cluster is a separate procurement line item; workload domains are sized independently
-4. If colocated: management VMs run on the same cluster as WLD-1; WLD-1 host count must accommodate both management overhead AND workload VMs
-
-### Management Domain Component Overhead (MEDIUM confidence)
-
-Source: William Lam's lab deployment guide (June 2025) — non-official but widely cited, cross-referenced with the "What Does It Take to Run VCF 9?" production sizing article.
-
-**Simple (single-node) deployment — minimum viable:**
-
-| Component | vCPU | RAM |
-|-----------|------|-----|
-| vCenter Server | 4 | 21 GB |
-| NSX Manager | 6 | 24 GB |
-| SDDC Manager | 4 | 16 GB |
-| VCF Operations | 4 | 16 GB |
-| VCF Operations Fleet Manager | 4 | 12 GB |
-| VCF Operations Collector | 4 | 16 GB |
-| VCF Automation | 24 | 96 GB |
-| **Total (simple)** | **48** | **194 GB** |
-
-**HA (three-node) deployment — production:**
-
-NSX Manager, VCF Operations, and VCF Automation each deploy as 3-node clusters. The existing inputStore already models the HA multiplier (x3) for NSX Manager, VCF Operations, and VCF Automation. This is confirmed correct per the PROJECT.md validated requirements.
-
-**Production-grade sizing (4-node management cluster):**
-
-A full production management domain runs approximately 25 VMs consuming 234 vCPUs and 825 GB RAM allocated across the cluster, including HA appliances, NSX Edge nodes, Identity Broker, and additional operational tools beyond the minimal 7-component stack.
-
-### Colocated Mode: Overhead Absorption (LOW confidence — no official formula found)
-
-**What is established:**
-
-- VCF 9 dropped the term "Consolidated Architecture" (used in VCF 4.x/5.x) to reduce confusion, but running management and workload VMs on the same cluster is supported
-- In colocated mode, resource pools provide isolation between management VMs and workload VMs
-- Minimum host count for colocated: 3 (vSAN) or 2 (FC/NFS) — already implemented in the tool per validated requirements
-
-**What the engine should do (derived from architectural logic, not an official formula):**
-
-When architectureMode is colocated:
-
-1. Calculate management component vCPU total (simple or HA mode — uses existing component table in engine)
-2. Calculate management component RAM total
-3. Add these values to WLD-1's required vCPU and required RAM before computing WLD-1 host count
-4. WLD-1 host count drives the management cluster count (same physical hosts)
-5. Aggregate totals: total hosts = WLD-1 hosts (which already includes management overhead) + WLD-2..N hosts
-
-**Risk:** No official Broadcom document for VCF 9 specifies this calculation formula explicitly. The existing tool already has the HA multiplier and component vCPU/RAM values in the engine. The absorption logic is the missing architectural link and must be designed by the requirements author based on engineering reasoning.
-
-**Recommended approach for requirements:** Define a `managementOverheadVcpu` and `managementOverheadRamGb` computed value in the engine (or calculationStore), then pass it into the WLD-1 sizing function as an additive overhead parameter when architectureMode is colocated.
-
----
-
-## Feature Prioritization Matrix
-
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| 3-step wizard component with step indicator | HIGH | LOW | P1 |
-| Per-step data persistence (no loss on back/next) | HIGH | LOW (already in Pinia) | P1 |
-| Step 2 to 3 gate: management sizing required | HIGH | LOW | P1 |
-| Management-first engine calculation order | HIGH | MEDIUM | P1 |
-| Colocated overhead absorption into WLD-1 | HIGH | HIGH | P1 |
-| Aggregate totals recalculated (correct) | HIGH | MEDIUM | P1 |
-| Management DomainResultCard at step 2 | MEDIUM | LOW (card already exists) | P1 |
-| Back navigation without data loss | HIGH | LOW | P1 |
-| Per-step validation blocking forward advance | MEDIUM | MEDIUM | P1 |
-| Step 2 summary panel in step 3 | MEDIUM | LOW | P2 |
-| Completed-step click-to-revisit | LOW | LOW | P2 |
-| Wizard intro/landing page | LOW | MEDIUM | P3 |
-| Animated transitions | LOW | MEDIUM | P3 |
-
----
-
-## Competitor Feature Analysis
-
-| Feature | Generic Sizing Tools | Broadcom VCF Fleet Planning Sizer | This Tool (VCF Sizer) |
-|---------|---------------------|----------------------------------|----------------------|
-| Guided wizard flow | Most use flat forms | No wizard; spreadsheet-based | New in v3.1 |
-| Management-first sizing order | Not enforced | Manual user responsibility | Enforced by step gating in v3.1 |
-| Colocated overhead auto-absorption | Not available | Manual calculation | New in v3.1 engine fix |
-| Multi-language (FR/EN/DE/IT) | Typically EN only | EN only | Already shipped |
-| Client-side / offline capable | Requires server | Cloud-hosted | Static SPA |
-| Shareable URL with full state | Rare | Not available | Already shipped (lz-string) |
-| Export (Markdown, PDF, PPTX) | PDF at most | Spreadsheet export | Already shipped |
-
-Note: The Broadcom VCF Fleet Planning Sizer at sizer.vmtechie.blog is a community tool, not the official Broadcom sizer. The official Broadcom sizer requires a Broadcom account and is not publicly accessible for evaluation.
+| Feature | Likely Pitfall | Mitigation |
+|---------|---------------|------------|
+| F5 (chart PNG) | `toBase64Image()` returns blank if called during Chart.js animation | Disable animation on chart instances: `animation: false` in chart options, or call `chart.stop()` before capture |
+| F5 (chart PNG) | pptxgenjs `addImage({ data })` expects `"image/png;base64,..."` NOT `"data:image/png;base64,..."` | Strip the `data:` prefix from the Chart.js data URL before passing to pptxgenjs |
+| F6 (per-domain charts) | Removing `storeToRefs` coupling from chart components may break existing tests | Update chart component tests to pass props directly |
+| F7 (localized exports) | German labels in PPTX table cells are ~30% longer than English — fixed column widths may truncate | Test PPTX output with DE locale; widen label column or use smaller `fontSize` |
+| F7 (localized exports) | `i18n.global.t()` in a plain TS module requires the `i18n` singleton imported from `src/i18n/index.ts` | Import the already-created `i18n` singleton — do not call `createI18n()` again |
+| F8 (markdown preview) | `v-html` with unsanitized content is a XSS vector even with generated content | Always pipe through `DOMPurify.sanitize()` before binding to `v-html` |
+| F8 (markdown preview) | `@tailwindcss/typography` plugin adds ~20 KB and requires Tailwind config update | If not already installed, write minimal custom prose styles instead |
+| F3 (topology dialog) | `window.confirm()` is already used in `DomainTabStrip` — must not add another call | Build `ConfirmDialog.vue` once; consider replacing the existing DomainTabStrip usage for consistency |
+| F2 (landing view) | URL-hydrated sessions must bypass the landing view | Set `introSeen` to `true` in the `hydrateFromUrl()` path in `main.ts` |
+| F1 (clickable stepper) | Step 3 to Step 1 jump skips step 2 gates — but going BACK skips no gates correctly | Only allow clicking on COMPLETED steps (`s.step < currentWizardStep`), never on future steps |
 
 ---
 
 ## Sources
 
-- [Management Domain Model — Broadcom TechDocs VCF 9.0](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/design/design-library/workload-domain-deployment-models/management-domain-deployment-model.html) — MEDIUM confidence (official doc)
-- [Planning a Successful VCF 9.0 Deployment — VMware Cloud Foundation Blog, July 2025](https://blogs.vmware.com/cloud-foundation/2025/07/28/planning-a-successful-vmware-cloud-foundation-9-0-deployment/) — MEDIUM confidence
-- [Deployment Pathways for VMware Cloud Foundation 9 — VMware Blog, July 2025](https://blogs.vmware.com/cloud-foundation/2025/07/03/vcf-9-0-deployment-pathways/) — MEDIUM confidence
-- [Minimal Resources for Deploying VCF 9.0 in a Lab — William Lam, June 2025](https://williamlam.com/2025/06/minimal-resources-for-deploying-vcf-9-0-in-a-lab.html) — MEDIUM confidence (community, widely cited)
-- [What Does It Take to Run VCF 9? — WEI Blog](https://www.wei.com/blog/what-does-it-take-to-run-vcf-9/) — LOW confidence (vendor blog, production spec)
-- [Minimum Number of ESXi Hosts — Broadcom KB 392993](https://knowledge.broadcom.com/external/article/392993/minimum-number-of-esxi-hosts-required-on.html) — HIGH confidence (official KB)
-- [Sizing Compute Resources for ESXi for the Management Domain — Broadcom TechDocs VCF 4.5](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-5-2-and-earlier/4-5/vcf-design-management-domain-4-5/vcf-esxi-design/vcf-deployment-specification-for-esxi/vcf-physical-design-for-esxi.html) — MEDIUM confidence (VCF 4.5, not VCF 9 — architectural patterns still applicable)
-- [Wizard UI Pattern: When to Use It and How to Get It Right — Eleken](https://www.eleken.co/blog-posts/wizard-ui-pattern-explained) — HIGH confidence
-- [Best Practices for High-Conversion Wizard UI Design — Lollypop Design, January 2026](https://lollypop.design/blog/2026/january/wizard-ui-design/) — HIGH confidence
-- [Beyond the Progress Bar: The Art of Stepper UI Design — David Pham, February 2026](https://medium.com/@david.pham_1649/beyond-the-progress-bar-the-art-of-stepper-ui-design-cfa270a8e862) — HIGH confidence
-- [Tailwind CSS Stepper — Flowbite](https://flowbite.com/docs/components/stepper/) — HIGH confidence (implementation reference)
-- [Stepper Components — Origin UI Vue](https://www.originui-vue.com/stepper) — HIGH confidence (Tailwind + Vue 3 reference)
-
----
-
-*Feature research for: VCF 9.x sizing calculator — v3.1 Guided Workflow & Sizing Correctness*
-*Researched: 2026-03-30*
+- Vue 3 wizard stepper patterns: [Quasar Stepper](https://quasar.dev/vue-components/stepper/) — `beforeLeave` navigation guard pattern
+- Chart.js API: [Chart.js API docs](https://www.chartjs.org/docs/latest/developers/api.html) — `toBase64Image()` method
+- vue-chartjs chart instance access: [vue-chartjs guide](https://vue-chartjs.org/guide/) — template ref `.chart` property
+- pptxgenjs image API: [PptxGenJS Images](https://gitbrent.github.io/PptxGenJS/docs/api-images.html) — `addImage({ data: "image/png;base64,..." })`
+- Deep clone Pinia proxy: [Pinia discussion #1412](https://github.com/vuejs/pinia/discussions/1412) — `structuredClone(toRaw(...))` pattern
+- vue-i18n outside component: [vue-i18n Composition API](https://vue-i18n.intlify.dev/guide/advanced/composition) — `i18n.global.t()` on exported instance
+- Vue 3 confirmation dialog: [LogRocket — promise modals](https://blog.logrocket.com/promise-handling-complex-modals-vue-3/)
+- Vue 3 Teleport modal: [DEV Community — Teleport + Tailwind](https://dev.to/alvarosabu/create-modals-with-vue3-teleport-tailwindcss-48aj)
+- Accessible focus trap: [Telerik — focus trap in Vue 3 modal](https://www.telerik.com/blogs/how-to-trap-focus-modal-vue-3)
+- marked library: [marked.js](https://marked.js.org/) — v17.x, zero-dependency, browser-compatible
+- DOMPurify XSS: [DOMPurify GitHub](https://github.com/cure53/DOMPurify)
+- safe-marked (marked + DOMPurify combined): [safe-marked GitHub](https://github.com/azu/safe-marked)
+- Codebase inspection: `WizardStepper.vue`, `DomainTabStrip.vue`, `DomainResultCard.vue`, `CoresChart.vue`, `useMarkdownExport.ts`, `usePptxExport.ts`, `uiStore.ts`, `inputStore.ts`, `src/i18n/index.ts`, `App.vue`, `defaults.ts`

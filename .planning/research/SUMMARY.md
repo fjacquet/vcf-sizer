@@ -1,187 +1,354 @@
 # Project Research Summary
 
-**Project:** VCF 9.x Sizing Calculator — Milestone v3.1: Sizing Correctness & Guided Workflow
-**Domain:** Client-side SPA sizing calculator with wizard UX and engine calculation fixes
-**Researched:** 2026-03-30
-**Confidence:** HIGH (architecture grounded in direct codebase inspection; MEDIUM for VCF 9.x sizing specifics; LOW for colocated overhead formula)
+**Project:** vcf-sizer v3.3 — UX Polish & Export Quality
+**Domain:** Vue 3 SPA enhancement (wizard UX, dialog, Markdown preview, chart-to-PPTX)
+**Researched:** 2026-04-10
+**Confidence:** HIGH
 
 ## Executive Summary
 
-VCF Sizer v3.1 builds on the completed v3.0 multi-domain foundation (Phase 14 complete) to deliver three coordinated capabilities: a 3-step guided wizard UX, a management-first engine calculation order fix, and colocated mode overhead absorption into WLD-1. The project is a Vue 3 + Pinia + Vite SPA with strict layer separation — pure TypeScript engine, computed-only calculation store, and reactive UI components — that is already well-implemented and must be respected throughout v3.1 work.
+VCF Sizer v3.3 is a focused polish milestone targeting 8 concrete improvements to wizard navigation, domain management, and export quality. Research confirms that 7 of the 8 features require zero new runtime dependencies — all needed primitives exist in the already-installed stack (Vue 3.5, Pinia 3, @vueuse/core 14, Chart.js 4, vue-chartjs 5, pptxgenjs 4, vue-i18n 11). The only net-new runtime addition is `marked ^15` + `dompurify ^3.3.3` (~20 KB gzipped combined) for the in-app Markdown preview panel. The existing architectural constraints (CALC-01, CALC-02, WIZARD-07, EXPORT-PURE) continue to apply and shape every integration decision — all 8 features respect those contracts without modification to the engine or calculation store.
 
-The core correctness problem is a bug in `calculationStore.ts` that passes management overhead to ALL workload domains unconditionally. In dedicated mode this double-counts management hardware; in colocated mode it inflates WLD-2 through WLD-N. The fix is surgical: a conditional index check inside the `domainResults.map()` call, combined with an updated `aggregateTotals` computed that adds `dedicatedMgmtHostCount` only for dedicated architecture. The engine layer (`calcCompute()`) already accepts `managementCores` as an optional parameter — no engine signature changes are required.
+The recommended build sequence is bottom-up: store-layer foundations first (uiStore additions, inputStore actions, i18n key namespace), then independent UI features, then chart refactoring, and finally export enrichment. The chart image pipeline (F5+F6) is the most architecturally complex piece because it must bridge the DOM layer (chart canvas) with a headless composable (usePptxExport.ts). The chosen pattern — a `chartImages` registry in uiStore that chart components populate via `registerChartImage()` — keeps the composable testable and pure while giving components sole responsibility for DOM access.
 
-The wizard UX is architecturally straightforward: four new Vue SFC components (WizardStepper, Step1Topology, Step2Management, Step3Workloads) wrapping existing input and result components, with a single `currentWizardStep: ref<1|2|3>(1)` added to `uiStore.ts`. The primary risks are (1) accidentally serializing wizard step to URL state, which must be kept in `uiStore` and never included in `InputStateSchema`, (2) the colocated double-counting that must be prevented by test-first development, and (3) wizard `onMounted` resetting the store after URL hydration. All three are preventable with clear architectural boundaries established before implementation begins.
+The top risk cluster centers on the Chart.js canvas capture pipeline: blank PNGs from animation timing, null chart refs in Composition API, canvas ID collisions across domain cards, and dataURL prefix format mismatches with pptxgenjs. All four have documented mitigations: disable animation on per-domain charts, use `Chart.getChart(canvasId)` rather than vue-chartjs template refs, inject per-domain canvas IDs derived from `domain.id`, and pass the full `data:image/png;base64,...` string to `addImage`. A secondary risk is the locale load race condition — export buttons must be disabled during `localeLoading` so that `i18n.global.t()` calls inside composables resolve against the correct locale's message bundle rather than falling back silently to English.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack for v3.1 is entirely the existing stack — no new npm packages are required. The v3.0 research (multi-domain) similarly added no new packages. This project follows a deliberate zero-new-dependency discipline backed by strong rationale: `@headlessui/vue` is stale at v1.7.23 (no Vue 2.0 release), `jspdf`/`html2canvas` are rejected due to bundle size and quality issues, and `pptxgenjs` (already installed) handles PPTX export via dynamic import.
+The existing stack needs minimal additions. Seven of eight features are implemented entirely within installed dependencies. Only the Markdown preview panel (F8) adds packages.
 
-**Core technologies:**
+**Stack additions for v3.3:**
 
-- Vue 3.5 + `<script setup>` — component layer; all wizard step components are Vue SFCs
-- Pinia 3 setup stores — `inputStore` (mutable refs), `calculationStore` (computed-only, zero ref()), `uiStore` (ephemeral UI state including wizard step)
-- Zod v4 — URL state schema validation; `.strip()` discards unknown keys enabling safe schema evolution
-- lz-string — URL compression for shareable links; adequate for practical domain counts (1-15 domains)
-- Vite + vue-tsc — build and type checking; `vue-tsc` enforces TypeScript correctness on SFC props
-- pptxgenjs (dynamic import) — PPTX export; loaded only on user trigger, zero initial bundle impact
-- Vitest — 236 existing tests that must pass throughout; TDD approach required for engine changes
+| Library | Version | Purpose | Bundle cost |
+|---------|---------|---------|------------|
+| `marked` | `^15.0.12` | Markdown string to HTML for in-app preview | ~12 KB gzipped |
+| `dompurify` | `^3.3.3` | XSS-sanitize marked output before `v-html` | ~8 KB gzipped |
 
-**Critical version notes:** `zod@^4.3.6` — use `.min(1)` not `.nonempty()` (type inference changed in v4). `pinia@^3.0.4` — return `ref<T[]>()` from setup stores, not `reactive([])`.
+**Existing libraries relied upon by new features (no upgrade needed):**
+
+- `@vueuse/core ^14.2.1` — `useConfirmDialog` composable for the topology change dialog (F3)
+- `chart.js ^4.5.1` — `.toBase64Image()` on Chart instances captures canvas PNG for PPTX embedding (F5)
+- `vue-chartjs ^5.3.3` — per-domain chart components; instance accessed via `Chart.getChart(canvasId)` in Composition API (F5/F6)
+- `pptxgenjs ^4.0.1` — `slide.addImage({ data: 'data:image/png;base64,...' })` accepts the full dataURL format (F5)
+- `vue-i18n v11` — `i18n.global.t()` via exported singleton from `src/i18n/index.ts` for export composable localization (F7)
+- `crypto.randomUUID()` — browser-native API (no import required) for new domain IDs in F4
+
+**Pin `marked` at `^15.x`:** v16+ drops CommonJS build (irrelevant for Vite ESM but signals instability); v18 requires TypeScript v6. Stay on v15 until the ecosystem stabilizes.
+
+**What NOT to add:**
+- `html2canvas` — already rejected project-wide; blank canvases off-screen, ~200 KB bundle
+- `@headlessui/vue` — unnecessary overhead for a single modal; `useConfirmDialog` from @vueuse/core already covers the need
+- `sanitize-html` — Node.js DOM shim adds ~100 KB to browser bundle; DOMPurify is DOM-native at 8 KB
+- `@types/dompurify` — types are bundled in dompurify v3.x; do not add separately
+- Any new CSS component library — Tailwind v4 is the established styling layer; `@tailwindcss/typography` may be needed for Markdown preview, but verify Tailwind v4 Oxide compatibility before adding
+
+**See STACK.md** for full version compatibility matrix, bundlephobia-verified sizes, and alternatives considered.
+
+---
 
 ### Expected Features
 
-**Must have (table stakes for v3.1 MVP):**
+**Must have (table stakes) — visible gaps or data-loss risks if absent:**
 
-- 3-step wizard with horizontal step indicator (numbered + labeled: Topology / Management / Workloads)
-- Completed-step visual differentiation (three states: completed, active, upcoming)
-- Forward/back navigation with data persistence across step transitions
-- Per-step validation blocking forward advance only (never block back)
-- Step 2 to Step 3 gate: management sizing must be complete before advancing
-- Management DomainResultCard displayed at end of Step 2
-- Engine fix: management overhead applied to WLD-1 only (colocated) or zero domains (dedicated)
-- Aggregate totals: `dedicatedMgmtHostCount` added only for dedicated architecture
-- Back navigation without data loss (Pinia store preserves state; wizard only controls visibility)
+| Feature | Why critical |
+|---------|-------------|
+| F1: Clickable wizard stepper steps | Forward-only wizard navigation feels broken in any multi-step form |
+| F3: Topology change confirmation | Silent data destruction on topology switch is a data-loss bug, not a UX gap |
+| F4: Domain duplication | Re-entering 26 typed fields for a near-identical domain is a UX failure |
+| F6: Per-domain charts in result cards | Charts showing only WLD-1 data when multiple domains exist is a visible correctness defect |
+| F7: Localized Markdown + PPTX exports | EN-only exports while the UI is in FR/DE/IT is a professionalism gap for the Swiss audience |
 
-**Should have (differentiators):**
+**Should have (differentiators — meaningful added value):**
 
-- Domain-aware step ordering enforcing the VCF deployment sequence (Topology then Management then Workloads)
-- Management-first result display at Step 2 before workload entry (builds confidence in committed overhead)
-- Step 2 summary panel collapsed at top of Step 3 (prevents "where did those hosts go?" confusion)
-- Colocated mode explicit display: "Management overhead included in WLD-1 host count: X hosts"
-- Aggregate totals recalculated after management-first pass (correct procurement BOM)
+| Feature | Value |
+|---------|-------|
+| F5: Chart PNG in PPTX slides | Transforms text-only slides into visual deliverables for customer presentations |
+| F8: In-app Markdown preview | Eliminates the export-open-re-export cycle; lets users verify content before downloading |
+| F2: Landing / intro view | Reduces cold-start confusion for new users; explains the 3-step flow on first load |
 
-**Defer to v3.1.x or later:**
+**Explicitly deferred (post-v3.3 per PROJECT.md):**
+- Dark mode print stylesheet
+- Domain drag-and-drop reordering
+- Per-locale export file naming (e.g., `rapport-vcf.md`)
 
-- Step indicator click-to-revisit completed steps (convenience, not correctness)
-- Wizard intro/landing view ("Start Sizing" CTA)
-- Animated step transitions (zero correctness value)
-- Per-step separate URLs / route-based wizard (requires Vue Router, no functional benefit)
-- localStorage wizard progress persistence (URL sharing already covers the use case)
+**Anti-features — do not build these:**
+- `window.confirm()` for topology dialog or any new confirmation — not stylable, blocks event loop, mobile-incompatible
+- Markdown editor inside preview panel — read-only preview is the correct scope
+- `localStorage` for landing view "has seen" flag — use `uiStore.isLandingVisible` ref (session-scoped only)
+- `window.print()` changes — print path is unchanged; canvas elements already have `print:hidden` fallback tables
+
+**Feature dependency constraints:**
+- F6 (per-domain charts) must be implemented before F5 (PPTX chart images) — chart components need `domainId` prop and `registerChartImage()` wiring before PNG capture can work
+- F7 (localized exports) should be implemented before F8 (Markdown preview) — otherwise preview shows English-only content
+
+**See FEATURES.md** for per-feature UX specification, edge cases, and the ordered MVP recommendation.
+
+---
 
 ### Architecture Approach
 
-The v3.1 architecture adds four new Vue SFC components as thin wrappers around existing input/result components, with minimal changes to two stores and no engine file changes. The established CALC-01/CALC-02 constraints are non-negotiable: engine files never import Vue/Pinia, and `calculationStore` uses zero `ref()`. The wizard step lives in `uiStore.ts` (the correct home for ephemeral UI state), not `inputStore` (serialized to URL) or `calculationStore` (CALC-02 violation).
+v3.3 adds two new store concerns to `uiStore` (landing visibility + chart image registry), one new action to `inputStore` (domain duplication), six new components, and six modified components. The calculation engine and `calculationStore` are untouched — all new features are pure UI or export-layer concerns. The chart image pipeline is the only cross-layer integration: per-domain chart components register PNG data URLs into `uiStore.chartImages` on render; `usePptxExport.ts` reads from that registry at export time, preserving the EXPORT-PURE constraint (no DOM access from composables).
 
-**Major components and their responsibilities:**
+**New components:**
 
-1. `WizardStepper.vue` (new, `components/shared/`) — step indicator bar + prev/next navigation buttons; reads `uiStore.currentWizardStep`; uses `v-if` not `v-show` to avoid mounting all steps simultaneously
-2. `Step1Topology.vue` (new, `components/wizard/`) — wraps DeploymentModelSelector; writes `deploymentMode` to BOTH `managementDomain` AND all `workloadDomains` atomically
-3. `Step2Management.vue` (new, `components/wizard/`) — wraps ManagementDomainSection + ManagementSummary + MgmtDomainResultCard; shows committed management overhead
-4. `Step3Workloads.vue` (new, `components/wizard/`) — wraps existing DomainTabStrip + all input forms + ResultsPanel + ExportToolbar unchanged
-5. `calculationStore.ts` (modified) — fixes `domainResults` map to pass `managementCores: 0` for dedicated mode and for WLD-2+; fixes `aggregateTotals` to add `dedicatedMgmtHostCount` conditionally
-6. `uiStore.ts` (modified) — adds `currentWizardStep: ref<1|2|3>(1)`, `setStep()`, `nextStep()`, `prevStep()`
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `LandingView.vue` | `src/components/shared/` | First-load intro screen; dismissed by user or auto-dismissed on URL hydration |
+| `ConfirmationDialog.vue` | `src/components/shared/` | Reusable modal; used by topology change (F3); reusable for future needs |
+| `DomainCoresChart.vue` | `src/components/results/charts/` | Per-domain cores bar chart; prop-driven; registers PNG into chartImages |
+| `DomainRamChart.vue` | `src/components/results/charts/` | Per-domain RAM bar chart; same pattern |
+| `DomainStorageChart.vue` | `src/components/results/charts/` | Per-domain storage breakdown chart; same pattern |
+| `MarkdownPreview.vue` | `src/components/results/` | In-app rendered Markdown with DOMPurify sanitization |
 
-**Key patterns to follow:**
+**Modified components:**
 
-- Calculation order in `calculationStore.ts` MUST be preserved: `management` declared before `dedicatedMgmtHostCount` declared before `domainResults` declared before `aggregateTotals` (Vue lazy computed evaluation makes declaration order meaningful)
-- Wizard step exclusion from URL state mirrors the existing `activeDomainIndex` exclusion pattern (URL-04)
-- Export composables (`useMarkdownExport`, `usePptxExport`) read stores at call time; must be updated in the same commit as any `AggregateTotals` type changes
+| Component | What changes |
+|-----------|-------------|
+| `WizardStepper.vue` | Completed step pills gain `@click` to call `ui.setWizardStep(n)` (F1) |
+| `TopologySelector.vue` | Intercepts topology button clicks; shows ConfirmationDialog when workloads exist (F3) |
+| `DomainTabStrip.vue` | Adds Copy button per tab that calls `inputStore.duplicateDomain(id)` (F4) |
+| `DomainResultCard.vue` | Embeds three per-domain chart components below the utilization grid (F6) |
+| `ExportToolbar.vue` | Adds Preview button that renders MarkdownPreview panel (F8) |
+| `App.vue` | Wraps main layout in `v-if="!ui.isLandingVisible"` with `<LandingView>` as `v-else` (F2) |
+
+**uiStore additions:**
+
+| Addition | Type | Purpose | URL-safe? |
+|----------|------|---------|-----------|
+| `isLandingVisible` | `ref<boolean>` | Landing view display flag | No — WIZARD-07 applies |
+| `dismissLanding()` | action | Sets `isLandingVisible = false` | — |
+| `chartImages` | `ref<Record<string, Record<string, string>>>` | Chart PNG registry keyed by domainId + chartType | No — ephemeral session state |
+| `registerChartImage(domainId, type, dataUrl)` | action | Called by per-domain chart components after render | — |
+
+**inputStore additions:**
+
+| Addition | Type | Purpose |
+|----------|------|---------|
+| `duplicateDomain(id: string)` | action | Deep-clones using `structuredClone(toRaw(source))`; inserts after source; activates clone |
+
+**calculationStore:** No changes.
+
+**Composable changes:**
+- `useMarkdownExport.ts` — replace all hardcoded English labels with `i18n.global.t('export.*')` calls
+- `usePptxExport.ts` — same localization change plus `slide.addImage()` from `uiStore.chartImages` with graceful fallback to table-only slides when images absent
+
+**See ARCHITECTURE.md** for full data flow diagrams, component map, anti-pattern list, and 7-phase build order.
+
+---
 
 ### Critical Pitfalls
 
-1. **Wizard step serialized to URL (W1)** — Add `currentWizardStep` to `uiStore` exclusively; never add it to `InputStateSchema`. Write a test: decompressed `generateShareUrl()` output must not contain a `wizardStep` key. Add a comment next to the `activeDomainIndex` URL-04 exclusion referencing this rule.
+**PITFALL-1 — Blank PNG from Chart.js animation timing**
+`toBase64Image()` called during a Chart.js animation returns a white canvas. No error is thrown — the PPTX generates successfully with blank images. Prevention: set `animation: false` on all per-domain chart components. This is the correct tradeoff for a utility tool where export correctness outweighs entry animation aesthetics.
 
-2. **Colocated overhead double-counting (C2/P2)** — The existing code already passes `management.value.totalCores` to ALL domains (a bug). The fix must REPLACE this with `(isColocated && index === 0) ? management.value.totalCores : 0`. Write the two failing tests first: colocated `aggregateTotals.totalRecommendedHosts === domainResults[0].compute.recommendedHostCount`; dedicated WLD-1 does NOT include management cores.
+**PITFALL-2 — vue-chartjs Composition API `ref.chart` returns null**
+`chartRef.value.chart` is null in Composition API (confirmed GitHub issue #1012). Prevention: use `Chart.getChart(canvasId)` with a stable per-domain canvas ID instead. Assign the canvas `id` attribute as `cores-chart-${domain.id}` inside each chart component.
 
-3. **Wizard onMounted resets hydrated store state (W3)** — Wizard `onMounted` must never call `inputStore.$reset()` or any factory-default assignment. Only set `uiStore.currentWizardStep = 1`. If URL state was hydrated, optionally advance to Step 3.
+**PITFALL-3 — `useI18n()` throws in plain TypeScript composables**
+`useI18n()` requires an active Vue component setup context. The export composables are intentionally plain TypeScript (EXPORT-PURE). Prevention: import the `i18n` singleton from `src/i18n/index.ts` and use `i18n.global.t('key')` directly. This is the documented vue-i18n pattern for use outside component contexts.
 
-4. **Management/WLD-1 deploymentMode divergence after Step 1 (C3)** — Step 1 must write the selected topology to BOTH `inputStore.managementDomain.deploymentMode` AND every `inputStore.workloadDomains[i].deploymentMode`. A mismatch between management (HA: 118 cores) and workload (Simple) produces incorrect sizing in both directions.
+**PITFALL-4 — `structuredClone` throws on Pinia reactive proxy**
+`structuredClone(domain)` throws DOMException because Pinia wraps state in Vue reactive proxies. Prevention: always unwrap first — `structuredClone(toRaw(domain))`. Using shallow spread `{ ...domain }` works today (all 26 fields are primitives) but is fragile against future nested fields; `structuredClone(toRaw(...))` is the canonical future-proof pattern.
 
-5. **Export composables using pre-refactor field values (E1)** — Export composable updates are mandatory in the same phase/commit as the engine/store refactor. After the `aggregateTotals` fix, run `npx vitest run src/composables/` and verify markdown aggregate hosts match `AggregateTotalsCard` UI values.
+**PITFALL-5 — Topology partial write leaves inconsistent store state**
+Inserting an async confirmation dialog mid-flight breaks the atomic topology write if the store is written optimistically. Prevention: capture `pendingTopology` in a local `ref<DeploymentMode | null>` before any store write; only call `setGlobalTopology()` on user confirmation. Mixed `deploymentMode` values between management and workload domains produce incorrect sizing calculations.
+
+**PITFALL-7 — pptxgenjs `addImage` dataURL format mismatch**
+Stripping the `data:` prefix from `toBase64Image()` output before passing to pptxgenjs produces "Red X" shapes in PowerPoint. Prevention: pass the full `data:image/png;base64,...` string directly to `addImage({ data: ... })` without any string manipulation.
+
+**PITFALL-8 — Canvas ID collisions across multiple DomainResultCards**
+Static canvas `id` attributes (e.g., `id="cores-chart"`) cause `Chart.getChart()` to return the first registered instance for all domains. Prevention: inject a `canvasId` prop derived from `domain.id` into each chart component (`cores-chart-${domain.id}`).
+
+**PITFALL-9 — XSS via `v-html` in Markdown preview**
+Domain names entered by users are interpolated verbatim into the Markdown report. `<script>` tags in domain names become live HTML after Markdown parsing. Prevention: always pipe through `DOMPurify.sanitize()` before binding to `v-html`. The `dompurify` package added for F8 covers this.
+
+**PITFALL-10 — Locale load race condition on export button click**
+If the user switches locale and immediately clicks Export, `i18n.global.t()` may still return English because the lazy-loaded locale JSON has not resolved. Prevention: add `localeLoading` ref to uiStore; disable export buttons while it is true.
+
+**PITFALL-13 — LandingView showing on URL-hydrated sessions**
+Using `localStorage` or a new InputStateSchema field to track "has seen landing" breaks URL-shared links. Prevention: gate landing view exclusively on `topologyConfirmed` — `hydrateFromUrl()` already calls `ui.confirmTopology()`, so URL-hydrated sessions automatically skip the landing with no additional logic.
+
+**See PITFALLS.md** for the full list including moderate and minor pitfalls with source citations.
+
+---
 
 ## Implications for Roadmap
 
-Based on the combined research, v3.1 breaks cleanly into three sequential phases. The engine fix must land before wizard gating is meaningful; wizard components must land before App.vue integration; exports must update after types are finalized.
+Based on combined research, v3.3 maps to 7 sequential phases. Store foundations must precede all component work; chart refactoring must precede PPTX chart embedding; export localization should precede Markdown preview so the preview shows correct locale from day one.
 
-### Phase 1: Wizard Scaffold and State Architecture
+### Phase 1: Store Foundations + i18n Keys
 
-**Rationale:** Establish all architectural contracts before any implementation — wizard step location, URL exclusion rule, hydration contract, deploymentMode sync contract. Creating these boundaries first prevents all three wizard-related pitfalls (W1, W2, W3) from ever being introduced. This phase is low-risk and high-leverage.
-**Delivers:** uiStore wizard step extension with navigation helpers; four new empty/stub wizard component files; `Step1Topology` wiring that writes `deploymentMode` to both management and workload domains; unit tests for URL exclusion and deploymentMode sync; WizardStepper step indicator UI
-**Addresses:** Table-stakes wizard features (step indicator, navigation, data persistence, back/next buttons)
-**Avoids:** W1 (URL state contamination), W2 (CALC-02 violation), W3 (hydration reset), C3 (deploymentMode divergence)
+**Rationale:** Every other phase depends on store additions and i18n key files. Chart image registry, landing visible flag, and domain duplication action must exist before any component work begins. The `export.*` i18n namespace must be populated before export localization can be tested. Building this first eliminates circular dependencies across all subsequent phases.
 
-### Phase 2: Engine Calculation Order Fix (Management-First)
+**Delivers:** `uiStore` additions (`isLandingVisible`, `dismissLanding`, `chartImages`, `registerChartImage`); `inputStore.duplicateDomain()`; `export.*` key namespace added to all 4 locale JSON files (en, fr, de, it).
 
-**Rationale:** This is the highest-risk change (touches `calculationStore.ts`, affects 236 tests). Must be done TDD: write failing tests for colocated/dedicated aggregate behavior first, then implement the fix. Engine fix must be complete before Step 2 management result card is meaningful and before Step 2-to-3 gating is correct.
-**Delivers:** Correct `domainResults.map()` with conditional management overhead per domain; correct `aggregateTotals` with `dedicatedMgmtHostCount` for dedicated mode; 236+ tests passing; corrected types in `engine/types.ts` if `AggregateTotals` gains `mgmtHostCount` field
-**Uses:** Existing `calcCompute()` signature (no engine changes needed); existing `management` computed in `calculationStore`
-**Implements:** Patterns 2 and 3 from ARCHITECTURE.md (management-first calculation order; aggregate totals restructure)
-**Avoids:** C1 (required parameter breaking tests), C2 (double-counting), P1 (computed order), P2 (overhead applied to all domains)
+**Addresses:** Prereqs for F2, F4, F5/F6, F7
 
-### Phase 3: Wizard UI Integration and Export Accuracy
+**Avoids:** PITFALL-5 (store changes established cleanly before component wiring prevents mid-flight partial writes)
 
-**Rationale:** With correct engine output available, the wizard components can surface meaningful management results at Step 2. Export composables must be updated in this phase (same commits as type changes) to prevent UI/export discrepancy. Step 3 is essentially the current App.vue layout recomposed — low risk.
-**Delivers:** Step2Management with management DomainResultCard; Step3Workloads composing all existing input/result components; App.vue integration replacing flat two-column layout; updated `useMarkdownExport` and `usePptxExport` aggregate sections showing mgmt host breakdown; Step 2 summary panel at top of Step 3
-**Uses:** All existing `input/*` and `results/*` components unchanged (reused inside wizard steps via composition)
-**Implements:** Pattern 4 from ARCHITECTURE.md (WizardStepper component architecture)
-**Avoids:** E1 (stale export values), E2 (synchronous export after state mutation — requires `await nextTick()` in wizard finish handler)
+**Research flag:** Standard patterns — no phase research needed.
+
+---
+
+### Phase 2: Wizard Navigation + Landing View
+
+**Rationale:** Purely additive and independent of all other features. WizardStepper click-back is a single template change using the already-existing `setWizardStep()`. LandingView is a new component using the `isLandingVisible` flag from Phase 1.
+
+**Delivers:** Clickable completed wizard step indicators (F1); first-load landing screen that auto-dismisses on URL hydration (F2).
+
+**Addresses:** F1, F2
+
+**Avoids:** PITFALL-6 (only completed steps clickable — never allow forward jumps that bypass validation gates); PITFALL-13 (landing gated on `topologyConfirmed`, not localStorage or InputStateSchema)
+
+**Research flag:** Standard patterns — no phase research needed.
+
+---
+
+### Phase 3: Domain Duplication
+
+**Rationale:** Self-contained; uses `duplicateDomain()` from Phase 1 but requires no chart or dialog work. High practical value with contained risk.
+
+**Delivers:** "Copy" button per domain tab that deep-clones the domain, assigns new UUID, inserts after source position, activates the clone (F4).
+
+**Addresses:** F4
+
+**Avoids:** PITFALL-4 (`toRaw()` before `structuredClone` to unwrap Pinia proxy); PITFALL-11 (future-proof cloning even if nested fields are added later)
+
+**Research flag:** Standard patterns — no phase research needed.
+
+---
+
+### Phase 4: Per-Domain Charts in Result Cards
+
+**Rationale:** Must precede F5 (PPTX chart images). Chart components need `domainId` prop and `registerChartImage()` wiring before PNG capture can work. This phase also clears the known first-domain bridge debt in `CoresChart`, `RamChart`, `StorageChart`.
+
+**Delivers:** `DomainCoresChart`, `DomainRamChart`, `DomainStorageChart` as prop-driven components; `DomainResultCard` updated to embed them; global first-domain bridge charts removed from `ResultsPanel`; per-domain canvas IDs set from `domain.id` (F6).
+
+**Addresses:** F6
+
+**Avoids:** PITFALL-1 (animation disabled on per-domain charts); PITFALL-2 (use `Chart.getChart(canvasId)` not `chartRef.value.chart`); PITFALL-8 (canvas IDs derived from `domain.id` to prevent collisions)
+
+**Research flag:** Needs validation — confirm `Chart.getChart(canvasId)` lookup timing relative to vue-chartjs v5.3.x render lifecycle. The `watch({ flush: 'post' })` pattern for registering chart images needs empirical verification in the actual dependency version. GitHub issue #1012 confirms the `ref.chart` null behavior; the `Chart.getChart()` workaround timing is the open question.
+
+---
+
+### Phase 5: Topology Confirmation Dialog
+
+**Rationale:** Builds `ConfirmationDialog.vue` as a shared component reusable in Phase 7 (Markdown preview panel close). Isolating dialog infrastructure in its own phase keeps Phase 7 focused on the preview content, not the modal scaffolding.
+
+**Delivers:** `ConfirmationDialog.vue` shared component with `<Teleport to="body">` and Tailwind styling; topology change guard in `TopologySelector.vue` with local `pendingTopology` ref pattern (F3).
+
+**Addresses:** F3
+
+**Avoids:** PITFALL-5 (local `pendingTopology` captured before any store write; only commits on confirmation); PITFALL-12 (styled modal instead of `window.confirm()` for UX consistency)
+
+**Research flag:** Standard patterns — `useConfirmDialog` from @vueuse/core is stable and well-documented.
+
+---
+
+### Phase 6: Localized Exports + PPTX Chart Images
+
+**Rationale:** Requires i18n keys from Phase 1 AND chart image registry populated by Phase 4. Both composables are modified together since they share the same i18n singleton import pattern and export pipeline. PPTX chart embedding is included here because it uses the same `usePptxExport.ts` file being modified for localization.
+
+**Delivers:** `useMarkdownExport.ts` with `i18n.global.t()` for all labels and section headings; `usePptxExport.ts` with same localization plus `slide.addImage()` for per-domain chart PNGs; `localeLoading` guard on export buttons in `ExportToolbar.vue` (F5, F7).
+
+**Addresses:** F5, F7
+
+**Avoids:** PITFALL-3 (use `i18n.global.t()` not `useI18n()`); PITFALL-7 (pass full dataURL with `data:image/png;base64,...` prefix to `addImage`); PITFALL-10 (disable export buttons while `localeLoading` is true)
+
+**Research flag:** Empirical verification needed — run a German-locale PPTX export early in this phase to check whether fixed pptxgenjs column widths truncate longer German/Italian label text. If they do, widen the label column or reduce `fontSize` before writing tests. This is a presentation concern, not a correctness blocker.
+
+---
+
+### Phase 7: Markdown Preview Panel
+
+**Rationale:** Last phase — benefits from F7 localization (preview shows correct locale from day one) and reuses `ConfirmationDialog.vue` infrastructure pattern from Phase 5. Adds `marked` + `dompurify` as the only net-new npm packages.
+
+**Delivers:** `MarkdownPreview.vue` with DOMPurify-sanitized rendered HTML; "Preview" button in `ExportToolbar.vue`; dynamic `import('marked')` on first open to keep it out of the initial bundle (F8).
+
+**Addresses:** F8
+
+**Avoids:** PITFALL-9 (DOMPurify sanitize before `v-html` to prevent XSS from user-entered domain names); PITFALL-15 (dynamic import of `marked` using same pattern as pptxgenjs — loaded on demand, not in initial bundle)
+
+**Research flag:** Verify Tailwind v4 Oxide engine compatibility with `@tailwindcss/typography` plugin before adding it. If not compatible, use `[&_table]`, `[&_h2]`, `[&_h3]` deep-selector manual styles in a scoped style block instead. Check `package.json` first — if `prose` class is already available, no action needed.
+
+---
 
 ### Phase Ordering Rationale
 
-- Phase 1 before Phase 2: Architectural contracts (wizard step location, URL exclusion, deploymentMode sync) must be documented and tested before any implementation uses them. The Step 1 deploymentMode write is also fully independent of the engine fix.
-- Phase 2 before Phase 3: The wizard Step 2 gate ("management sizing must be complete before advancing") is only meaningful if management results are correctly calculated. Surfacing wrong management overhead at Step 2 would mislead users and undermine the tool's core correctness guarantee.
-- Phase 3 is the integration phase: once the engine is correct and the wizard scaffold exists, the UI component assembly and export updates are relatively low-risk compositing work with no new architectural decisions.
+- Phase 1 is the unblocking foundation — uiStore refs and i18n keys are prerequisites for most downstream work.
+- Phases 2 and 3 are fully independent and could be built in parallel by separate developers; they share no component dependencies.
+- Phase 4 (chart refactor) must strictly precede Phase 6 (PPTX chart embedding) because `uiStore.chartImages` is only populated after the per-domain chart components are wired to call `registerChartImage()`.
+- Phase 5 (`ConfirmationDialog.vue`) precedes Phase 7 so the modal infrastructure is tested and available for reuse.
+- Phase 6 (localized exports) precedes Phase 7 (Markdown preview) so the preview renders localized content from day one instead of requiring a later rework.
+- Phases 6 and 7 cannot be parallelized without coordination — both modify `ExportToolbar.vue`.
 
-### Research Flags
+---
 
-Phases likely needing deeper research during planning:
+### Research Flags Summary
 
-- **Phase 2:** The colocated overhead absorption formula has LOW confidence — no official Broadcom VCF 9 document specifies the exact calculation. The derived logic (add `management.totalCores`/`totalRamGB` to WLD-1 compute inputs, use result as colocated cluster host count) is architecturally sound but must be documented as an engineering decision, not a vendor specification.
-- **Phase 2:** VCF 9.x management domain component overhead values (vCPU/RAM per component in simple vs. HA mode) are sourced from community posts (William Lam) and a vendor blog. These are MEDIUM confidence. The existing `calcManagement()` already encodes these values — validation against production deployments may be warranted if the tool is used for production sizing rather than lab/PoC sizing.
+| Phase | Research Needed? | Why |
+|-------|-----------------|-----|
+| Phase 1 (Store foundations) | No | Standard Pinia `ref()` additions and locale JSON files |
+| Phase 2 (Wizard navigation) | No | Single template change using existing `setWizardStep()` |
+| Phase 3 (Domain duplication) | No | Pure store action + button; `structuredClone(toRaw())` pattern is documented |
+| Phase 4 (Per-domain charts) | Yes | vue-chartjs `Chart.getChart()` timing vs `watch({ flush: 'post' })` needs empirical verification |
+| Phase 5 (Topology dialog) | No | `useConfirmDialog` from @vueuse/core is stable and well-documented |
+| Phase 6 (Localized exports) | Partial | German PPTX column width overflow needs empirical test early in phase |
+| Phase 7 (Markdown preview) | Partial | Tailwind v4 + `@tailwindcss/typography` compatibility needs verification before adding dep |
 
-Phases with standard patterns (skip research-phase):
-
-- **Phase 1:** Wizard step in uiStore, URL exclusion pattern, and Vue SFC component scaffolding are all well-documented Vue 3 + Pinia patterns with HIGH confidence. No additional research needed.
-- **Phase 3:** WizardStepper using `v-if` step switching and composing existing components is standard Vue SFC composition. Export composable updates follow the established snapshot-read-at-call-time pattern already used throughout the codebase.
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | No new packages; all technology decisions grounded in official docs and npm registry verification as of March 2026 |
-| Features | MEDIUM | Wizard UX patterns HIGH from multiple authoritative sources; VCF 9.x sizing order MEDIUM from official Broadcom TechDocs; colocated overhead formula LOW — no official spec found |
-| Architecture | HIGH | Grounded in direct codebase inspection of all engine, store, and composable files; specific bugs identified with line references |
-| Pitfalls | HIGH | All critical pitfalls verified against actual codebase patterns; specific file/line/symbol references given; all are preventable with TDD and code review |
+| Stack | HIGH | All key claims verified against official docs and live bundlephobia data (2026-04-10); only 2 new packages needed |
+| Features | HIGH | Direct codebase inspection; existing constraints documented with precision; edge cases catalogued per feature |
+| Architecture | HIGH | Grounded in direct inspection of all stores, composables, components, and engine files from the v3.1 baseline |
+| Pitfalls | HIGH | Multiple pitfalls verified against specific GitHub issues (Chart.js #2743, vue-chartjs #1012, Pinia #1412, pptxgenjs #283, #1351) |
 
-**Overall confidence:** HIGH for implementation approach and architecture; MEDIUM for VCF 9.x domain-specific sizing values
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Colocated overhead formula (LOW confidence):** No official Broadcom VCF 9 document specifies the formula for calculating colocated management overhead absorption into WLD-1. The implementation will follow the derived logic (add management vCPU/RAM to WLD-1 compute inputs). This must be flagged as an engineering assumption in requirements and in code comments inside `calculationStore.ts`.
-- **Production management component overhead values:** The component vCPU/RAM values in `calcManagement()` are sourced from a lab-minimal deployment guide (~48 vCPU / 194 GB RAM simple; ~118 vCPU / ~450 GB RAM HA). A production VCF 9 management domain (25+ VMs, ~234 vCPU, ~825 GB RAM per the WEI blog) significantly exceeds the encoded values. This gap may need a follow-up research ticket if the tool targets production sizing rather than lab/PoC sizing.
-- **Step 1 topology scope:** Research assumes Step 1 writes a global `deploymentMode` to both management and workload domains atomically. If the design intent allows mixed topologies (e.g., management HA + WLD-1 Simple), this must be explicitly specified in requirements before Phase 1 implementation begins. The wizard enforces a single topology choice — this is a deliberate simplification that should be documented.
+- **vue-chartjs Composition API chart instance access timing:** The `Chart.getChart(canvasId)` workaround is prescribed, but the exact timing (mount event vs. `watch({ flush: 'post' })` vs. custom `chart-render` event) needs confirmation against vue-chartjs v5.3.x. Address in Phase 4 before writing chart component tests.
+
+- **Tailwind v4 + `@tailwindcss/typography` compatibility:** If the Oxide engine does not support the typography plugin, Phase 7 must fall back to manual `[&_table]` deep-selector styles. Verify by checking `package.json` and attempting plugin installation before beginning Phase 7. Not a blocking risk — the fallback is straightforward.
+
+- **German/Italian PPTX column width:** Fixed column widths in pptxgenjs slides may truncate labels that are 30% longer in German or Italian than in English. Requires an empirical test export during Phase 6; not a blocking concern but should be caught before the phase is marked complete.
+
+- **`marked` v15 dynamic import named export under Vite 8:** The `await import('marked')` pattern returning `{ marked }` is consistent with the ESM specification and the pattern established by pptxgenjs in this codebase. Verify the named export shape in a quick integration test during Phase 7.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-
-- Codebase direct inspection: `src/stores/calculationStore.ts` — management pass-through bug (lines 57-58), aggregateTotals reducer
-- Codebase direct inspection: `src/stores/uiStore.ts` — ephemeral UI state pattern; basis for wizard step placement recommendation
-- Codebase direct inspection: `src/composables/useUrlState.ts` — URL-04 `activeDomainIndex` exclusion; Zod `.strip()` usage
-- Codebase direct inspection: `src/engine/types.ts` — `ComputeInputs` optional field pattern; `AggregateTotals` structure
-- Codebase direct inspection: `src/engine/compute.ts` — `managementCores` optional parameter already present
-- [Pinia setup stores — official docs](https://pinia.vuejs.org/core-concepts/state.html) — `ref<T[]>()` pattern, `storeToRefs()`
-- [Zod v4 API](https://zod.dev/api) — array schemas, `.min()`, `.default()` semantics
-- [Vue 3 reactivity — nextTick](https://vuejs.org/api/general.html#nexttick) — export composable async pattern
-- [WAI-ARIA Tabs Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) — keyboard navigation standard for stepper/tab components
-- [Broadcom KB 392993](https://knowledge.broadcom.com/external/article/392993/minimum-number-of-esxi-hosts-required-on.html) — minimum ESXi host counts (HIGH — official KB)
+- Chart.js API docs — `toBase64Image()` method, `animation: false` option, `Chart.getChart()` static registry method
+- vue-chartjs official guide — chart instance access via template ref; Composition API behavior
+- pptxgenjs Images API docs — `addImage({ data })` parameter format specification
+- VueUse `useConfirmDialog` docs — headless confirmation composable API and Promise-based resolve pattern
+- vue-i18n Composition API guide — `i18n.global.t()` usage outside Vue component setup context
+- marked.js GitHub releases — v15 vs v16/v17/v18 breaking change documentation
+- DOMPurify GitHub — v3.3.3 stable; bundled TypeScript types
+- Bundlephobia live API (2026-04-10) — `marked@15.0.12`: 38 034 min / 11 678 gz; `dompurify@3.3.3`: 21 436 min / 8 281 gz
+- Direct codebase inspection — all stores, composables, components, and engine files from v3.1 baseline
 
 ### Secondary (MEDIUM confidence)
+- vue-chartjs GitHub issue #1012 — Composition API `ref.chart` null behavior; `Chart.getChart()` workaround
+- Pinia GitHub discussion #1412 — `structuredClone` DOMException on reactive proxies; `toRaw()` fix
+- Chart.js GitHub issue #2743 — blank PNG from animation timing; `animation: false` fix
+- pptxgenjs GitHub issues #283, #1351 — `addImage` Red X from missing dataURL prefix
 
-- [Broadcom TechDocs VCF 9.0 — Management Domain Model](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/design/design-library/workload-domain-deployment-models/management-domain-deployment-model.html) — management-first deployment sequence
-- [VMware Cloud Foundation Blog — VCF 9.0 Deployment Planning, July 2025](https://blogs.vmware.com/cloud-foundation/2025/07/28/planning-a-successful-vmware-cloud-foundation-9-0-deployment/) — sizing sequence
-- [William Lam — Minimal Resources for VCF 9.0 Lab, June 2025](https://williamlam.com/2025/06/minimal-resources-for-deploying-vcf-9-0-in-a-lab.html) — component vCPU/RAM values (community, widely cited)
-- [Eleken — Wizard UI Pattern Best Practices](https://www.eleken.co/blog-posts/wizard-ui-pattern-explained) — step indicator and navigation UX patterns
-- [Flowbite — Tailwind CSS Stepper](https://flowbite.com/docs/components/stepper/) — stepper component reference implementation
-- [Origin UI Vue — Stepper Components](https://www.originui-vue.com/stepper) — Vue 3 + Tailwind stepper reference
-
-### Tertiary (LOW confidence)
-
-- [WEI Blog — What Does It Take to Run VCF 9?](https://www.wei.com/blog/what-does-it-take-to-run-vcf-9/) — production-grade overhead values (234 vCPU, 825 GB RAM for full management domain); vendor blog, not official specification
+### Tertiary (LOW confidence — verify during implementation)
+- Tailwind v4 Oxide + `@tailwindcss/typography` compatibility — not directly verified; check before Phase 7
+- `marked` v15 ESM named export shape under Vite 8 dynamic import — inferred from pptxgenjs pattern in codebase; verify in Phase 7
 
 ---
-*Research completed: 2026-03-30*
+*Research completed: 2026-04-10*
 *Ready for roadmap: yes*

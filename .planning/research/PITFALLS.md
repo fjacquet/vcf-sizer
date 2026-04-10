@@ -1,466 +1,466 @@
-# Pitfalls Research
+# Domain Pitfalls: v3.3 UX Polish & Export Quality
 
-**Domain:** VCF 9.x Client-Side Sizing Calculator SPA — v3.1 Wizard UI + Calculation Order Fix
-**Researched:** 2026-03-30
-**Confidence:** HIGH for pitfalls verified against codebase + Pinia/Vue 3 official docs; MEDIUM for pitfalls backed by community sources and code inspection; LOW where explicitly flagged
-
----
-
-## Scope: v3.1 Sizing Correctness & Guided Workflow
-
-This document is specific to the v3.1 milestone additions on top of the v3.0 multi-domain codebase (Phase 14 complete). The previous PITFALLS.md covered v3.0 array-state concerns. This document covers five new risk areas:
-
-1. **Wizard state management** — wizard step leaking into URL state or causing hydration bugs
-2. **Engine calculation order refactor** — breaking the existing 236 tests while fixing management-first order
-3. **Colocated overhead double-counting** — management vCPU/RAM added to WLD-1 AND still counted in dedicated aggregate
-4. **Pinia computed() dependency ordering** — management results must be available before WLD-1 computation runs
-5. **Export composable staleness** — Markdown/PPTX using pre-refactor calculation values after engine fix
-
-The codebase already has strict contracts established:
-
-- CALC-01: engine files (`src/engine/*.ts`) have zero Vue imports
-- CALC-02: `calculationStore.ts` uses only `computed()`, zero `ref()`
-- URL-04: `activeDomainIndex` is excluded from URL state (ephemeral)
-- Atomic Zod triple-sync: schema + hydrate + serialize must change together
+**Domain:** Vue 3 SPA — UX wizard enhancements + Chart.js export integration
+**Researched:** 2026-04-10
+**Scope:** Integration pitfalls for adding v3.3 features to an existing codebase with established constraints
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall W1: Wizard Step Persisted to URL State
-
-**What goes wrong:**
-A `currentStep` ref (or `wizardStep` signal) is added to `inputStore` to track which of the 3 wizard steps is active. The developer adds it to `InputStateSchema` in `useUrlState.ts` to make the app open on the same step. When a user shares a URL, recipients land mid-wizard (e.g. step 2: Management) with no topology context, and the back-navigation logic produces confusing "incomplete" state. Worse, a bookmarked URL for step 3 causes hydration to skip step 1 validation, allowing domains with no topology decision to be calculated.
-
-**Why it happens:**
-The `activeDomainIndex` exclusion pattern (URL-04) is documented in `useUrlState.ts` but the comment is specific to tab index. A developer adding wizard step tracking reuses the same `inputStore` pattern and instinctively includes it in the schema, not recognizing wizard step as equally ephemeral.
-
-**Consequences:**
-
-- URLs shared from step 2 or 3 produce broken entry-point UX
-- Hydration skips wizard validation gates, allowing malformed state
-- `generateShareUrl()` grows and persists UI-layer state that should be discarded
-- Zod schema drift: wizard step requires a default but the default (step 1) is meaningless without running the wizard
-
-**How to avoid:**
-
-- Store wizard step in a separate store (`uiStore.ts`) or as a local `ref()` in the wizard component, never in `inputStore`
-- Do NOT add `currentWizardStep` (or any wizard-phase field) to `InputStateSchema`, `WorkloadDomainSchema`, or `ManagementDomainSchema`
-- Add an explicit comment in `useUrlState.ts` next to the `activeDomainIndex` exclusion: "wizard step is likewise ephemeral — never serialize"
-- Write a Vitest test: `generateShareUrl()` output must not contain a `wizardStep` key after decompression
-
-**Warning signs:**
-
-- `InputStateSchema` gains a `currentStep`, `wizardPhase`, or `activeStep` field
-- `generateShareUrl()` reads from `uiStore` or any UI-only ref
-- URL compressed string length increases unexpectedly on basic configurations
-
-**Phase to address:** Phase 1 of v3.1 (wizard scaffold) — establish the step-is-ephemeral rule before any state wiring.
+These cause broken exports, silent data corruption, or test regressions if not handled.
 
 ---
 
-### Pitfall W2: Wizard Step in inputStore Violates CALC-02 via Accidental `ref()` Creep
+### PITFALL-1: Blank PNG When Rasterizing Chart.js Canvas for PPTX
 
-**What goes wrong:**
-`inputStore` already contains `activeDomainIndex = ref(0)` as an ephemeral UI ref. A developer adds `currentWizardStep = ref(1)` to the same store for convenience. Nothing breaks immediately because `inputStore` is allowed `ref()`. But a later refactor moves wizard step into `calculationStore` (to conditionally show results only at step 3), violating CALC-02 (calculationStore must be zero `ref()`).
+**What goes wrong:** Calling `chartInstance.toBase64Image()` or `canvas.toDataURL()` immediately after
+a user action or component mount returns a completely blank (white) PNG. The PPTX slide embeds a white
+rectangle instead of a chart.
 
-**Why it happens:**
-`calculationStore` is the natural place to put "are results ready to display" logic, which is tempting to tie to wizard step. The developer forgets that CALC-02 prohibits `ref()` in that store entirely.
+**Why it happens:** Chart.js renders via a canvas animation that completes asynchronously. Vue's
+`nextTick()` resolves after DOM mutations, not after canvas paint. By the time `nextTick` resolves, the
+Chart.js animation has NOT finished drawing. The canvas pixels are still blank.
 
-**Consequences:**
+**Consequences:** Every chart image in the PPTX is a white rectangle. No error is thrown — the PPTX
+generates successfully with blank images. The bug only shows up when opening the exported file.
 
-- `calculationStore` gains mutable state — invalidates the CALC-02 invariant
-- `vue-tsc` will not catch this; it is a semantic constraint, not a type error
-- Future contributors import wizard-gating logic from `calculationStore` thinking it is a computed value, but it is actually mutable
+**Prevention:**
 
-**How to avoid:**
+Option A (preferred, no animation): Set `animation: false` on the Chart.js instance used for export.
+This makes `toBase64Image()` synchronous and safe to call immediately after mount.
 
-- Wizard step lives in `uiStore.ts` exclusively
-- Any "should results be visible" derived state is a `computed()` in `uiStore` that reads `uiStore.currentWizardStep >= 3`
-- `calculationStore` has zero knowledge of wizard state; results are always computed regardless of wizard step
-- Add a lint comment to `calculationStore.ts`: `// CALC-02: zero ref() — see constraints. Any new ref must go to inputStore or uiStore.`
+Option B (callback): Pass `options.animation.onComplete` callback and capture the image only inside
+it. This is complex with vue-chartjs's declarative `:options` pattern and not recommended here.
 
-**Warning signs:**
+Option C: Disable animation globally on the per-domain charts. This is a pragmatic tradeoff acceptable
+for a utility tool where performance perception is secondary to export correctness.
 
-- `import { useUiStore }` appears inside `calculationStore.ts`
-- A `ref()` call appears in `calculationStore`'s setup function body
+**Detection warning signs:** PPTX opens with white image shapes where charts should be; no console
+error; bug only visible after opening the file.
 
-**Phase to address:** Phase 1 of v3.1 (wizard scaffold) — define the uiStore boundary before any wizard state is created.
-
----
-
-### Pitfall W3: Hydration Runs Before Wizard Is Mounted, Then Wizard Resets State
-
-**What goes wrong:**
-`hydrateFromUrl()` in `main.ts` runs before `app.mount()` and correctly populates `inputStore`. The new wizard component mounts at step 1 (Topology) and its `onMounted` hook calls `resetToDefaults()` to initialize a "clean" wizard state — overwriting the hydrated `managementDomain` and `workloadDomains` with factory defaults.
-
-**Why it happens:**
-Wizard frameworks conventionally initialize their own state on mount. The developer adds initialization logic to the wizard's `onMounted` without checking whether URL hydration already populated the store. The pattern is the same as a form component that "resets to defaults" on mount.
-
-**Consequences:**
-
-- Any shared URL silently loses its state the moment the wizard component mounts
-- No error, no warning — the URL is valid but the store is reset over the top of it
-- `hydrateFromUrl()` returns void and has no "was hydrated" signal for the wizard to check
-
-**How to avoid:**
-
-- The wizard must never call any `inputStore` reset on mount
-- Wizard step initialization must be purely UI — set `uiStore.currentWizardStep = 1` but do not touch `inputStore` state
-- If the URL contains valid state, the wizard should advance directly to step 3 (review/results), skipping the guided flow — add a `isHydratedFromUrl` computed to `uiStore` that returns `true` if a `?c=` param was present at startup
-- Write a test: `hydrateFromUrl()` → mount wizard component → `inputStore.workloadDomains.length` must equal the hydrated count
-
-**Warning signs:**
-
-- `inputStore.workloadDomains = [createDefaultWorkloadDomain(0)]` appears in any Vue component lifecycle hook
-- Wizard `onMounted` or `setup()` calls `store.$reset()` or any factory-default assignment
-
-**Phase to address:** Phase 1 of v3.1 (wizard scaffold) — define the hydration-first initialization contract before the wizard component is implemented.
+**Phase that must address it:** Phase implementing "Chart images in PPTX".
 
 ---
 
-### Pitfall C1: Engine Refactor Changes `calcCompute()` Signature, Breaking All 236 Tests at Once
+### PITFALL-2: vue-chartjs ref.chart Null in script setup / Composition API
 
-**What goes wrong:**
-The colocated overhead fix requires `calcCompute()` to optionally receive a new flag such as `isColocated: boolean` and conditionally include management overhead. If the developer adds a required parameter instead of an optional one, all existing callers (tests + `calculationStore`) fail to compile. With 236 tests, this can appear as a catastrophic failure that makes the refactor seem broken even when the new logic is correct.
+**What goes wrong:** Accessing `chartRef.value.chart` inside `<script setup>` returns null or
+undefined. The chart instance cannot be retrieved via Vue template refs when using the Composition API
+with vue-chartjs.
 
-**Why it happens:**
-TypeScript interfaces enforce required vs optional properties strictly. `ComputeInputs` (defined in `src/engine/types.ts`) is the interface passed to `calcCompute()`. Adding a required field without a default breaks every spread-pattern call in tests such as `calcCompute({ ...baseInputs, managementCores: 50 })`.
+**Why it happens:** vue-chartjs chart components (Bar, Line, etc.) do not expose their internal `chart`
+property via `defineExpose()` in the Composition API version. The `ref.chart` pattern only works with
+the Options API. This is a confirmed limitation (GitHub issue #1012 on apertureless/vue-chartjs).
 
-**Consequences:**
+**Consequences:** Any parent-level code that tries to call `toBase64Image()` through a template ref
+to a chart component silently receives null, causing a TypeError at export time.
 
-- `vue-tsc` fails on every engine test file simultaneously
-- The entire test suite goes red before any new logic is validated
-- Developer may abandon the refactor or over-patch tests before the logic is correct
+**Prevention:** Use `Chart.getChart(canvasId)` instead of relying on the Vue template ref. Assign a
+stable `id` attribute to the canvas element within each chart component, then retrieve the instance
+via the Chart.js static registry: `Chart.getChart("cores-chart-wld-1")`. The canvas ID must be
+per-domain to avoid collisions when multiple DomainResultCards render simultaneously.
 
-**How to avoid:**
+**Detection warning signs:** `chartRef.value?.chart` logs null in onMounted; TypeError when calling
+`.toBase64Image()`.
 
-- Add any new fields to `ComputeInputs` as optional with `?` and default inside `calcCompute` via destructuring defaults: `const { isColocated = false } = inputs`
-- This is the established pattern in the codebase — `nvmeTieringEnabled`, `activeMemoryPct`, `gpuVmCount`, `vgpuMemoryGB` are all optional with defaults in `ComputeInputs`
-- Write the new test cases for colocated behavior FIRST (TDD wave 0), confirm they fail for the right reason, THEN add the optional field
-- Run `npx vitest run src/engine/compute.test.ts` after each change — not the full suite — to isolate regression from new behavior
-
-**Warning signs:**
-
-- A new field in `ComputeInputs` lacks `?`
-- `vue-tsc` reports 50+ errors simultaneously after a single interface change
-- `calculationStore.ts` shows TypeScript errors on the `calcCompute({...})` call
-
-**Phase to address:** Phase 2 of v3.1 (engine calculation order fix) — enforce optional-with-default pattern before touching the interface.
+**Phase that must address it:** Phase implementing "Chart images in PPTX".
 
 ---
 
-### Pitfall C2: Colocated Mode Double-Counting Management Overhead
+### PITFALL-3: i18n t() Not Available in Plain TypeScript Composables
 
-**What goes wrong:**
-In colocated mode (`managementArchitecture === 'shared'`), management VMs run inside WLD-1. The engine fix adds `managementCores` and `managementRamGB` to the WLD-1 `calcCompute()` call (already done via `management.value.totalCores`). Then, `aggregateTotals` also adds `dedicatedMgmtHostCount` to `totalRecommendedHosts` — but `dedicatedMgmtHostCount` is only non-null when `managementArchitecture === 'dedicated'`. The bug occurs if that guard is removed or if a new "management host count" field is added to `AggregateTotals` without checking the architecture flag first.
+**What goes wrong:** Calling `useI18n()` inside `useMarkdownExport.ts` or `usePptxExport.ts` throws
+"Must be called at the top of a setup function" at runtime. Localization cannot be added to these
+plain TS composables using the standard vue-i18n composable pattern.
 
-**Current state (from code inspection):** `dedicatedMgmtHostCount` in `calculationStore.ts` already returns `null` when not dedicated. `aggregateTotals.totalRecommendedHosts` sums only `domainResults` (workload domains). This is correct for the current code. The risk is in the v3.1 refactor where a developer adds an explicit `managementHostCount` to `AggregateTotals` for the results display and forgets to conditionally add it only for dedicated mode.
+**Why it happens:** `useI18n()` is a Vue composable that requires an active component instance
+context. The existing composables are intentionally plain TypeScript with no Vue lifecycle
+(CALC-01/CALC-02), so they have no component context.
 
-**Why it happens:**
-The management overhead for colocated mode is already embedded in WLD-1's `recommendedHostCount` via `managementCores`/`managementRamGB` passed to `calcCompute`. Adding a separate `managementHostCount` field to `AggregateTotals` and summing it unconditionally counts that overhead twice: once through WLD-1's larger host count, once as an additional explicit management host count.
+**Consequences:** Localized strings in Markdown/PPTX output cannot be accessed via the standard path.
+Using `i18n.global.t()` directly works but creates a hidden ordering dependency: if the locale is
+still loading (lazy-loaded fr/de/it) when export is triggered, `i18n.global.t()` falls back to `en`
+silently rather than wait for the load to complete.
 
-**Consequences:**
+**Prevention:**
 
-- The aggregate host count is inflated (e.g. shows 12 total hosts when correct answer is 8)
-- The PPTX and Markdown exports reproduce the inflated number
-- Procurement decisions based on the export are incorrect
-- No test catches this unless there is an explicit test for colocated aggregate totals
+1. Use `i18n.global.t()` from the exported `i18n` instance in `src/i18n/index.ts` — NOT `useI18n()`.
+   The instance is a named export and is always available without a component context.
 
-**How to avoid:**
+2. Guard locale loading: before generating the report, verify `i18n.global.locale.value` matches
+   `uiStore.locale`. If the user switched locale but the `loadLocale()` promise has not resolved,
+   export should await it or the export button should be disabled until locale is loaded.
 
-- The correct formula is:
-  - Dedicated: `totalRecommendedHosts = sum(domainResults.recommendedHostCount) + dedicatedMgmtHostCount`
-  - Colocated: `totalRecommendedHosts = sum(domainResults.recommendedHostCount)` (management overhead already in WLD-1)
-- Add a Vitest test that sets `managementArchitecture = 'shared'`, runs the full store, and asserts `aggregateTotals.totalRecommendedHosts === domainResults[0].compute.recommendedHostCount` (no extra hosts added)
-- Add a second Vitest test for `managementArchitecture = 'dedicated'` that asserts the dedicated host count is summed in
-- Document the formula in `calculationStore.ts` as a comment on `aggregateTotals`
+3. All new i18n keys used in exports MUST be defined in all four locale files (en, fr.json, de.json,
+   it.json). Missing keys fall back to `en` silently — the German PPTX will contain English section
+   headers with no warning.
 
-**Warning signs:**
+**Detection warning signs:** Console warns "Cannot call useI18n..."; export always appears in English
+regardless of UI locale; missing translation keys produce the key string in output.
 
-- `AggregateTotals` interface gains a `managementHostCount` field without a guard comment
-- `aggregateTotals` computed adds any management-related count without checking `input.managementArchitecture`
-- The colocated test configuration shows a host count higher than the workload-only calculation
-
-**Phase to address:** Phase 2 of v3.1 (engine calculation order fix) — write the colocated aggregate test as a failing test before the engine change.
-
----
-
-### Pitfall C3: Management `deploymentMode` Diverges from WLD-1 `deploymentMode` After Wizard Step 1
-
-**What goes wrong:**
-In the current system, the management domain has its own `deploymentMode` in `ManagementDomainConfig`, independent of workload domains. The wizard's Step 1 (Topology selection) sets a global topology (simple/HA/stretch). If Step 1 writes `managementDomain.deploymentMode` but not each `workloadDomain.deploymentMode`, or vice versa, the two can diverge. A user selecting "HA" in Step 1 gets HA management overhead (118 cores) but Simple workload sizing — the recommended host count is wrong in both directions.
-
-**Why it happens:**
-`ManagementDomainConfig` and `WorkloadDomainConfig` both have a `deploymentMode` field. They are independent by design (DOM-03). The wizard introduces a single "topology choice" that is expected to affect both, but the wiring must explicitly copy the selected mode to all domains.
-
-**Consequences:**
-
-- Management overhead calculated at HA level (118 cores) but workload hosts sized for Simple — cluster is under-provisioned
-- Or: workload domains at stretch but management at simple — wrong management stack size, wrong stretch multiplier
-- A shared URL from a post-wizard state is internally consistent, but a URL built by manually editing inputs may not be
-
-**How to avoid:**
-
-- Step 1 of the wizard writes `deploymentMode` to BOTH `managementDomain.deploymentMode` AND every `workloadDomain.deploymentMode` via `inputStore.updateManagementDomain({ deploymentMode })` + `inputStore.workloadDomains.forEach(d => store.updateDomain(d.id, { deploymentMode }))`
-- Or: introduce a single `globalDeploymentMode` ref in `inputStore` that both management and workload domains read from (simpler for wizard, but a larger refactor)
-- Write a validation function in the engine or store that warns when `managementDomain.deploymentMode !== workloadDomains[0].deploymentMode` (unless the design explicitly allows mixed topologies)
-
-**Warning signs:**
-
-- Wizard Step 1 only calls `updateManagementDomain()` but not `updateDomain()` for workload domains
-- `calcManagement()` and `calcCompute()` are called with different `deploymentMode` values in the same render cycle
-
-**Phase to address:** Phase 1 of v3.1 (wizard scaffold) — define the topology-write contract before Step 1 is wired up.
+**Phase that must address it:** Phase implementing "Localized Markdown + PPTX exports".
 
 ---
 
-### Pitfall P1: Pinia `computed()` Evaluation Order Is Not Guaranteed Across Stores
+### PITFALL-4: structuredClone Fails on Pinia Reactive Proxy Objects
 
-**What goes wrong:**
-`calculationStore` reads `management.value.totalCores` (a computed) to pass into `calcCompute()` for each workload domain. If a developer restructures the store to call `calcManagement()` inline inside `domainResults.computed()` (to avoid cross-store dependency), and that inline call uses `inputStore.managementDomain.deploymentMode`, the result is correct. However, if the developer instead reads `useCalculationStore().management` from inside another computed in a third store or component, they may inadvertently trigger a nested computed evaluation before management's dependencies are fully resolved.
+**What goes wrong:** Copying a `WorkloadDomainConfig` from `inputStore.workloadDomains` using
+`structuredClone(domain)` throws a `DOMException: Failed to execute 'structuredClone'` because Pinia
+reactive proxies are not clonable by the structured clone algorithm.
 
-**Why it happens:**
-Vue 3's reactivity system evaluates `computed()` lazily — they run when accessed, not in declaration order. When `management` is declared before `domainResults` in `calculationStore`'s setup function, accessing `management.value` inside `domainResults`' getter is safe because Vue tracks the dependency and re-evaluates in topological order. The risk is only when a developer moves `management` after `domainResults` in the file, or calls `useCalculationStore()` in a new store that also calls `useCalculationStore()` (circular dependency).
+**Why it happens:** Pinia stores wrap state in Vue reactive proxies. `structuredClone()` only handles
+plain serializable values, not Proxy objects. This is confirmed behavior (Pinia GitHub discussion
+#1412).
 
-**Current state (from code inspection):** `calculationStore.ts` already declares `const management = computed(...)` before `const domainResults = computed(...)`. This ordering is safe. Do not change it.
+**Consequences:** The "Copy domain" feature crashes at runtime without a build-time error. The failure
+only surfaces when the user clicks "Duplicate domain" on a non-trivial configuration.
 
-**Consequences:**
+**Prevention:** Unwrap the proxy before cloning:
 
-- `management.value` could return a stale result the first time `domainResults` is evaluated if the dependency graph is broken
-- No runtime error; results appear correct on subsequent reactive updates but wrong on initial render
-- Hard to reproduce in tests because Vitest evaluates synchronously
+```typescript
+import { toRaw } from 'vue'
+const rawDomain = toRaw(domain)
+const copy = structuredClone(rawDomain)
+copy.id = crypto.randomUUID()
+copy.name = `${rawDomain.name} (copy)`
+```
 
-**How to avoid:**
+The `addDomain()` action in `inputStore` uses `createDefaultWorkloadDomain()` which handles id
+generation. A new `duplicateDomain()` action needs the same id-regeneration logic.
 
-- Preserve the declaration order in `calculationStore.ts`: `management` → `dedicatedMgmtHostCount` → `domainResults` → `aggregateTotals`
-- Never re-order these computed declarations. Add a comment: `// ORDER MATTERS: management must be declared before domainResults (dependency graph)`
-- Do not add a new store that calls `useCalculationStore()` inside its own setup — this creates a cross-store computed chain that Vue may not resolve correctly in all hydration paths
-- If a new store needs management results, have it read from `inputStore.managementDomain.deploymentMode` and call `calcManagement()` directly (pure function, safe to call from anywhere)
+**Detection warning signs:** DOMException in console on "Copy domain" click; test passes with plain
+objects but fails with storeToRefs-returned objects.
 
-**Warning signs:**
-
-- `const domainResults = computed(...)` appears before `const management = computed(...)` in `calculationStore.ts`
-- A new store file contains `import { useCalculationStore }` in its setup function body
-- Initial page load shows different results than after the first user interaction
-
-**Phase to address:** Phase 2 of v3.1 (engine calculation order fix) — add an ordering comment before touching `calculationStore`.
-
----
-
-### Pitfall P2: Adding `managementCores` / `managementRamGB` to Colocated WLD-1 When They Are Already Passed
-
-**What goes wrong:**
-Looking at `calculationStore.ts` lines 57-58, `calcCompute` is already called with `managementCores: management.value.totalCores` and `managementRamGB: management.value.totalRamGB` for every domain in the `domainResults` computed. The intent for dedicated mode is that only WLD-1 carries management overhead. The v3.1 fix must ensure management overhead is applied ONLY to WLD-1 when colocated, and NOT applied to any domain when dedicated (because dedicated management runs on separate hosts).
-
-The double-application bug: if the developer misreads the current code and thinks management overhead is missing from the calculation (it is already there for every domain), they add it again — now management overhead is counted twice in WLD-1.
-
-**Why it happens:**
-The current code passes `management.value.totalCores` to ALL domains unconditionally. This is technically wrong for dedicated mode (management has its own hosts) and partially wrong for colocated (only WLD-1 should carry it). The v3.1 fix needs to CHANGE the logic, not ADD more overhead.
-
-**Correct target logic:**
-
-- Colocated (`shared`): WLD-1 receives `managementCores: management.value.totalCores`, all other WLD-N receive `managementCores: 0`
-- Dedicated: all WLD-N receive `managementCores: 0` (management has its own hosts)
-
-**Consequences:**
-
-- Every workload domain beyond WLD-1 is oversized in colocated mode
-- In dedicated mode, all workload domains are currently oversized (they carry management overhead that belongs to separate management hosts)
-- The test suite for dedicated mode will fail if it checks that WLD-2 does NOT include management overhead
-
-**How to avoid:**
-
-- Before writing any new code, write tests that encode the expected behavior:
-  - Test: colocated, WLD-1 `totalCoresRequired` includes management overhead
-  - Test: colocated, WLD-2 (if present) `totalCoresRequired` does NOT include management overhead
-  - Test: dedicated, WLD-1 `totalCoresRequired` does NOT include management overhead (separate hosts handle it)
-- In `domainResults` computed, the management cores passed to each domain should be:
-
-  ```typescript
-  const mgmtCores = (input.managementArchitecture === 'shared' && isFirstDomain)
-    ? management.value.totalCores : 0
-  ```
-
-- The `isFirstDomain` check must use domain index (position 0 in `input.workloadDomains`), not domain ID
-
-**Warning signs:**
-
-- All domains in `domainResults.map()` receive the same non-zero `managementCores`
-- WLD-2 result card shows "Management overhead included" in the results display
-- The aggregate host count grows linearly with domain count even when management is dedicated
-
-**Phase to address:** Phase 2 of v3.1 (engine calculation order fix) — this is the core fix, must be test-driven.
+**Phase that must address it:** Phase implementing "Domain duplication".
 
 ---
 
-### Pitfall E1: Export Composables Read `calc.management` After Refactor Returns New Field Names
+### PITFALL-5: Topology Confirmation Flag Not Reset After Topology Change Dialog Cancellation
 
-**What goes wrong:**
-`useMarkdownExport.ts` and `usePptxExport.ts` read directly from `useCalculationStore()` — specifically `calc.management.totalCores`, `calc.management.totalRamGB`, `calc.dedicatedMgmtHostCount`, and per-domain `result.compute.*` fields. If the v3.1 refactor adds new fields to `MgmtDomainResult` or `ComputeResult` (e.g. a `managementIncluded: boolean` flag, or a new `managementHostCount` on `AggregateTotals`), the exports must be updated simultaneously or they silently omit the new data.
+**What goes wrong:** The topology change confirmation dialog is shown when workloads already exist
+and the user clicks a different topology button. If the guard is implemented incorrectly — for
+example, by writing `deploymentMode` optimistically then rolling back on cancel — the store is left
+in an inconsistent state where `managementDomain.deploymentMode !== workloadDomains[0].deploymentMode`.
 
-**Why it happens:**
-The export composables are plain TypeScript modules (no reactive bindings) that take a snapshot of store state at call time. They are not tested for "completeness" — the tests verify that known fields appear in the output, not that all new fields from the engine are included. A field added to `AggregateTotals` in Phase 2 will not automatically appear in the Markdown report until `useMarkdownExport.ts` is updated.
+**Why it happens:** The current `TopologySelector.vue` calls `setGlobalTopology()` on every click
+with no guard. `setGlobalTopology()` writes both `deploymentMode` AND calls `ui.confirmTopology()`
+atomically. Inserting an async confirmation step mid-flight breaks this atomic guarantee unless the
+intent is captured BEFORE writing.
 
-**Consequences:**
+**Consequences:** Mixed topology state causes incorrect sizing calculations and violates the "atomic
+topology write" invariant documented in architecture.md. A stretch management domain with HA workload
+domains produces wrong host counts.
 
-- Markdown and PPTX exports continue to show pre-refactor numbers (e.g. management overhead in every domain instead of only WLD-1)
-- The UI results panel (which reads from the store reactively) shows correct numbers, but exports show different numbers — discrepancy erodes user trust
-- No TypeScript error if the export reads `result.compute.totalCoresRequired` directly — the field exists but its value is now computed differently
+**Prevention:**
 
-**How to avoid:**
+1. Capture the intended new topology in a local variable BEFORE writing to the store.
+2. Show the confirmation dialog.
+3. Only call `setGlobalTopology(newMode)` if the user confirms.
+4. If the user cancels, do not write to the store. The button visually reverts because `currentMode`
+   is computed from the store.
 
-- Treat export composable updates as mandatory in the same phase as the engine/store refactor, not deferred
-- After the engine refactor, run the full export test suite and verify numbers: `npx vitest run src/composables/`
-- Add a test that explicitly checks the exported management overhead section reflects the post-refactor values (management section appears once, outside the per-domain loop)
-- If `AggregateTotals` gains a new `managementHostCount` field, add it to `useMarkdownExport.ts` `## Aggregate Totals` section in the same commit
+The guard logic must live in `TopologySelector.vue` (component layer), not in `uiStore` or
+`inputStore`, to keep store actions side-effect-free.
 
-**Warning signs:**
+**Detection warning signs:** After cancelling a topology change dialog, `managementDomain.deploymentMode`
+differs from `workloadDomains[0].deploymentMode`; URL state round-trip test fails with mixed modes.
 
-- A new field is added to `AggregateTotals` or `DomainResult` but `useMarkdownExport.ts` and `usePptxExport.ts` are not modified in the same PR/commit
-- The Markdown export test for aggregate totals passes but the computed value of `totalRecommendedHosts` has changed
-- "Recommended hosts" in the Markdown output does not match the `AggregateTotalsCard` UI
-
-**Phase to address:** Phase 2 of v3.1 (engine refactor) and Phase 3 (export accuracy) — export updates must be co-committed with store changes.
-
----
-
-### Pitfall E2: Export Composables Capture Stale Computed Values If Called Before Vue Flushes
-
-**What goes wrong:**
-`useMarkdownExport.generateMarkdownReport()` is called synchronously in an `@click` handler in `ExportToolbar.vue`. It calls `useCalculationStore()` which reads `computed()` values. If the click handler is triggered immediately after a store mutation (e.g. the user changes a slider and immediately clicks export), Vue 3's computed values may not yet have been re-evaluated in the same synchronous tick.
-
-**Why it happens:**
-Vue 3 batches reactive updates and flushes them asynchronously (via microtask queue). A `computed()` is lazy — it is re-evaluated the next time it is accessed after its dependencies change. In a synchronous export triggered by a button click, the computed values ARE re-evaluated at the time they are read because the click handler runs after the previous microtask batch has flushed. However, if the export is triggered programmatically (e.g. in a wizard "finish" step that also mutates store state), the mutation and the export may happen in the same synchronous call chain before Vue flushes.
-
-**Current risk for v3.1:** The wizard "Finish" button in Step 3 may both mark the wizard as complete AND trigger an auto-export or display a result summary — if the same event handler mutates state and reads export data, there is a risk of stale reads.
-
-**Consequences:**
-
-- Exported report shows results from before the last input change
-- The discrepancy is subtle (one slider position off) and may not be caught in manual testing
-
-**How to avoid:**
-
-- Never mutate store state and call `generateMarkdownReport()` / `generatePptxReport()` in the same synchronous function body
-- If the wizard finish step needs to both finalize state AND show results, use `await nextTick()` between the state write and the export call
-- In tests: after any store mutation that should affect export output, call `await nextTick()` before asserting export string content
-
-**Warning signs:**
-
-- A wizard "onFinish" or "onComplete" handler both calls `store.updateDomain(...)` and `generateMarkdownReport()` without `await nextTick()`
-- Export tests intermittently fail on CI but pass locally
-
-**Phase to address:** Phase 3 of v3.1 (export accuracy) — add `nextTick()` guard as a pattern in the wizard completion handler from the start.
+**Phase that must address it:** Phase implementing "Topology change confirmation dialog".
 
 ---
 
-## Technical Debt Patterns
+### PITFALL-6: WizardStepper Click-Back Leaves Stale Management Config From Previous Topology
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Store wizard step in `inputStore` instead of `uiStore` | One fewer store to create | Wizard step bleeds into serialization surface; Zod schema grows | Never — uiStore is the correct home |
-| Pass management overhead to all domains equally | Simpler `domainResults.map()` | Dedicated mode oversizes every workload domain; colocated mode oversizes WLD-2+ | Never for v3.1+ |
-| Skip writing colocated-vs-dedicated aggregate tests | Faster Phase 2 | Double-counting bug survives undetected until a customer report | Never — test must precede implementation |
-| Update export composables after engine refactor in a follow-up PR | Smaller Phase 2 diff | Exports show wrong numbers for potentially days/sprints | Acceptable only if exports are blocked by a feature flag |
-| Use a required parameter in `ComputeInputs` for new colocated flag | Simpler function signature | All 236 existing tests break at compile time | Never — use optional with default |
-| Share one `deploymentMode` field via wizard write to all domains at once | Simple UX, single source | Domains diverge if user manually changes one domain's mode post-wizard | Acceptable if the UI prevents per-domain mode changes after wizard completes |
+**What goes wrong:** When a user clicks step 1 from step 2 or 3, `topologyConfirmed` remains `true`,
+so the Next button is immediately re-enabled. If the user changes topology in step 1, the management
+domain configuration from step 2 (dedicated host count, storage type, host specs) remains from the
+old topology. The management domain does NOT auto-reset on topology change — only `deploymentMode` is
+written atomically by `setGlobalTopology()`.
 
----
+**Why it happens:** `setGlobalTopology()` writes `deploymentMode` to all domains but does not reset
+`managementDomain` host specs or `managementArchitecture`. Going back to step 1 without resetting
+step 2 configuration leaves stale management data.
 
-## Integration Gotchas
+**Consequences:** A user who configures dedicated management for 6 hosts (valid for HA topology), then
+goes back to step 1 and switches to Stretch, then proceeds to step 3 will have a dedicated management
+configuration that violates `STRETCH_DEDICATED_MGMT_MIN_HOSTS = 8`. The validation error surfaces in
+step 3, not at the point of topology change — confusing and late.
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Wizard step ↔ URL state | Serializing `currentWizardStep` in `generateShareUrl()` | Keep wizard step in `uiStore` only; never pass to `generateShareUrl()` |
-| Wizard step ↔ `hydrateFromUrl()` | Wizard `onMounted` resets `inputStore` after `hydrateFromUrl()` ran | Wizard initializes only `uiStore.currentWizardStep`; never touches `inputStore` on mount |
-| Management `deploymentMode` ↔ WLD-1 `deploymentMode` | Wizard Step 1 writes only to `managementDomain` | Step 1 writes to BOTH `managementDomain` and all `workloadDomains` |
-| `calcCompute()` ↔ colocated overhead | Adding new management overhead on top of existing `managementCores` pass-through | Replace existing unconditional pass with conditional: `isFirstDomain && colocated ? management.value.totalCores : 0` |
-| `aggregateTotals` ↔ dedicated host count | Adding `dedicatedMgmtHostCount` to the sum unconditionally | Guard with `input.managementArchitecture === 'dedicated'` before adding |
-| Export composable ↔ engine refactor | Exporting before updating the composables to use new field names | Update export composables in the same commit as engine type changes |
-| Vue `nextTick()` ↔ wizard finish handler | Mutating store and calling export synchronously | Use `await nextTick()` between final state write and any export or snapshot call |
+**Prevention:**
 
----
+1. Gate step indicator clicks to backward navigation only (target step must be <= current step). Never
+   allow forward jumps that bypass a gate.
+2. Do NOT auto-reset management configuration on topology change — this would be destructive.
+3. Display a soft warning in the step 2 management section when the topology has changed since the
+   management configuration was last confirmed (compare stored `deploymentMode` with new selection).
+4. The topology change confirmation dialog (PITFALL-5) should mention that management configuration
+   may need review.
 
-## Performance Traps
+**Detection warning signs:** Validation errors appear in step 3 referencing management host minimum
+after a topology change; `dedicatedMgmtHostCount` is inconsistent with the selected topology.
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| `domainResults` computed re-evaluates for every wizard step transition | Jank on step navigation if many domains | Wizard transitions must not mutate `inputStore` state gratuitously | Noticeable at 5+ domains with complex storage configs |
-| Wizard component mounts all 3 step panels simultaneously (v-if vs v-show) | All 3 steps render on load, increasing DOM nodes and initial parse time | Use `v-if` not `v-show` for wizard steps — unmount inactive steps | Not a real concern at current form complexity, but good practice |
-| Management `computed()` called on every domain in `domainResults.map()` via `management.value` | Redundant re-reads if management inputs are stable | `management` is a single `computed()` in `calculationStore` — Vue caches it; reads are O(1) after first evaluation | Not a real concern — Vue's computed caching prevents this |
+**Phase that must address it:** Phase implementing "Click WizardStepper step to jump back".
 
 ---
 
-## UX Pitfalls
+## Moderate Pitfalls
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Wizard "Back" button discards inputs entered in the current step | Users lose management domain specs when navigating back from Step 2 to Step 1 | Wizard back navigation must preserve store state; only topology change on Step 1 reconfirm should prompt "this will reset management inputs" |
-| Wizard step indicator shows step 3 as active before step 1 is complete | User confusion about workflow | Step 3 tab/button is disabled or visually locked until Step 2 is complete |
-| Wizard "Finish" reveals results panel but export buttons are visible from Step 1 | Users may export before entering data | Export toolbar appears only at Step 3 or is disabled with tooltip "complete all steps first" |
-| Colocated mode shows no dedicated management host count but users expect to see it | Architects may assume management hosts are not counted | Results panel for colocated mode shows "Management overhead included in WLD-1 host count: X hosts" — makes the implicit explicit |
-| Step 1 topology change after Step 2 management config is entered | User silently loses HA management sizing when switching to Simple | Step 1 topology change after Step 2 completion must show a confirmation dialog warning that management specs will be recalculated |
+These cause incorrect output or degraded UX but are recoverable without architectural changes.
 
 ---
 
-## "Looks Done But Isn't" Checklist
+### PITFALL-7: PPTX addImage dataURL Must Include Full MIME Prefix
 
-- [ ] **Wizard step exclusion from URL:** `generateShareUrl()` output does not contain `wizardStep`, `currentStep`, or any wizard-phase key — verify by decompressing the output and parsing the JSON
-- [ ] **Colocated aggregate correctness:** `aggregateTotals.totalRecommendedHosts` for a colocated single-domain config equals `domainResults[0].compute.recommendedHostCount` (no separate management host count added)
-- [ ] **Dedicated aggregate correctness:** `aggregateTotals.totalRecommendedHosts` for dedicated mode equals `domainResults[0].compute.recommendedHostCount + dedicatedMgmtHostCount`
-- [ ] **WLD-2 management exclusion:** In colocated multi-domain config, `domainResults[1].compute.totalCoresRequired` does NOT include management cores
-- [ ] **Dedicated WLD-1 management exclusion:** In dedicated mode, `domainResults[0].compute.totalCoresRequired` does NOT include management cores
-- [ ] **Export parity:** `generateMarkdownReport()` aggregate totals section shows the same host count as `AggregateTotalsCard` UI component
-- [ ] **All 236 tests pass:** `npm run test` passes after engine refactor with zero regressions
-- [ ] **vue-tsc clean:** `npm run type-check` passes after any `ComputeInputs` or `AggregateTotals` interface change
-- [ ] **URL round-trip with wizard present:** A URL generated post-wizard hydrates correctly and the wizard shows Step 3 (or directly shows results) rather than Step 1
-- [ ] **Management `deploymentMode` sync:** After wizard Step 1, `inputStore.managementDomain.deploymentMode === inputStore.workloadDomains[0].deploymentMode`
+**What goes wrong:** Passing a raw base64 string without the `data:image/png;base64,` prefix to
+pptxgenjs `addImage({ data: ... })` causes a "red X" placeholder or a "needs repair" dialog in
+PowerPoint.
 
----
+**Why it happens:** pptxgenjs `data` parameter expects the full data URL exactly as returned by
+`canvas.toDataURL('image/png')` or `chartInstance.toBase64Image()`. If code strips the prefix (using
+`.split(',')[1]`), pptxgenjs cannot detect the image type and generates a malformed slide part.
 
-## Recovery Strategies
+**Prevention:** Pass the full return value of `toBase64Image()` or `canvas.toDataURL()` directly
+to `addImage({ data: dataUrl })` without stripping the prefix. The format should be:
+`"data:image/png;base64,iVBOR..."`.
 
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Wizard step accidentally serialized to URL | LOW | Remove field from `InputStateSchema`; the `.strip()` directive discards unknown keys from old URLs automatically — no migration needed |
-| Engine refactor breaks 50+ tests simultaneously | MEDIUM | Revert `ComputeInputs` interface change; make the new field optional; rerun tests; proceed with optional field + default |
-| Colocated double-counting discovered post-release | HIGH | Requires corrected engine + new export composable + user communication that previous exports were inflated; fix is straightforward (one `if` guard) but trust damage is real |
-| Wizard `onMounted` reset overwrites hydration | MEDIUM | Remove the reset; replace with a check `if (!isHydratedFromUrl) { /* initialize defaults */ }` |
-| Export composables show pre-refactor numbers | LOW | Update both `useMarkdownExport.ts` and `usePptxExport.ts` to read the new field; covered by existing export test suite |
-| `management.value` stale on initial render | LOW | Ensure `management` computed is declared before `domainResults` in `calculationStore.ts`; Vue's topological evaluation handles the rest |
+**Detection warning signs:** Red X shapes in PPTX; PowerPoint "repair" dialog on open.
+
+**Phase that must address it:** Phase implementing "Chart images in PPTX".
 
 ---
 
-## Pitfall-to-Phase Mapping
+### PITFALL-8: Per-Domain Chart Canvas ID Collisions Across Multiple DomainResultCards
 
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| W1: Wizard step in URL state | Phase 1 (wizard scaffold) | `generateShareUrl()` unit test: decompressed output has no wizardStep key |
-| W2: Wizard step in calculationStore | Phase 1 (wizard scaffold) | Code review gate: `calculationStore.ts` has zero `ref()` calls |
-| W3: Wizard onMounted resets hydrated state | Phase 1 (wizard scaffold) | Integration test: `hydrateFromUrl()` → mount wizard → store state unchanged |
-| C1: Required parameter breaks 236 tests | Phase 2 (engine refactor) | `npm run test` must pass before any new logic is added |
-| C2: Colocated double-counting aggregate | Phase 2 (engine refactor) | Vitest: colocated single-domain `totalRecommendedHosts === domainResults[0].compute.recommendedHostCount` |
-| C3: Management/WLD deploymentMode divergence | Phase 1 (wizard scaffold) | Vitest: after Step 1 write, both deploymentModes equal the selected topology |
-| P1: Computed declaration order | Phase 2 (engine refactor) | Code review: order preserved; comment added to `calculationStore.ts` |
-| P2: Management overhead applied to all domains | Phase 2 (engine refactor) | Vitest: WLD-2 `totalCoresRequired` equals workload-only value with `managementCores: 0` |
-| E1: Export composables use pre-refactor field values | Phase 2+3 (export accuracy) | Export test: markdown aggregate hosts == store `aggregateTotals.totalRecommendedHosts` |
-| E2: Stale computed snapshot on wizard finish | Phase 3 (export accuracy) | Test: state mutation + `await nextTick()` + export call produces current values |
+**What goes wrong:** When multiple `DomainResultCard` components render simultaneously, each renders
+`CoresChart`, `RamChart`, and `StorageChart`. If these chart components use a static canvas `id`
+attribute (e.g. `id="cores-chart"`), Chart.js warns about duplicate canvas IDs and
+`Chart.getChart("cores-chart")` returns the first registered instance for all domains.
+
+**Why it happens:** The current chart components are designed for first-domain display only. When
+refactored into per-domain charts (v3.3 feature), they receive a domain id as a prop but the canvas
+element still needs a unique HTML id for `Chart.getChart()` lookup.
+
+**Consequences:** Chart image capture for PPTX retrieves the wrong domain's chart data. Charts display
+correctly visually (Vue reactivity works per component instance) but the PPTX export captures the same
+first domain's chart for every domain slide.
+
+**Prevention:** Inject a stable `canvasId` prop into each chart component derived from the domain id:
+`canvasId="cores-chart-${domain.id}"`. Bind it to the canvas element's `id` attribute inside the
+chart component. Use this ID when calling `Chart.getChart(canvasId)` for export capture.
+
+**Detection warning signs:** Chart.js console warning "Canvas with id ... is already in use"; all
+PPTX domain chart images look identical.
+
+**Phase that must address it:** Phase implementing "Per-domain Chart.js visualizations".
+
+---
+
+### PITFALL-9: Markdown Preview XSS via v-html With Unescaped Domain Names
+
+**What goes wrong:** Rendering the Markdown export string via `v-html` without sanitization allows
+stored XSS if any user-entered field (most critically, domain names) contains HTML tags. Domain names
+are free-text strings entered via the `DomainTabStrip` rename input and are included verbatim in the
+Markdown output (e.g. `## Domain: <script>alert(1)</script>`).
+
+**Why it happens:** `generateMarkdownReport()` interpolates `domain.name` directly into the output
+string. A Markdown library converts this to `<h2>Domain: <script>...</script></h2>`. Vue's `v-html`
+renders this as live HTML.
+
+**Consequences:** This is a stored XSS vector. The impact is limited to the local user session (no
+backend persistence), but the attack can execute in the preview panel.
+
+**Prevention:**
+
+Option A (recommended): Sanitize HTML output of the Markdown renderer with DOMPurify before binding
+to `v-html`. Use `vue-dompurify-html` directive as a drop-in safe replacement (~18kb gzipped).
+
+Option B: Constrain domain name input to alphanumeric + limited punctuation at the `renameDomain()`
+call site in `inputStore.ts`. This is a simpler but less complete mitigation.
+
+The Markdown file download is safe — it is a text file, not rendered HTML. Only the preview panel
+via `v-html` is the attack surface.
+
+**Detection warning signs:** Domain name containing `<b>test</b>` renders as bold in preview instead
+of as literal characters.
+
+**Phase that must address it:** Phase implementing "In-app Markdown preview panel".
+
+---
+
+### PITFALL-10: Locale Load Race Condition on Export Button Click
+
+**What goes wrong:** User switches to German (de-CH), then immediately clicks "Export PPTX". The
+locale file `de.json` is lazy-loaded via `loadLocale('de')` in `uiStore.setLocale()`. If the export
+triggers before the dynamic import resolves, `i18n.global.t()` returns English strings because German
+messages have not yet been set via `i18n.global.setLocaleMessage()`.
+
+**Why it happens:** `uiStore.setLocale()` is `async` but the `ExportToolbar.vue` buttons are not
+guarded against mid-load state. `locale.value` is updated synchronously before messages load.
+
+**Consequences:** Export appears in English even though the UI shows German labels. Silent — no error
+is thrown.
+
+**Prevention:**
+
+1. Add a `localeLoading` ref to `uiStore` that is set true during `loadLocale()` and reset on
+   resolution.
+2. Disable export buttons while `localeLoading` is true.
+3. OR: pass locale as a parameter to `generateMarkdownReport()` and `generatePptxReport()` and
+   await locale resolution inside the function if needed.
+
+**Detection warning signs:** PPTX section headers appear in English after UI locale is switched to
+German/French/Italian; wrong language on first export after locale switch.
+
+**Phase that must address it:** Phase implementing "Localized Markdown + PPTX exports".
+
+---
+
+### PITFALL-11: Domain Copy Creates Fragile Shallow Clone
+
+**What goes wrong:** Using `{ ...domain }` (shallow spread) to copy a `WorkloadDomainConfig` creates
+a shallow clone. If any field is an object or array, mutating the copy also mutates the original.
+
+**Why it happens:** JavaScript's spread operator copies one level deep only.
+
+**Consequences:** Currently all 26 fields of `WorkloadDomainConfig` are primitives, so a shallow copy
+works today. However this is a latent bug — any future nested object field addition immediately
+produces a shared-reference mutation bug in the copy feature.
+
+**Prevention:** Use `structuredClone(toRaw(domain))` (see PITFALL-4) as the canonical copy approach.
+Do NOT use `JSON.parse(JSON.stringify(domain))` — this loses `undefined` values and coerces numbers
+with potential precision loss.
+
+**Detection warning signs:** Renaming the copied domain also renames the original; changing a value
+on the copy changes the source domain.
+
+**Phase that must address it:** Phase implementing "Domain duplication".
+
+---
+
+## Minor Pitfalls
+
+These cause cosmetic issues or test maintenance overhead but have contained impact.
+
+---
+
+### PITFALL-12: window.confirm() Pattern Inconsistency for Topology Dialog
+
+**What goes wrong:** `DomainTabStrip.vue` currently uses `window.confirm()` for domain delete
+confirmation. If the topology change confirmation dialog uses a different pattern (styled modal), the
+product has two different confirmation UX patterns creating visual inconsistency.
+
+**Prevention:** The v3.3 "Topology change confirmation dialog" should use a styled `<dialog>` or
+Teleport-based modal component. The existing `window.confirm()` in DomainTabStrip is tech debt but
+out of v3.3 scope. At minimum, do not introduce a third pattern.
+
+**Phase that must address it:** Phase implementing "Topology change confirmation dialog".
+
+---
+
+### PITFALL-13: LandingView First-Load State Conflicts With URL Hydration
+
+**What goes wrong:** Showing a landing/intro view on first load creates a conflict with URL-hydrated
+sessions. If the landing check is based on a separate `hasSeenLanding` ref (persisted to localStorage),
+the logic must also check whether URL state exists. Getting this wrong shows the landing to users
+following a shared link.
+
+**Prevention:** Tie the landing display condition exclusively to `topologyConfirmed`. Show landing when
+`!topologyConfirmed`. The `hydrateFromUrl()` path in `main.ts` already calls `ui.confirmTopology()`
+which sets `topologyConfirmed = true`, meaning a URL-shared session automatically skips the landing.
+
+Do NOT introduce a new persistent variable for this. Adding it to `InputStateSchema` would violate
+WIZARD-07. Using localStorage bypasses the URL-hydration skip logic.
+
+**Phase that must address it:** Phase implementing "Landing / intro view".
+
+---
+
+### PITFALL-14: Chart Animation Disabled for Export Degrades Initial Page Render
+
+**What goes wrong:** Setting `animation: false` on chart components to enable safe `toBase64Image()`
+capture (PITFALL-1) disables animation for all contexts including initial page render. Users see
+charts appear instantly without the draw animation.
+
+**Prevention:** Accept this tradeoff explicitly for v3.3. VCF Sizer is a utility tool where export
+correctness is more important than entry animation. Document the decision. If animation is desired in
+a future milestone, implement a separate off-screen canvas render for export capture while keeping
+animation on the display canvas.
+
+**Phase that must address it:** Phase implementing "Chart images in PPTX".
+
+---
+
+### PITFALL-15: Markdown Rendering Library Bundle Impact
+
+**What goes wrong:** Adding a Markdown-to-HTML library (`marked`, `showdown`, `markdown-it`) to the
+main bundle for the in-app preview panel increases initial bundle size. These libraries range from
+~20kb to ~70kb gzipped.
+
+**Prevention:** Use the same dynamic import pattern established for pptxgenjs (PPTX-15). Only load
+the Markdown renderer when the preview panel is first opened:
+
+```typescript
+const { marked } = await import('marked')
+```
+
+`marked` (~23kb gzipped) is sufficient for the table/header Markdown that `generateMarkdownReport()`
+produces. `markdown-it` (~45kb) is not needed here.
+
+**Phase that must address it:** Phase implementing "In-app Markdown preview panel".
+
+---
+
+## Phase-Specific Warnings Summary
+
+| Phase Topic | Pitfall ID | Pitfall Name | Mitigation |
+|---|---|---|---|
+| Click WizardStepper to jump back | PITFALL-6 | Stale management config after topology change | Backward-only clicks; soft step-2 warning if topology changed since step-2 was confirmed |
+| Landing / intro view | PITFALL-13 | Conflicts with URL hydration | Gate on `topologyConfirmed` only; no localStorage, no new URL state |
+| Topology change confirmation dialog | PITFALL-5 | Partial write leaves inconsistent topology state | Capture intent before writing; guard in component layer only |
+| Topology change confirmation dialog | PITFALL-12 | UX pattern inconsistency | Use styled modal; no window.confirm() |
+| Domain duplication | PITFALL-4 | structuredClone fails on Pinia proxy | `toRaw()` before structuredClone; new id + new name |
+| Domain duplication | PITFALL-11 | Shallow copy breaks on nested fields | Use `structuredClone(toRaw(domain))` exclusively |
+| Chart images in PPTX | PITFALL-1 | Blank PNG due to Chart.js animation timing | Disable animation on charts used for capture |
+| Chart images in PPTX | PITFALL-2 | vue-chartjs ref.chart null in Composition API | Use `Chart.getChart(canvasId)` with per-domain canvas IDs |
+| Chart images in PPTX | PITFALL-7 | addImage dataURL prefix format | Pass full `data:image/png;base64,...` string |
+| Chart images in PPTX | PITFALL-14 | Animation disabled degrades page render | Accept tradeoff explicitly; document decision |
+| Per-domain Chart.js visualizations | PITFALL-8 | Canvas ID collisions across DomainResultCards | Inject `canvasId` prop from `domain.id` |
+| Localized Markdown + PPTX | PITFALL-3 | useI18n() not available in plain TS composables | Use `i18n.global.t()` from exported instance |
+| Localized Markdown + PPTX | PITFALL-10 | Locale load race condition on export | Guard export buttons while `localeLoading` is true |
+| In-app Markdown preview | PITFALL-9 | XSS via v-html with domain names | Sanitize with DOMPurify via vue-dompurify-html |
+| In-app Markdown preview | PITFALL-15 | Bundle size from Markdown renderer | Dynamic import; use `marked` |
+
+---
+
+## CALC-01 / CALC-02 Compliance Checklist
+
+All v3.3 features must maintain the established engine purity contract:
+
+| Feature | Risk | Required check |
+|---|---|---|
+| Domain duplication (`duplicateDomain()` action) | Must live in `inputStore`, not engine layer | No engine imports in inputStore; no Vue imports in engine |
+| Localized exports | `i18n.global.t()` in composable | Composables import from `@/i18n`, never from `@/stores` |
+| Markdown preview state | `previewOpen` ref, `previewHtml` computed | Must live in component or uiStore, NOT in calculationStore |
+| Chart PPTX capture | Touches DOM via `Chart.getChart()` | Must live in component or `usePptxExport.ts` only |
+| Landing view visible flag | Ephemeral UI state | Lives in uiStore only; never in `InputStateSchema` (WIZARD-07) |
 
 ---
 
 ## Sources
 
-- Vue 3 Composition API reactivity — <https://vuejs.org/guide/essentials/reactivity-fundamentals.html> (official, HIGH confidence)
-- Pinia setup store patterns — <https://pinia.vuejs.org/core-concepts/#setup-stores> (official, HIGH confidence)
-- Vue 3 `nextTick()` behavior — <https://vuejs.org/api/general.html#nexttick> (official, HIGH confidence)
-- Codebase inspection: `src/stores/calculationStore.ts` — computed ordering, management pass-through, aggregateTotals reducer (direct, HIGH confidence)
-- Codebase inspection: `src/composables/useUrlState.ts` — URL-04 exclusion pattern, `activeDomainIndex` not serialized (direct, HIGH confidence)
-- Codebase inspection: `src/engine/types.ts` — `ComputeInputs` optional fields pattern (direct, HIGH confidence)
-- Codebase inspection: `src/engine/compute.ts` — existing optional-with-default destructuring for `nvmeTieringEnabled`, `gpuVmCount` (direct, HIGH confidence)
-- Codebase inspection: `src/composables/useMarkdownExport.ts` — direct store reads, per-domain loop, no reactive bindings (direct, HIGH confidence)
-- `.planning/PROJECT.md` — v3.1 milestone scope, CALC-01/02 constraints, URL-04 exclusion documented (direct, HIGH confidence)
-
----
-*Pitfalls research for: VCF 9.x Sizing SPA — v3.1 Wizard UI + Calculation Order Fix*
-*Researched: 2026-03-30*
+- [Chart.js toBase64Image blank issue — GitHub #2743](https://github.com/chartjs/Chart.js/issues/2743)
+- [Chart.js animation onComplete for image capture](https://quickchart.io/documentation/chart-js/image-export/)
+- [vue-chartjs Composition API ref.chart null — GitHub #1012](https://github.com/apertureless/vue-chartjs/issues/1012)
+- [vue-chartjs Getting Started — chart ref access](https://vue-chartjs.org/guide/)
+- [vue-i18n useI18n outside setup — GitHub discussion #1201](https://github.com/intlify/vue-i18n/discussions/1201)
+- [vue-i18n Composition API guide](https://vue-i18n.intlify.dev/guide/advanced/composition)
+- [Pinia structuredClone proxy error — GitHub discussion #1412](https://github.com/vuejs/pinia/discussions/1412)
+- [PptxGenJS addImage API docs](https://gitbrent.github.io/PptxGenJS/docs/api-images.html)
+- [PptxGenJS base64 forced 16:9 ratio bug — GitHub #1351](https://github.com/gitbrent/PptxGenJS/issues/1351)
+- [PptxGenJS addImage Red X issue — GitHub #283](https://github.com/gitbrent/PptxGenJS/issues/283)
+- [Vue 3 security guide — v-html XSS](https://vuejs.org/guide/best-practices/security.html)
+- [Markdown XSS vulnerability — showdownjs wiki](https://github.com/showdownjs/showdown/wiki/Markdown's-XSS-Vulnerability-(and-how-to-mitigate-it))
+- [DOMPurify bundle size — bundlephobia](https://bundlephobia.com/package/dompurify)
+- [vue-dompurify-html — npm](https://www.npmjs.com/package/vue-dompurify-html)
+- [Vue 3 Teleport + Tailwind modal pattern](https://dev.to/alvarosabu/create-modals-with-vue3-teleport-tailwindcss-48aj)
