@@ -30,6 +30,7 @@ export function generateMarkdownReport(): string {
     `| Parameter | Value |`,
     `|-----------|-------|`,
     `| Architecture | ${store.managementArchitecture} |`,
+    `| Storage type | ${store.managementDomain.storageType ?? 'vsan-esa'} |`,
   )
   if (calc.dedicatedMgmtHostCount !== null) {
     sections.push(`| Dedicated host count | ${calc.dedicatedMgmtHostCount} |`)

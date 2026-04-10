@@ -177,18 +177,25 @@ export function buildStorageResultsData(storage: StorageResult): {
 export function buildAggregateSlideData(
   totals: AggregateTotals,
   managementArchitecture: string,
-  dedicatedMgmtHostCount: number | null
+  dedicatedMgmtHostCount: number | null,
+  managementStorageType?: string
 ): Array<{ label: string; value: string }> {
   const mgmtLine = managementArchitecture === 'dedicated' && dedicatedMgmtHostCount !== null
     ? String(dedicatedMgmtHostCount)
     : 'colocated with WLD-1'
-  return [
+  const rows: Array<{ label: string; value: string }> = [
     { label: 'Total recommended hosts (all domains)', value: String(totals.totalRecommendedHosts) },
     { label: 'Management hosts', value: mgmtLine },
+  ]
+  if (managementStorageType !== undefined) {
+    rows.push({ label: 'Management storage type', value: managementStorageType })
+  }
+  rows.push(
     { label: 'Total VM count', value: String(totals.totalVmCount) },
     { label: 'Total raw storage', value: `${totals.totalRawStorageTB.toFixed(2)} TB` },
     { label: 'Total effective storage', value: `${totals.totalEffectiveStorageTB.toFixed(2)} TB` },
-  ]
+  )
+  return rows
 }
 
 /**
@@ -561,7 +568,7 @@ export async function generatePptxReport(): Promise<void> {
   } // end per-domain loop
 
   // ── After domain loop: Aggregate Totals slide ────────────────────────────────
-  const aggData = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
+  const aggData = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, store.managementDomain.storageType ?? 'vsan-esa')
   const sAgg = pres.addSlide({ masterName: MASTER_NAME })
   sAgg.addText('Aggregate Totals', {
     x: 0.5, y: 0.3, w: 12, h: 0.8,

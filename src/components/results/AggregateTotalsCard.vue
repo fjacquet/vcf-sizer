@@ -6,8 +6,12 @@ import type { AggregateTotals } from '@/engine/types'
 const props = defineProps<{ totals: AggregateTotals; managementHostCount: number | null }>()
 const { t } = useI18n()
 
-const grandTotal = computed(() =>
-  props.totals.totalRecommendedHosts + (props.managementHostCount ?? 0)
+// totalRecommendedHosts already equals workloadHosts + mgmtHosts — do not add mgmt again
+const grandTotal = computed(() => props.totals.totalRecommendedHosts)
+
+// Workload-only count for the "Workload Hosts" row
+const workloadHostCount = computed(() =>
+  props.totals.totalRecommendedHosts - props.totals.mgmtHostCount
 )
 </script>
 
@@ -32,7 +36,7 @@ const grandTotal = computed(() =>
     <!-- Data grid -->
     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
       <span>{{ t('results.aggregate.totalHosts') }}</span>
-      <span class="font-mono text-right font-semibold">{{ totals.totalRecommendedHosts }}</span>
+      <span class="font-mono text-right font-semibold">{{ workloadHostCount }}</span>
 
       <template v-if="managementHostCount !== null">
         <span>{{ t('results.aggregate.managementHosts') }}</span>
