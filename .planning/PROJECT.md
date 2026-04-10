@@ -58,20 +58,28 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ Shareable URL never encodes wizard step position — v3.1
 - ✓ Management hosts line in Markdown and PPTX aggregate exports (dedicated: count, colocated: "colocated with WLD-1") — v3.1
 
+## Current Milestone: v3.3 UX Polish & Export Quality
+
+**Goal:** Improve user experience through wizard navigation enhancements and domain management features, while enriching exports with visuals, localization, and in-app preview.
+
+**Target features:**
+- Click WizardStepper step to jump back to a previous step
+- Landing / intro view shown on first load before wizard starts
+- Topology change confirmation dialog when workloads already configured
+- Domain duplication ("Copy domain" button)
+- Chart images (PNG) embedded in PPTX slides (rasterized from Chart.js)
+- Per-domain Chart.js visualizations in result cards
+- Localized Markdown + PPTX exports (follow active UI locale)
+- In-app Markdown preview panel before download
+
 ### Active
 
-*(Next milestone requirements defined via `/gsd:new-milestone`)*
+*(Defined — see REQUIREMENTS.md)*
 
-### Deferred (post-v3.1)
+### Deferred (post-v3.3)
 
-- Chart images embedded in PPTX slides (rasterized from Chart.js canvas)
-- Localized PPTX and Markdown exports (EN-only; localization pipeline deferred)
-- In-app Markdown preview panel before download
 - Dark mode print stylesheet
-- Domain duplication ("Copy domain" button)
 - Domain reordering (drag-and-drop tab reordering)
-- Per-domain Chart.js visualizations
-- Wizard enhancements: click step indicator to jump back, landing view on first load, topology change confirmation dialog
 - Advanced mode: toggle between wizard and classic flat layout
 
 ### Out of Scope
@@ -140,4 +148,4 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-04 after v3.1 milestone*
+*Last updated: 2026-04-10 — milestone v3.3 started*
