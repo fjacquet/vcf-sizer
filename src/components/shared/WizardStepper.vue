@@ -64,8 +64,12 @@ function goForward() {
             ui.currentWizardStep === s.step
               ? 'bg-blue-600 text-white border-blue-600'
               : ui.currentWizardStep > s.step
-                ? 'bg-green-100 text-green-700 border-green-400 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
+                ? 'bg-green-100 text-green-700 border-green-400 dark:bg-green-900 dark:text-green-300 dark:border-green-700 cursor-pointer hover:ring-2 hover:ring-green-400 transition-colors'
                 : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700']"
+          :role="ui.currentWizardStep > s.step ? 'button' : undefined"
+          :tabindex="ui.currentWizardStep > s.step ? 0 : undefined"
+          @click="ui.currentWizardStep > s.step && ui.setWizardStep(s.step)"
+          @keydown.enter.space.prevent="ui.currentWizardStep > s.step && ui.setWizardStep(s.step)"
         >
           <span class="font-bold">{{ s.step }}</span>
           <span>{{ t(s.labelKey) }}</span>

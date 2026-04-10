@@ -216,5 +216,22 @@
     "mgmtCommitted": {
       "title": "Management Domain (committed)"
     }
+  },
+  "landing": {
+    "title": "Right-size your VCF 9.x deployment before hardware is ordered",
+    "subtitle": "Answer three guided questions. Get exact host counts, RAM, and storage requirements.",
+    "step1": {
+      "title": "Topology",
+      "desc": "Choose Simple, HA, or Stretch Cluster for your deployment model."
+    },
+    "step2": {
+      "title": "Management",
+      "desc": "Configure the management domain architecture and host specifications."
+    },
+    "step3": {
+      "title": "Workloads",
+      "desc": "Define workload domain profiles. Results update in real time."
+    },
+    "cta": "Start Sizing"
   }
 }

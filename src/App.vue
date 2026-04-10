@@ -16,6 +16,7 @@ import ManagementSummary from '@/components/shared/ManagementSummary.vue'
 import ManagementResultCard from '@/components/shared/ManagementResultCard.vue'
 import ManagementCommittedSummary from '@/components/shared/ManagementCommittedSummary.vue'
 import ResultsPanel from '@/components/results/ResultsPanel.vue'
+import LandingView from '@/components/shared/LandingView.vue'
 
 const { t } = useI18n()
 const input = useInputStore()
@@ -35,7 +36,9 @@ const activeDomainId = computed(
       <LanguageSwitcher />
     </header>
 
-    <main class="grid grid-cols-1 md:grid-cols-2 min-h-[calc(100vh-56px)] print:grid-cols-1 print:min-h-0">
+    <LandingView v-if="ui.isLandingVisible" />
+
+    <main v-else class="grid grid-cols-1 md:grid-cols-2 min-h-[calc(100vh-56px)] print:grid-cols-1 print:min-h-0">
       <!-- LEFT PANE: wizard steps -->
       <div class="border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-6 overflow-y-auto print:hidden">
         <!-- Wizard stepper — always visible at top of left pane (WIZARD-01) -->

@@ -4,6 +4,8 @@ import { i18n, loadLocale } from '../i18n'
 
 type AppLocale = 'en' | 'fr' | 'de' | 'it'
 
+export type ChartType = 'cores' | 'ram' | 'storage'
+
 export const useUiStore = defineStore('ui', () => {
   // Detect browser locale on init — fall back to 'en' if not one of the four
   const browserLocale: AppLocale = navigator.language.startsWith('fr') ? 'fr'
@@ -43,5 +45,24 @@ export const useUiStore = defineStore('ui', () => {
     topologyConfirmed.value = true
   }
 
-  return { locale, setLocale, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology }
+  // Landing view visibility — WIZARD-02
+  // Ephemeral flag: NEVER in InputStateSchema (WIZARD-07 structural guarantee)
+  const isLandingVisible = ref<boolean>(true)
+
+  function dismissLanding(): void {
+    isLandingVisible.value = false
+  }
+
+  // Chart image registry — consumed by Phase 21 (per-domain charts) and Phase 22 (PPTX export)
+  // Ephemeral: NEVER in InputStateSchema (WIZARD-07 structural guarantee)
+  const chartImages = ref<Record<string, Record<ChartType, string>>>({})
+
+  function registerChartImage(domainId: string, chartType: ChartType, dataUrl: string): void {
+    if (!chartImages.value[domainId]) {
+      chartImages.value[domainId] = {} as Record<ChartType, string>
+    }
+    chartImages.value[domainId][chartType] = dataUrl
+  }
+
+  return { locale, setLocale, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, chartImages, registerChartImage }
 })

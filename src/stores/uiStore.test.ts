@@ -85,3 +85,65 @@ describe('uiStore -- topologyConfirmed (WIZARD-03)', () => {
     expect(store.topologyConfirmed).toBe(true)
   })
 })
+
+describe('uiStore -- landing view (WIZARD-02)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('isLandingVisible initializes to true', () => {
+    const store = useUiStore()
+    expect(store.isLandingVisible).toBe(true)
+  })
+
+  it('dismissLanding() sets isLandingVisible to false', () => {
+    const store = useUiStore()
+    store.dismissLanding()
+    expect(store.isLandingVisible).toBe(false)
+  })
+
+  it('dismissLanding() is idempotent (calling twice still false)', () => {
+    const store = useUiStore()
+    store.dismissLanding()
+    store.dismissLanding()
+    expect(store.isLandingVisible).toBe(false)
+  })
+
+  it('isLandingVisible is orthogonal to topologyConfirmed (confirmTopology does not change isLandingVisible)', () => {
+    const store = useUiStore()
+    store.confirmTopology()
+    expect(store.isLandingVisible).toBe(true)
+  })
+})
+
+describe('uiStore -- chartImages registry', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('chartImages initializes to empty object {}', () => {
+    const store = useUiStore()
+    expect(store.chartImages).toEqual({})
+  })
+
+  it('registerChartImage stores value at chartImages[domainId][chartType]', () => {
+    const store = useUiStore()
+    store.registerChartImage('domain-1', 'cores', 'data:image/png;base64,abc')
+    expect(store.chartImages['domain-1']['cores']).toBe('data:image/png;base64,abc')
+  })
+
+  it('registerChartImage for a second domain creates a separate nested record', () => {
+    const store = useUiStore()
+    store.registerChartImage('domain-1', 'cores', 'data:image/png;base64,abc')
+    store.registerChartImage('domain-2', 'ram', 'data:image/png;base64,xyz')
+    expect(store.chartImages['domain-1']['cores']).toBe('data:image/png;base64,abc')
+    expect(store.chartImages['domain-2']['ram']).toBe('data:image/png;base64,xyz')
+  })
+
+  it('registerChartImage for same domainId + chartType overwrites previous value', () => {
+    const store = useUiStore()
+    store.registerChartImage('domain-1', 'cores', 'data:image/png;base64,old')
+    store.registerChartImage('domain-1', 'cores', 'data:image/png;base64,new')
+    expect(store.chartImages['domain-1']['cores']).toBe('data:image/png;base64,new')
+  })
+})

@@ -216,5 +216,22 @@
     "mgmtCommitted": {
       "title": "Dominio di gestione (confermato)"
     }
+  },
+  "landing": {
+    "title": "Dimensiona il tuo deployment VCF 9.x prima di ordinare l'hardware",
+    "subtitle": "Rispondi a tre domande guidate. Ottieni il numero esatto di host, RAM e requisiti di storage.",
+    "step1": {
+      "title": "Topologia",
+      "desc": "Scegli Simple, HA o Stretch Cluster per il tuo modello di deployment."
+    },
+    "step2": {
+      "title": "Gestione",
+      "desc": "Configura l'architettura del dominio di gestione e le specifiche degli host."
+    },
+    "step3": {
+      "title": "Carichi di lavoro",
+      "desc": "Definisci i profili dei domini di carico di lavoro. I risultati si aggiornano in tempo reale."
+    },
+    "cta": "Inizia il dimensionamento"
   }
 }

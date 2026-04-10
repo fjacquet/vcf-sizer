@@ -17,6 +17,7 @@ hydrateFromUrl() // AFTER pinia installed, BEFORE app.mount() — constraint #5
 if (window.location.search.includes('s=')) {
   const uiStore = useUiStore()
   uiStore.confirmTopology()
+  uiStore.dismissLanding()  // Phase 18: bypass landing for URL-hydrated sessions
 }
 
 app.mount('#app')

@@ -216,5 +216,22 @@
     "mgmtCommitted": {
       "title": "Domaine de gestion (valide)"
     }
+  },
+  "landing": {
+    "title": "Dimensionnez votre deploiement VCF 9.x avant de commander le materiel",
+    "subtitle": "Repondez a trois questions guidees. Obtenez le nombre exact d'hotes, la RAM et les besoins en stockage.",
+    "step1": {
+      "title": "Topologie",
+      "desc": "Choisissez Simple, HA ou Stretch Cluster pour votre modele de deploiement."
+    },
+    "step2": {
+      "title": "Gestion",
+      "desc": "Configurez l'architecture du domaine de gestion et les specifications des hotes."
+    },
+    "step3": {
+      "title": "Charges de travail",
+      "desc": "Definissez les profils de domaine de charge de travail. Les resultats se mettent a jour en temps reel."
+    },
+    "cta": "Commencer le dimensionnement"
   }
 }

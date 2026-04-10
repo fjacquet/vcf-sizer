@@ -216,5 +216,22 @@
     "mgmtCommitted": {
       "title": "Management-Domane (festgelegt)"
     }
+  },
+  "landing": {
+    "title": "Dimensionieren Sie Ihre VCF 9.x-Bereitstellung vor der Hardwarebestellung",
+    "subtitle": "Beantworten Sie drei gefuhrte Fragen. Erhalten Sie die genaue Anzahl Hosts, RAM und Speicheranforderungen.",
+    "step1": {
+      "title": "Topologie",
+      "desc": "Wahlen Sie Simple, HA oder Stretch Cluster fur Ihr Bereitstellungsmodell."
+    },
+    "step2": {
+      "title": "Verwaltung",
+      "desc": "Konfigurieren Sie die Architektur der Verwaltungsdomane und die Host-Spezifikationen."
+    },
+    "step3": {
+      "title": "Workloads",
+      "desc": "Definieren Sie Workload-Domanen-Profile. Die Ergebnisse aktualisieren sich in Echtzeit."
+    },
+    "cta": "Dimensionierung starten"
   }
 }
