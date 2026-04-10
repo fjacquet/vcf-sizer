@@ -80,7 +80,10 @@ Full details: `.planning/milestones/v3.1-ROADMAP.md`
   3. User arriving via a shared URL bypasses the landing view entirely and lands directly at step 1 with their configuration hydrated
   4. Forward-jump attempts to unvisited steps have no effect (clicking step 3 while on step 1 does nothing)
   5. uiStore exposes chartImages registry and registerChartImage() action (consumed by Phase 21); isLandingVisible and dismissLanding() action are available
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 18-01-PLAN.md — Store foundations (uiStore additions + TDD tests) and WizardStepper click-back (WIZARD-01)
+- [ ] 18-02-PLAN.md — LandingView component, App.vue integration, main.ts URL bypass, i18n keys (WIZARD-02)
 **UI hint**: yes
 
 ### Phase 19: Topology Confirmation + Domain Duplication
@@ -151,7 +154,7 @@ Full details: `.planning/milestones/v3.1-ROADMAP.md`
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 18. Store Foundations + Wizard Navigation | 0/? | Not started | - |
+| 18. Store Foundations + Wizard Navigation | 0/2 | Planned | - |
 | 19. Topology Confirmation + Domain Duplication | 0/? | Not started | - |
 | 20. Storage Units Correction | 0/? | Not started | - |
 | 21. Per-Domain Chart Visualizations | 0/? | Not started | - |
