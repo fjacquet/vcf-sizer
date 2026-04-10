@@ -154,7 +154,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 18. Store Foundations + Wizard Navigation | 0/2 | Planned | - |
+| 18. Store Foundations + Wizard Navigation | 2/2 | Complete | 2026-04-10 |
 | 19. Topology Confirmation + Domain Duplication | 0/? | Not started | - |
 | 20. Storage Units Correction | 0/? | Not started | - |
 | 21. Per-Domain Chart Visualizations | 0/? | Not started | - |
