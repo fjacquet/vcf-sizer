@@ -43,7 +43,7 @@ Declared values (must be multiples of 4). All tokens are already established by 
 
 Exceptions:
 
-- Wizard step pill padding: `px-3 py-1.5` (12px horizontal, 6px vertical) — matches existing WizardStepper pattern, do not change.
+- Wizard step pill padding: `px-3 py-1.5` (12px horizontal, 6px vertical) — Pre-existing value in WizardStepper.vue — Phase 18 does not introduce or change this value. Grandfathered as inherited technical debt.
 - Header height: `py-3` + `text-lg` ≈ 56px — keep consistent with sticky header.
 - Touch target for clickable completed step pills: minimum 32px height is satisfied by the existing `py-1.5 text-sm` pill. No special override needed (desktop-primary tool).
 
@@ -57,10 +57,10 @@ All values match the existing established type scale. Phase 18 adds no new type 
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body | 14px (text-sm) | 400 (normal) | 1.5 |
-| Label / pill | 14px (text-sm) | 500 (medium) or 600 (font-semibold) | 1.4 |
+| Body | 14px (text-sm) | 400 (font-normal) | 1.5 |
+| Label / pill | 14px (text-sm) | 600 (font-semibold) | 1.4 |
 | Section heading | 16px (text-base) | 600 (font-semibold) | 1.2 |
-| Display / page title | 28–32px (text-2xl / text-3xl) | 700 (font-bold) | 1.2 |
+| Display / page title | 28–32px (text-2xl / text-3xl) | 600 (font-semibold) | 1.2 |
 
 Landing view (`LandingView.vue`) uses display size for tagline, section heading size for step descriptions, and body for supporting copy. No additional type roles needed.
 
