@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n'
 import { generateShareUrl } from '@/composables/useUrlState'
 import { generateMarkdownReport } from '@/composables/useMarkdownExport'
 import { generatePptxReport } from '@/composables/usePptxExport'
+import { useUiStore } from '@/stores/uiStore'
 
 const { t } = useI18n()
+const uiStore = useUiStore()
 const copied = ref(false)
 const pptxLoading = ref(false)
 
@@ -58,7 +60,8 @@ async function handleExportPptx() {
       {{ copied ? t('results.toolbar.copied') : t('results.toolbar.share') }}
     </button>
     <button
-      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+      :disabled="uiStore.localeLoading"
       @click="handleExportMarkdown"
     >
       {{ t('results.toolbar.exportMd') }}
@@ -71,7 +74,7 @@ async function handleExportPptx() {
     </button>
     <button
       class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-      :disabled="pptxLoading"
+      :disabled="pptxLoading || uiStore.localeLoading"
       @click="handleExportPptx"
     >
       {{ pptxLoading ? t('results.toolbar.exportPptxLoading') : t('results.toolbar.exportPptx') }}

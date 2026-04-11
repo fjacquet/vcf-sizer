@@ -3,6 +3,7 @@
 // Pattern: createPinia() + setActivePinia() in each beforeEach for test isolation
 // Phase 13: Updated mocks to use workloadDomains[0] multi-domain store shape
 // Phase 14-02: Updated helpers to accept WorkloadDomainConfig directly (EXP-03, EXP-04)
+// Phase 22: i18n mock — t() returns the key itself; helpers now accept t parameter
 
 import { createPinia, setActivePinia } from 'pinia'
 import { useInputStore } from '@/stores/inputStore'
@@ -23,6 +24,14 @@ import {
   buildVsanMaxSlideData,
   buildValidationWarningsSlideData,
 } from './usePptxExport'
+
+// Mock i18n — t() returns the key so assertions check i18n key usage
+vi.mock('@/i18n', () => ({
+  i18n: { global: { t: (key: string) => key } },
+}))
+
+// Identity t function for helper tests
+const t = (k: string) => k
 
 // ─── PPTX_MASTER_COLOR constant — PPTX-02 ────────────────────────────────────
 
@@ -68,14 +77,14 @@ describe('buildConfigSummaryData — PPTX-04', () => {
 
   it('returns an array with at least 8 config field rows', () => {
     const store = useInputStore()
-    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture)
+    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture, t)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(8)
   })
 
   it('each row has label and value properties', () => {
     const store = useInputStore()
-    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture)
+    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture, t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -84,7 +93,7 @@ describe('buildConfigSummaryData — PPTX-04', () => {
 
   it('hostCount row value contains the default value 4', () => {
     const store = useInputStore()
-    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture)
+    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture, t)
     const hostRow = result.find((row) =>
       String(row.label).toLowerCase().includes('host')
     )
@@ -102,14 +111,14 @@ describe('buildWorkloadSlideData — PPTX-05', () => {
 
   it('returns rows for vmCount, vCPU, vRAM, storage, CPU ratio, RAM ratio (>= 6 rows)', () => {
     const store = useInputStore()
-    const result = buildWorkloadSlideData(store.workloadDomains[0])
+    const result = buildWorkloadSlideData(store.workloadDomains[0], t)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(6)
   })
 
   it('each row has label and value properties', () => {
     const store = useInputStore()
-    const result = buildWorkloadSlideData(store.workloadDomains[0])
+    const result = buildWorkloadSlideData(store.workloadDomains[0], t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -118,7 +127,7 @@ describe('buildWorkloadSlideData — PPTX-05', () => {
 
   it('a row value contains the default vmCount of 100', () => {
     const store = useInputStore()
-    const result = buildWorkloadSlideData(store.workloadDomains[0])
+    const result = buildWorkloadSlideData(store.workloadDomains[0], t)
     const hasHundred = result.some((row) => String(row.value).includes('100'))
     expect(hasHundred).toBe(true)
   })
@@ -133,13 +142,13 @@ describe('buildMgmtOverheadData — PPTX-06', () => {
 
   it('returns exactly 6 rows (vCenter, SDDC, NSX, Ops, Automation, Total)', () => {
     const calc = useCalculationStore()
-    const result = buildMgmtOverheadData(calc.management)
+    const result = buildMgmtOverheadData(calc.management, t)
     expect(result).toHaveLength(6)
   })
 
   it('each row has label, cores, and ramGB properties', () => {
     const calc = useCalculationStore()
-    const result = buildMgmtOverheadData(calc.management)
+    const result = buildMgmtOverheadData(calc.management, t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('cores')
@@ -150,7 +159,7 @@ describe('buildMgmtOverheadData — PPTX-06', () => {
   it('Total row cores matches management.totalCores', () => {
     const calc = useCalculationStore()
     const mgmt = calc.management
-    const result = buildMgmtOverheadData(mgmt)
+    const result = buildMgmtOverheadData(mgmt, t)
     const totalRow = result.find((row) =>
       String(row.label).toLowerCase().includes('total')
     )
@@ -161,7 +170,7 @@ describe('buildMgmtOverheadData — PPTX-06', () => {
   it('Total row ramGB matches management.totalRamGB', () => {
     const calc = useCalculationStore()
     const mgmt = calc.management
-    const result = buildMgmtOverheadData(mgmt)
+    const result = buildMgmtOverheadData(mgmt, t)
     const totalRow = result.find((row) =>
       String(row.label).toLowerCase().includes('total')
     )
@@ -244,7 +253,7 @@ describe('buildAggregateSlideData — EXP-04', () => {
   it('returns exactly 5 rows (includes management hosts row — EXPORT-02)', () => {
     const store = useInputStore()
     const calc = useCalculationStore()
-    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
+    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
     expect(Array.isArray(result)).toBe(true)
     expect(result).toHaveLength(5)
   })
@@ -252,7 +261,7 @@ describe('buildAggregateSlideData — EXP-04', () => {
   it('each row has label and value properties', () => {
     const store = useInputStore()
     const calc = useCalculationStore()
-    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
+    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -265,36 +274,36 @@ describe('buildAggregateSlideData — EXP-04', () => {
     const store = useInputStore()
     const calc = useCalculationStore()
     const totals = calc.aggregateTotals
-    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
     const hostsRow = result.find((r) => r.label.toLowerCase().includes('recommended'))
     expect(hostsRow).toBeDefined()
     expect(hostsRow!.value).toContain(String(totals.totalRecommendedHosts))
   })
 
-  it('management hosts row shows colocated with WLD-1 when architecture is colocated', () => {
+  it('management hosts row shows export.colocatedWld1 key when architecture is colocated', () => {
     const store = useInputStore()
     const calc = useCalculationStore()
-    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
-    const mgmtRow = result.find((r) => r.label.toLowerCase().includes('management hosts'))
+    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
+    const mgmtRow = result.find((r) => r.label.toLowerCase().includes('management'))
     expect(mgmtRow).toBeDefined()
-    expect(mgmtRow!.value).toBe('colocated with WLD-1')
+    expect(mgmtRow!.value).toBe('export.colocatedWld1')
   })
 
   it('management hosts row shows numeric count when dedicated', () => {
     const store = useInputStore()
     store.managementArchitecture = 'dedicated'
     const calc = useCalculationStore()
-    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
-    const mgmtRow = result.find((r) => r.label.toLowerCase().includes('management hosts'))
+    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
+    const mgmtRow = result.find((r) => r.label.toLowerCase().includes('management'))
     expect(mgmtRow).toBeDefined()
-    expect(mgmtRow!.value).not.toBe('colocated with WLD-1')
+    expect(mgmtRow!.value).not.toBe('export.colocatedWld1')
   })
 
   it('rows contain vm count', () => {
     const store = useInputStore()
     const calc = useCalculationStore()
     const totals = calc.aggregateTotals
-    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
     const vmRow = result.find((r) => r.label.toLowerCase().includes('vm'))
     expect(vmRow).toBeDefined()
     expect(vmRow!.value).toContain(String(totals.totalVmCount))
@@ -304,7 +313,7 @@ describe('buildAggregateSlideData — EXP-04', () => {
     const store = useInputStore()
     const calc = useCalculationStore()
     const totals = calc.aggregateTotals
-    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
     const rawRow = result.find((r) => r.label.toLowerCase().includes('raw'))
     const effRow = result.find((r) => r.label.toLowerCase().includes('effective'))
     expect(rawRow).toBeDefined()
@@ -332,7 +341,7 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
   it('returns rows when gpuVmCount > 0', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { gpuVmCount: 4 })
-    const result = buildAiGpuSlideData(store.workloadDomains[0])
+    const result = buildAiGpuSlideData(store.workloadDomains[0], t)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(2)
   })
@@ -340,7 +349,7 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
   it('every row has label and value properties', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { gpuVmCount: 4, vgpuMemoryGB: 24 })
-    const result = buildAiGpuSlideData(store.workloadDomains[0])
+    const result = buildAiGpuSlideData(store.workloadDomains[0], t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -352,7 +361,7 @@ describe('buildAiGpuSlideData — PPTX-10', () => {
   it('a row value contains gpuVmCount when gpuVmCount=4', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { gpuVmCount: 4, vgpuMemoryGB: 24 })
-    const result = buildAiGpuSlideData(store.workloadDomains[0])
+    const result = buildAiGpuSlideData(store.workloadDomains[0], t)
     const gpuRow = result.find((r) => String(r.value).includes('4'))
     expect(gpuRow).toBeDefined()
   })
@@ -368,7 +377,7 @@ describe('buildNvmeTieringSlideData — PPTX-11', () => {
   it('returns rows when nvmeTieringEnabled is true', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { nvmeTieringEnabled: true, activeMemoryPct: 70 })
-    const result = buildNvmeTieringSlideData(store.workloadDomains[0])
+    const result = buildNvmeTieringSlideData(store.workloadDomains[0], t)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(2)
   })
@@ -376,7 +385,7 @@ describe('buildNvmeTieringSlideData — PPTX-11', () => {
   it('every row has label and value properties', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { nvmeTieringEnabled: true, activeMemoryPct: 70 })
-    const result = buildNvmeTieringSlideData(store.workloadDomains[0])
+    const result = buildNvmeTieringSlideData(store.workloadDomains[0], t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -388,7 +397,7 @@ describe('buildNvmeTieringSlideData — PPTX-11', () => {
   it('includes activeMemoryPct value in a row', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { nvmeTieringEnabled: true, activeMemoryPct: 70 })
-    const result = buildNvmeTieringSlideData(store.workloadDomains[0])
+    const result = buildNvmeTieringSlideData(store.workloadDomains[0], t)
     const pctRow = result.find((r) => String(r.value).includes('70'))
     expect(pctRow).toBeDefined()
   })
@@ -405,7 +414,7 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!)
+    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!, t)
     expect(result).toHaveProperty('topology')
     expect(Array.isArray(result.topology)).toBe(true)
     expect(result.topology.length).toBeGreaterThanOrEqual(5)
@@ -415,7 +424,7 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!)
+    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!, t)
     expect(result).toHaveProperty('checklist')
     expect(Array.isArray(result.checklist)).toBe(true)
     expect(result.checklist.length).toBeGreaterThanOrEqual(3)
@@ -425,7 +434,7 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!)
+    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!, t)
     result.topology.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -436,7 +445,7 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!)
+    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!, t)
     result.checklist.forEach((item) => {
       expect(typeof item).toBe('string')
     })
@@ -455,7 +464,7 @@ describe('buildVsanMaxSlideData — PPTX-13', () => {
     store.updateDomain(store.workloadDomains[0].id, { storageType: 'vsan-max', vsanMaxProfile: 'lrg', vsanMaxStorageNodes: 8 })
     const calc = useCalculationStore()
     expect(calc.domainResults[0].vsanMax).not.toBeNull()
-    const result = buildVsanMaxSlideData(store.workloadDomains[0], calc.domainResults[0].vsanMax!)
+    const result = buildVsanMaxSlideData(store.workloadDomains[0], calc.domainResults[0].vsanMax!, t)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(4)
   })
@@ -464,7 +473,7 @@ describe('buildVsanMaxSlideData — PPTX-13', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { storageType: 'vsan-max', vsanMaxProfile: 'lrg', vsanMaxStorageNodes: 8 })
     const calc = useCalculationStore()
-    const result = buildVsanMaxSlideData(store.workloadDomains[0], calc.domainResults[0].vsanMax!)
+    const result = buildVsanMaxSlideData(store.workloadDomains[0], calc.domainResults[0].vsanMax!, t)
     const profileRow = result.find((r) => String(r.value).includes('LRG'))
     expect(profileRow).toBeDefined()
   })
@@ -473,7 +482,7 @@ describe('buildVsanMaxSlideData — PPTX-13', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { storageType: 'vsan-max', vsanMaxProfile: 'lrg', vsanMaxStorageNodes: 8 })
     const calc = useCalculationStore()
-    const result = buildVsanMaxSlideData(store.workloadDomains[0], calc.domainResults[0].vsanMax!)
+    const result = buildVsanMaxSlideData(store.workloadDomains[0], calc.domainResults[0].vsanMax!, t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -536,12 +545,12 @@ describe('multi-domain PPTX helpers (EXP-03, EXP-04)', () => {
     store.updateDomain(store.workloadDomains[1].id, { hostCount: 12, vmCount: 500 })
     const managementArchitecture = store.managementArchitecture
     // Domain 2 config
-    const result2 = buildConfigSummaryData(store.workloadDomains[1], managementArchitecture)
+    const result2 = buildConfigSummaryData(store.workloadDomains[1], managementArchitecture, t)
     const hostRow = result2.find((r) => r.label.toLowerCase().includes('host'))
     expect(hostRow).toBeDefined()
     expect(String(hostRow!.value)).toContain('12')
     // Domain 1 config should still reflect domain 1 defaults
-    const result1 = buildConfigSummaryData(store.workloadDomains[0], managementArchitecture)
+    const result1 = buildConfigSummaryData(store.workloadDomains[0], managementArchitecture, t)
     const hostRow1 = result1.find((r) => r.label.toLowerCase().includes('host'))
     expect(hostRow1).toBeDefined()
     expect(String(hostRow1!.value)).toContain('4')
@@ -552,7 +561,7 @@ describe('multi-domain PPTX helpers (EXP-03, EXP-04)', () => {
     store.addDomain()
     const calc = useCalculationStore()
     const totals = calc.aggregateTotals
-    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount)
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
     expect(result).toHaveLength(5)
     // Verify hosts row matches aggregate totals
     const hostsRow = result.find((r) => r.label.toLowerCase().includes('recommended'))
