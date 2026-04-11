@@ -20,7 +20,7 @@ function mgmtField<K extends keyof ManagementDomainConfig>(key: K) {
 const coresPerSocket = mgmtField('coresPerSocket')
 const socketsPerHost = mgmtField('socketsPerHost')
 const hostRamGB = mgmtField('hostRamGB')
-const hostStorageTB = mgmtField('hostStorageTB')
+const hostStorageTiB = mgmtField('hostStorageTiB')
 const storageType = mgmtField('storageType')
 const deploymentMode = mgmtField('deploymentMode')
 
@@ -135,7 +135,7 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
         />
         <NumberSliderInput
           v-if="storageType === 'vsan-esa'"
-          v-model="hostStorageTB"
+          v-model="hostStorageTiB"
           :label="t('host.storageTB')"
           unit="TB"
           :min="0.96"

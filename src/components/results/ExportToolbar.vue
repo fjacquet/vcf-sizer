@@ -4,10 +4,14 @@ import { useI18n } from 'vue-i18n'
 import { generateShareUrl } from '@/composables/useUrlState'
 import { generateMarkdownReport } from '@/composables/useMarkdownExport'
 import { generatePptxReport } from '@/composables/usePptxExport'
+import { useUiStore } from '@/stores/uiStore'
+import MarkdownPreviewPanel from '@/components/results/MarkdownPreviewPanel.vue'
 
 const { t } = useI18n()
+const uiStore = useUiStore()
 const copied = ref(false)
 const pptxLoading = ref(false)
+const previewOpen = ref(false)
 
 async function handleShare() {
   const url = generateShareUrl()
@@ -52,13 +56,21 @@ async function handleExportPptx() {
 <template>
   <div class="flex flex-wrap gap-2 pt-2 print:hidden">
     <button
+      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+      :disabled="uiStore.localeLoading"
+      @click="previewOpen = true"
+    >
+      {{ t('results.toolbar.preview') }}
+    </button>
+    <button
       class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       @click="handleShare"
     >
       {{ copied ? t('results.toolbar.copied') : t('results.toolbar.share') }}
     </button>
     <button
-      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+      :disabled="uiStore.localeLoading"
       @click="handleExportMarkdown"
     >
       {{ t('results.toolbar.exportMd') }}
@@ -71,10 +83,11 @@ async function handleExportPptx() {
     </button>
     <button
       class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-      :disabled="pptxLoading"
+      :disabled="pptxLoading || uiStore.localeLoading"
       @click="handleExportPptx"
     >
       {{ pptxLoading ? t('results.toolbar.exportPptxLoading') : t('results.toolbar.exportPptx') }}
     </button>
   </div>
+  <MarkdownPreviewPanel :open="previewOpen" @close="previewOpen = false" />
 </template>

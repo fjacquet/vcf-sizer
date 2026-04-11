@@ -10,21 +10,21 @@ Improve user experience through wizard navigation enhancements and domain manage
 
 - [ ] **WIZARD-01**: User can click any completed WizardStepper step badge to jump back to that step
 - [ ] **WIZARD-02**: User sees a landing/intro view on first load before the wizard starts
-- [ ] **WIZARD-03**: User is prompted to confirm before changing topology after workloads have been configured
+- [x] **WIZARD-03**: User is prompted to confirm before changing topology after workloads have been configured
 
 ### DOMAIN — Management
 
-- [ ] **DOMAIN-01**: User can duplicate a workload domain ("Copy domain") with all its settings cloned and a new name assigned
+- [x] **DOMAIN-01**: User can duplicate a workload domain ("Copy domain") with all its settings cloned and a new name assigned
 
 ### CHART — Per-Domain Visualizations
 
-- [ ] **CHART-01**: Each workload domain result card shows its own Cores, RAM, and Storage charts (not a shared single chart set)
+- [x] **CHART-01**: Each workload domain result card shows its own Cores, RAM, and Storage charts (not a shared single chart set)
 
 ### EXPORT — Export Quality
 
 - [ ] **EXPORT-01**: PPTX slides include chart images (PNG, rasterized from the live Chart.js canvas)
-- [ ] **EXPORT-02**: Markdown and PPTX exports use the active UI locale instead of always rendering in English
-- [ ] **EXPORT-03**: User can preview rendered Markdown in-app before downloading
+- [x] **EXPORT-02**: Markdown and PPTX exports use the active UI locale instead of always rendering in English
+- [x] **EXPORT-03**: User can preview rendered Markdown in-app before downloading
 
 ### STOR — Storage Units & Inputs
 
@@ -56,13 +56,13 @@ Improve user experience through wizard navigation enhancements and domain manage
 |--------|-------|--------|
 | WIZARD-01 | Phase 18 | Pending |
 | WIZARD-02 | Phase 18 | Pending |
-| WIZARD-03 | Phase 19 | Pending |
-| DOMAIN-01 | Phase 19 | Pending |
+| WIZARD-03 | Phase 19 | Complete |
+| DOMAIN-01 | Phase 19 | Complete |
 | STOR-01 | Phase 20 | Pending |
 | STOR-02 | Phase 20 | Pending |
 | STOR-03 | Phase 20 | Pending |
 | STOR-04 | Phase 20 | Pending |
-| CHART-01 | Phase 21 | Pending |
+| CHART-01 | Phase 21 | Complete |
 | EXPORT-01 | Phase 22 | Pending |
-| EXPORT-02 | Phase 22 | Pending |
-| EXPORT-03 | Phase 23 | Pending |
+| EXPORT-02 | Phase 22 | Complete |
+| EXPORT-03 | Phase 23 | Complete |

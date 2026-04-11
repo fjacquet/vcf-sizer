@@ -147,3 +147,20 @@ describe('uiStore -- chartImages registry', () => {
     expect(store.chartImages['domain-1']['cores']).toBe('data:image/png;base64,new')
   })
 })
+
+describe('uiStore -- localeLoading guard (PITFALL-10)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('localeLoading initializes to false', () => {
+    const store = useUiStore()
+    expect(store.localeLoading).toBe(false)
+  })
+
+  it('localeLoading remains false after setLocale("en") (bundled, no async)', async () => {
+    const store = useUiStore()
+    await store.setLocale('en')
+    expect(store.localeLoading).toBe(false)
+  })
+})

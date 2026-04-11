@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-120%20passing-brightgreen)](src/engine)
+[![Tests](https://img.shields.io/badge/tests-297%20passing-brightgreen)](src/engine)
 
 Interactive sizing calculator for VMware Cloud Foundation 9.x deployments. Runs entirely in the browser — no backend required.
 
@@ -24,9 +24,13 @@ Compute, memory, and storage requirements across all VCF 9 deployment topologies
 ## Features
 
 - Shareable URLs (lz-string + Zod validation) — no backend, no login
-- Export to Markdown and PDF
+- Export to Markdown, PDF, and PPTX (PowerPoint with embedded chart images)
+- In-app Markdown preview with XSS sanitization (DOMPurify)
+- 3-step guided wizard (Topology, Management, Workloads)
+- Domain duplication (copy all 26 fields)
+- Topology change confirmation dialog
+- Per-domain Chart.js visualizations (Cores, RAM, Storage)
 - 4 languages: EN / FR / DE / IT (Switzerland locales)
-- Real-time chart visualizations (Chart.js)
 
 ## Tech Stack
 
@@ -38,7 +42,8 @@ Compute, memory, and storage requirements across all VCF 9 deployment topologies
 | i18n | vue-i18n v11 |
 | Charts | Chart.js via vue-chartjs |
 | Build | Vite 8 |
-| Tests | Vitest (120 tests) |
+| Export | pptxgenjs (PPTX), marked + DOMPurify (Markdown preview) |
+| Tests | Vitest (297 tests) |
 
 ## Development
 

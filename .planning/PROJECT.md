@@ -57,30 +57,24 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - ✓ Management result card at end of step 2; committed summary panel at top of step 3 — v3.1
 - ✓ Shareable URL never encodes wizard step position — v3.1
 - ✓ Management hosts line in Markdown and PPTX aggregate exports (dedicated: count, colocated: "colocated with WLD-1") — v3.1
+- ✓ Wizard click-back navigation: click completed step badges to jump back — v3.3
+- ✓ Landing/intro view on first load before wizard starts — v3.3
+- ✓ Topology change confirmation dialog when workloads are configured — v3.3
+- ✓ Domain duplication ("Copy domain") cloning all 26 fields with new UUID — v3.3
+- ✓ Per-domain Chart.js visualizations (Cores, RAM, Storage) in each result card — v3.3
+- ✓ Chart PNG images embedded in PPTX slides (rasterized from Chart.js canvas) — v3.3
+- ✓ Localized Markdown + PPTX exports (active UI locale, ~100 i18n keys) — v3.3
+- ✓ In-app Markdown preview with DOMPurify XSS sanitization — v3.3
+- ✓ Storage units corrected to TiB (binary) throughout engine, UI, and exports — v3.3
+- ✓ FC/NFS external storage pool input (Total Usable Storage Pool TiB) — v3.3
 
-## Current Milestone: v3.3 UX Polish & Export Quality
-
-**Goal:** Improve user experience through wizard navigation enhancements and domain management features, while enriching exports with visuals, localization, and in-app preview.
-
-**Target features:**
-- Click WizardStepper step to jump back to a previous step
-- Landing / intro view shown on first load before wizard starts
-- Topology change confirmation dialog when workloads already configured
-- Domain duplication ("Copy domain" button)
-- Chart images (PNG) embedded in PPTX slides (rasterized from Chart.js)
-- Per-domain Chart.js visualizations in result cards
-- Localized Markdown + PPTX exports (follow active UI locale)
-- In-app Markdown preview panel before download
-
-### Active
-
-*(Defined — see REQUIREMENTS.md)*
-
-### Deferred (post-v3.3)
+### Deferred
 
 - Dark mode print stylesheet
 - Domain reordering (drag-and-drop tab reordering)
 - Advanced mode: toggle between wizard and classic flat layout
+- Per-locale export file naming
+- `window.confirm()` replacement for domain delete (use shared ConfirmDialog.vue)
 
 ### Out of Scope
 
@@ -89,14 +83,13 @@ Prevent under-provisioning of VCF 9.x deployments by computing exact hardware re
 - vSphere 7.x or VCF 5.x calculations — VCF 9.x only
 - vSAN OSA legacy calculations — out of scope for VCF 9.x focus
 - Side-by-side comparison columns, localStorage saves — UI backlog
-- Per-locale export file naming — deferred
 - Server-side PDF rendering — `jsPDF`/`html2canvas` rejected: bundle cost and quality
 
 ## Current State
 
-**Shipped v3.1 (2026-04-04)** — 7,176 LOC TypeScript + Vue 3. 271 tests passing.
+**Shipped v3.3 (2026-04-11)** — 7,879 LOC TypeScript + Vue 3. 297 tests passing.
 
-Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.js, vue-i18n v11, Chart.js via vue-chartjs, lz-string + Zod for URL state, pptxgenjs 4.0.1 (dynamic import), Vitest for unit tests. Deployed on GitHub Pages at `/vcf-sizer/`.
+Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.js, vue-i18n v11, Chart.js via vue-chartjs, lz-string + Zod for URL state, pptxgenjs 4.0.1 (dynamic import), marked + DOMPurify (lazy-loaded Markdown preview), Vitest for unit tests. Deployed on GitHub Pages at `/vcf-sizer/`.
 
 **Architecture patterns established:**
 
@@ -107,6 +100,9 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 - Export composables: plain TypeScript (no Vue lifecycle hooks), pure data-mapping helpers for testability
 - pptxgenjs: dynamic `import()` inside function body keeps it out of initial bundle (PPTX-15)
 - ManagementStorageType = Exclude<StorageType, 'vsan-max'> — narrower type for management domain (v3.2)
+- structuredClone(toRaw(domain)) canonical domain clone pattern — bare structuredClone throws on Pinia reactive proxy (v3.3)
+- DOMPurify.sanitize() before v-html in MarkdownPreview — XSS protection from user domain names (v3.3)
+- marked + dompurify lazy-loaded on first preview open — zero initial bundle impact (v3.3)
 
 **Known pending:** Verify ReadyNode profile hardware minimums (NVMe counts, RAM minimums) against Broadcom compatibility guide at production deployment time.
 
@@ -142,10 +138,16 @@ Tech stack: Vue 3 (Composition API), Vite 8, Tailwind CSS v4, Pinia 3, Decimal.j
 | topologyConfirmed ephemeral flag | Gates step 1→2 transition without polluting URL state | ✓ Clean wizard flow — v3.1 |
 | ManagementStorageType = Exclude<StorageType, 'vsan-max'> | vSAN Max is not a valid management domain storage type | ✓ Type-safe, CodeRabbit-validated — v3.2 |
 | FC/NFS dedicated management min = 2 (HA) / 4 (stretch) | VCF 9.0 installer allows 2 hosts with external storage (KB 416270) | ✓ Confirmed by Broadcom techdocs — v3.2 |
+| structuredClone(toRaw(domain)) for domain clone | Bare structuredClone throws on Pinia reactive proxy (Pinia #1412) | ✓ Zero clone bugs — v3.3 |
+| DOMPurify.sanitize() before v-html | User domain names could inject XSS via Markdown preview | ✓ XSS-safe — v3.3 |
+| Lazy-load marked + dompurify | 60 KB combined; code-split keeps initial bundle unchanged | ✓ Separate chunks verified — v3.3 |
+| Chart PNG via Chart.getChart(canvasId) | vue-chartjs ref.chart is null in Composition API (vue-chartjs #1012) | ✓ Reliable capture — v3.3 |
+| i18n.global.t() in export composables | useI18n() throws outside component context (PITFALL-3) | ✓ All 4 locales verified — v3.3 |
+| animation: false on per-domain charts | Animated charts produce blank PNG from toBase64Image() (Chart.js #2743) | ✓ Clean PNGs — v3.3 |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-10 — milestone v3.3 started*
+*Last updated: 2026-04-11 — milestone v3.3 shipped*

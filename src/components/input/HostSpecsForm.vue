@@ -32,7 +32,7 @@ const domainResult = computed(() =>
 const coresPerSocket = domainField('coresPerSocket')
 const socketsPerHost = domainField('socketsPerHost')
 const hostRamGB = domainField('hostRamGB')
-const hostStorageTB = domainField('hostStorageTB')
+const hostStorageTiB = domainField('hostStorageTiB')
 const hostCount = domainField('hostCount')
 const nvmeTieringEnabled = domainField('nvmeTieringEnabled')
 const activeMemoryPct = domainField('activeMemoryPct')
@@ -89,7 +89,7 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
         :step="64"
       />
       <NumberSliderInput
-        v-model="hostStorageTB"
+        v-model="hostStorageTiB"
         :label="t('host.storageTB')"
         unit="TB"
         :min="0.96"

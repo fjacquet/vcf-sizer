@@ -53,7 +53,7 @@ export interface ComputeInputs {
 export interface StretchInputs {
   preferredSiteHosts: number
   secondarySiteHosts: number
-  hostStorageTB: number
+  hostStorageTiB: number
   vmCount: number
   avgStorageGbPerVm: number
 }
@@ -70,8 +70,8 @@ export interface StretchResult {
   totalHosts: number
   witnessCores: number       // 4 (ESA M profile — ESA does not support Tiny/2vCPU)
   witnessRamGB: number       // 16 (ESA M profile)
-  minBandwidthGbps: number   // max(totalWorkloadStorageTB × 0.1, STRETCH_MIN_BANDWIDTH_GBPS)
-  effectivePerSiteStorageTB: number
+  minBandwidthGbps: number   // max(totalWorkloadStorageTiB × 0.1, STRETCH_MIN_BANDWIDTH_GBPS)
+  effectivePerSiteStorageTiB: number
   storageNote: string        // i18n key: 'deployment.stretch.storageNote'
   bandwidthFloorApplied: boolean
   networkChecklist: StretchNetworkChecklist
@@ -92,7 +92,8 @@ export interface ComputeResult {
 export interface StorageInputs {
   storageType: StorageType
   hostCount: number
-  hostStorageTB: number
+  hostStorageTiB: number
+  externalStorageUsableTiB?: number
   fttLevel: FttLevel
   raidType: RaidType
   dedupEnabled: boolean
@@ -101,14 +102,14 @@ export interface StorageInputs {
 }
 
 export interface StorageResult {
-  rawCapacityTB: number
+  rawCapacityTiB: number
   raidMultiplier: number
-  usableAfterRaidTB: number
-  lfsOverheadTB: number
-  metadataOverheadTB: number
-  usableBeforeDedupTB: number
-  effectiveCapacityTB: number
-  safeUsableCapacityTB: number
+  usableAfterRaidTiB: number
+  lfsOverheadTiB: number
+  metadataOverheadTiB: number
+  usableBeforeDedupTiB: number
+  effectiveCapacityTiB: number
+  safeUsableCapacityTiB: number
   raidScheme: string
   minHostsRequired: number
 }
@@ -135,8 +136,8 @@ export interface VsanMaxInputs {
 }
 
 export interface VsanMaxResult {
-  rawCapacityTB: number
-  usableCapacityTB: number
+  rawCapacityTiB: number
+  usableCapacityTiB: number
   raidScheme: string
   storageNodeCount: number
   computeNodeCount: number
@@ -149,7 +150,8 @@ export interface WorkloadDomainConfig {
   coresPerSocket: number
   socketsPerHost: number
   hostRamGB: number
-  hostStorageTB: number
+  hostStorageTiB: number
+  externalStorageUsableTiB: number
   hostCount: number
   nvmeTieringEnabled: boolean
   activeMemoryPct: number
@@ -178,7 +180,7 @@ export interface ManagementDomainConfig {
   coresPerSocket: number
   socketsPerHost: number
   hostRamGB: number
-  hostStorageTB: number
+  hostStorageTiB: number
   deploymentMode: DeploymentMode
   storageType?: ManagementStorageType  // default 'vsan-esa' when absent (ARCH-01)
 }
@@ -197,7 +199,7 @@ export interface AggregateTotals {
   totalRecommendedHosts: number    // grand total = workload hosts + management hosts
   mgmtHostCount: number            // management-only host count (0 when colocated)
   totalVmCount: number
-  totalRawStorageTB: number
-  totalEffectiveStorageTB: number
+  totalRawStorageTiB: number
+  totalEffectiveStorageTiB: number
   allValidationErrors: ValidationWarning[]
 }

@@ -18,7 +18,8 @@ export const WorkloadDomainSchema = z
     coresPerSocket: z.number().int().min(1).max(256).default(16),
     socketsPerHost: z.number().int().min(1).max(8).default(2),
     hostRamGB: z.number().positive().default(512),
-    hostStorageTB: z.number().positive().default(3.84),
+    hostStorageTiB: z.number().positive().default(3.84),
+    externalStorageUsableTiB: z.number().positive().default(100),
     hostCount: z.number().int().min(1).max(64).default(4),
     nvmeTieringEnabled: z.boolean().default(false),
     activeMemoryPct: z.number().min(1).max(100).default(50),
@@ -49,7 +50,7 @@ export const ManagementDomainSchema = z
     coresPerSocket: z.number().int().min(1).max(256).default(16),
     socketsPerHost: z.number().int().min(1).max(8).default(2),
     hostRamGB: z.number().positive().default(512),
-    hostStorageTB: z.number().positive().default(3.84),
+    hostStorageTiB: z.number().positive().default(3.84),
     deploymentMode: z.enum(['simple', 'ha', 'stretch']).default('ha'),
     storageType: z.enum(['vsan-esa', 'fc', 'nfs']).default('vsan-esa'),
   })

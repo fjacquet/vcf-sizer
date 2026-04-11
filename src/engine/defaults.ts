@@ -10,7 +10,8 @@ export function createDefaultWorkloadDomain(index: number): WorkloadDomainConfig
     coresPerSocket: 16,
     socketsPerHost: 2,
     hostRamGB: 512,
-    hostStorageTB: 3.84,
+    hostStorageTiB: 3.84,
+    externalStorageUsableTiB: 100,
     hostCount: 4,
     nvmeTieringEnabled: false,
     activeMemoryPct: 50,
@@ -41,7 +42,7 @@ export function createDefaultManagementDomain(): ManagementDomainConfig {
     coresPerSocket: 16,
     socketsPerHost: 2,
     hostRamGB: 512,
-    hostStorageTB: 3.84,
+    hostStorageTiB: 3.84,
     deploymentMode: 'ha',
     storageType: 'vsan-esa',
   }

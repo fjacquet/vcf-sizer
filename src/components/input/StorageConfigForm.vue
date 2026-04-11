@@ -195,14 +195,14 @@ const storageTypes = [
     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
       <span>{{ t('storage.rawCapacity') }}</span>
       <span class="font-mono text-right">
-        {{ storageType === 'vsan-max' && vsanMax ? vsanMax.rawCapacityTB.toFixed(2) : (storage?.rawCapacityTB ?? 0).toFixed(2) }} TB
+        {{ storageType === 'vsan-max' && vsanMax ? vsanMax.rawCapacityTiB.toFixed(2) : (storage?.rawCapacityTiB ?? 0).toFixed(2) }} TB
       </span>
       <template v-if="storageType === 'vsan-esa'">
         <span>{{ t('storage.raidOverhead') }}</span>
         <span class="font-mono text-right">{{ storage?.raidMultiplier ?? 0 }}x</span>
         <span>{{ t('storage.netUsable') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ (storage?.safeUsableCapacityTB ?? 0).toFixed(2) }} TB
+          {{ (storage?.safeUsableCapacityTiB ?? 0).toFixed(2) }} TB
         </span>
       </template>
       <template v-else-if="storageType === 'vsan-max' && vsanMax">
@@ -210,13 +210,13 @@ const storageTypes = [
         <span class="font-mono text-right">{{ vsanMax.raidScheme }}</span>
         <span>{{ t('storage.netUsable') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ vsanMax.usableCapacityTB.toFixed(2) }} TB
+          {{ vsanMax.usableCapacityTiB.toFixed(2) }} TB
         </span>
       </template>
       <template v-else>
         <span>{{ t('storage.netUsablePassthrough') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ (storage?.rawCapacityTB ?? 0).toFixed(2) }} TB
+          {{ (storage?.rawCapacityTiB ?? 0).toFixed(2) }} TB
         </span>
       </template>
     </div>

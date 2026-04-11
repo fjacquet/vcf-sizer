@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, toRaw } from 'vue'
 import { createDefaultWorkloadDomain, createDefaultManagementDomain } from '@/engine/defaults'
 import type { WorkloadDomainConfig, ManagementDomainConfig } from '@/engine/types'
 
@@ -44,6 +44,18 @@ export const useInputStore = defineStore('input', () => {
     Object.assign(managementDomain.value, patch)
   }
 
+  function duplicateDomain(id: string, newName: string): void {
+    const idx = workloadDomains.value.findIndex(d => d.id === id)
+    if (idx === -1) return
+    const source = workloadDomains.value[idx]
+    // toRaw() strips Pinia reactive proxy before structuredClone (Pinia #1412)
+    const clone = structuredClone(toRaw(source))
+    clone.id = crypto.randomUUID()
+    clone.name = newName
+    workloadDomains.value.splice(idx + 1, 0, clone)
+    activeDomainIndex.value = idx + 1
+  }
+
   return {
     managementArchitecture,
     managementDomain,
@@ -54,5 +66,6 @@ export const useInputStore = defineStore('input', () => {
     updateDomain,
     renameDomain,
     updateManagementDomain,
+    duplicateDomain,
   }
 })

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.3
 milestone_name: UX Polish & Export Quality
-status: executing
-last_updated: "2026-04-10T20:00:00.000Z"
-last_activity: 2026-04-10 -- Phase 18 complete
+status: completed
+last_updated: "2026-04-11T17:08:07.475Z"
+last_activity: 2026-04-11
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 17
+  completed_phases: 5
+  total_plans: 11
+  completed_plans: 9
+  percent: 82
 ---
 
 # Project State
@@ -20,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** Prevent under-provisioning of VCF 9.x deployments by computing exact hardware requirements across all deployment configurations before hardware is ordered.
-**Current focus:** v3.3 milestone — UX Polish & Export Quality
+**Current focus:** Milestone v3.3 complete — all phases shipped
 
 ## Current Position
 
-Phase: 19 (Topology Confirmation + Domain Duplication) — not yet started
-Plan: —
-Status: Ready to execute
-Last activity: 2026-04-10 -- Phase 18 complete (279 tests, build clean)
+Phase: 23 (Markdown Preview Panel) — COMPLETE
+Plan: 2 of 2
+Status: Milestone v3.3 complete
+Last activity: 2026-04-11
 
 ## Progress Bar
 
 ```
-v3.3: [##        ] 1/6 phases complete
+v3.3: [██████████] 100%
 ```
 
 ## Pending Todos
@@ -67,10 +67,19 @@ v3.3: [##        ] 1/6 phases complete
 - marked pinned at ^15.x — v16+ drops CommonJS; v18 requires TypeScript v6
 - New npm packages for v3.3: marked@^15.0.12 + dompurify@^3.3.3 (~20 KB gzipped combined)
 
+### v3.3 Phase 19 Decisions
+
+- structuredClone(toRaw(source)) is the canonical domain clone pattern — bare structuredClone throws on Pinia reactive proxy (Pinia #1412)
+- duplicateDomain name is a parameter (not hardcoded suffix) — keeps store i18n-clean
+- pendingTopology stored in local ref, never written to store before user confirms (PITFALL-5)
+- hasConfiguredDomains skips deploymentMode in addition to id/name — topology change should not trigger its own confirmation
+- applyTopology calls confirmTopology() (idempotent) + setWizardStep(1) per ROADMAP criterion 3
+
 ### Test Baseline
 
-- 279 tests passing as of Phase 18 — TDD discipline maintained throughout
+- 297 tests passing as of Phase 23 completion — TDD discipline maintained throughout
 
 ## Session Continuity
 
-Next action: Run `/gsd-plan-phase 19` to plan Phase 19 (Topology Confirmation + Domain Duplication).
+Last session: 2026-04-11
+Next action: Milestone v3.3 complete. Merge branch to maincd or plan next milestone.

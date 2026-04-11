@@ -1,5 +1,22 @@
 # Milestones
 
+## v3.3 UX Polish & Export Quality (Shipped: 2026-04-11)
+
+**Phases completed:** 6 phases, 11 plans, 13 tasks
+
+**Key accomplishments:**
+
+- Task 1 (TDD):
+- Task 1:
+- One-liner:
+- Copy button added to DomainTabStrip tabs — inline SVG, blue hover, @click.stop, aria-label interpolated from domain.copyDomain — wired to inputStore.duplicateDomain with localized (copy) suffix across all 4 locales
+- Props-driven Cores/RAM/Storage charts in each DomainResultCard with per-domain canvas IDs and PNG capture for PPTX export
+- All export composable strings localized via i18n with ~100 keys across 4 locales, locale-loading guard on export buttons
+- MarkdownPreviewPanel component with lazy-loaded marked + DOMPurify sanitization, Tailwind typography prose styling, and 4-locale i18n keys
+- Preview button added to ExportToolbar with localeLoading guard, wired to MarkdownPreviewPanel via open/close ref toggle
+
+---
+
 ## v3.1 Sizing Correctness & Guided Workflow (Shipped: 2026-04-04)
 
 **Phases completed:** 8 phases, 16 plans, 33 tasks

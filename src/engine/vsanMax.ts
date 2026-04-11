@@ -6,12 +6,12 @@ import Decimal from 'decimal.js'
 import type { VsanMaxInputs, VsanMaxResult, VsanMaxProfile } from './types'
 import { vsanEsaRaidOverhead, VSAN_LFS_OVERHEAD, VSAN_METADATA_PCT, VSAN_SAFE_SLACK } from './storage'
 
-export const READYNODE_PROFILES: Record<VsanMaxProfile, { rawTbPerNode: number; label: string }> = {
-  xs:  { rawTbPerNode: 20,  label: 'XS — 20 TB/node' },
-  sm:  { rawTbPerNode: 50,  label: 'SM — 50 TB/node' },
-  med: { rawTbPerNode: 100, label: 'MED — 100 TB/node' },
-  lrg: { rawTbPerNode: 150, label: 'LRG — 150 TB/node' },
-  xl:  { rawTbPerNode: 200, label: 'XL — 200 TB/node' },
+export const READYNODE_PROFILES: Record<VsanMaxProfile, { rawTibPerNode: number; label: string }> = {
+  xs:  { rawTibPerNode: 20,  label: 'XS — 20 TiB/node' },
+  sm:  { rawTibPerNode: 50,  label: 'SM — 50 TiB/node' },
+  med: { rawTibPerNode: 100, label: 'MED — 100 TiB/node' },
+  lrg: { rawTibPerNode: 150, label: 'LRG — 150 TiB/node' },
+  xl:  { rawTibPerNode: 200, label: 'XL — 200 TiB/node' },
 }
 
 const VSAN_MAX_MIN_NODES = 4
@@ -31,36 +31,36 @@ export function calcVsanMax(inputs: VsanMaxInputs): VsanMaxResult {
   const profileData = READYNODE_PROFILES[profile]
   const belowMinNodes = storageNodeCount < VSAN_MAX_MIN_NODES
 
-  // Raw capacity = nodes * TB per node
-  const rawCapacityTB = new Decimal(storageNodeCount)
-    .times(profileData.rawTbPerNode)
+  // Raw capacity = nodes * TiB per node
+  const rawCapacityTiB = new Decimal(storageNodeCount)
+    .times(profileData.rawTibPerNode)
     .toNumber()
 
   // Use same RAID scheme as HCI ESA — call vsanEsaRaidOverhead with storageNodeCount
   // vSAN Max always uses RAID-5 FTT=1 (the adaptive scheme)
   const raidInfo = vsanEsaRaidOverhead(storageNodeCount, 1, 'raid5')
 
-  const rawDecimal = new Decimal(rawCapacityTB)
+  const rawDecimal = new Decimal(rawCapacityTiB)
 
   // Step 1: Apply RAID overhead
-  const usableAfterRaidTB = rawDecimal.dividedBy(raidInfo.multiplier)
+  const usableAfterRaidTiB = rawDecimal.dividedBy(raidInfo.multiplier)
 
   // Step 2: Apply LFS overhead (~13%)
-  const lfsOverheadTB = usableAfterRaidTB.times(VSAN_LFS_OVERHEAD)
-  const usableAfterLfsTB = usableAfterRaidTB.minus(lfsOverheadTB)
+  const lfsOverheadTiB = usableAfterRaidTiB.times(VSAN_LFS_OVERHEAD)
+  const usableAfterLfsTiB = usableAfterRaidTiB.minus(lfsOverheadTiB)
 
   // Step 3: Global metadata pool (~10% of raw capacity)
-  const metadataOverheadTB = rawDecimal.times(VSAN_METADATA_PCT)
+  const metadataOverheadTiB = rawDecimal.times(VSAN_METADATA_PCT)
 
   // Step 4: Net usable
-  const netUsableTB = usableAfterLfsTB.minus(metadataOverheadTB)
+  const netUsableTiB = usableAfterLfsTiB.minus(metadataOverheadTiB)
 
   // Step 5: Safe usable (keep 70%, reserve 30% slack)
-  const usableCapacityTB = netUsableTB.times(VSAN_SAFE_SLACK).toNumber()
+  const usableCapacityTiB = netUsableTiB.times(VSAN_SAFE_SLACK).toNumber()
 
   return {
-    rawCapacityTB,
-    usableCapacityTB,
+    rawCapacityTiB,
+    usableCapacityTiB,
     raidScheme: raidInfo.scheme,
     storageNodeCount,
     computeNodeCount,

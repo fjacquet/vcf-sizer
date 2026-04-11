@@ -88,6 +88,20 @@ function requestDelete(domain: WorkloadDomainConfig) {
       >
         {{ domain.name }}
       </span>
+      <!-- Copy domain button (DOMAIN-01) -- always visible -->
+      <button
+        class="ml-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded focus:outline-none"
+        :aria-label="t('domain.copyDomain', { name: domain.name })"
+        @click.stop="input.duplicateDomain(domain.id, `${domain.name} ${t('domain.copyNameSuffix')}`)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 16 16"
+             fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+          <rect x="5" y="5" width="9" height="9" rx="1" />
+          <path d="M2 11V2h9" />
+        </svg>
+      </button>
       <!-- Delete button — hidden when only 1 domain remains (UI-03) -->
       <button
         v-if="input.workloadDomains.length > 1"

@@ -21,20 +21,20 @@ export function calcStretch(inputs: StretchInputs): StretchResult {
 
   const totalHosts = new Decimal(preferredSiteHosts).plus(secondarySiteHosts).toNumber()
 
-  // Total workload storage in TB (VMs × average storage per VM, converted from GB)
-  const totalWorkloadStorageTB = new Decimal(vmCount)
+  // Total workload storage in TiB (VMs × average storage per VM, converted from GB)
+  const totalWorkloadStorageTiB = new Decimal(vmCount)
     .times(avgStorageGbPerVm)
     .dividedBy(1024)
     .toNumber()
 
   // Cross-site bandwidth recommendation: 10% of total workload storage as daily change rate heuristic
   // Apply 10 Gbps floor per VCF 9.0 TechDocs minimum requirement (STRCH-06)
-  const calculatedBandwidthGbps = new Decimal(totalWorkloadStorageTB).times(0.1).toNumber()
+  const calculatedBandwidthGbps = new Decimal(totalWorkloadStorageTiB).times(0.1).toNumber()
   const minBandwidthGbps = Math.max(calculatedBandwidthGbps, STRETCH_MIN_BANDWIDTH_GBPS)
   const bandwidthFloorApplied = calculatedBandwidthGbps < STRETCH_MIN_BANDWIDTH_GBPS
 
   // Each site holds a full independent copy — effective per-site storage = total / 2
-  const effectivePerSiteStorageTB = new Decimal(totalWorkloadStorageTB).dividedBy(2).toNumber()
+  const effectivePerSiteStorageTiB = new Decimal(totalWorkloadStorageTiB).dividedBy(2).toNumber()
 
   // Witness RTT threshold derived from per-site host count (STRCH-08)
   // <=10 hosts/site: 200ms; 11+ hosts/site: 100ms (conservative fallback)
@@ -54,7 +54,7 @@ export function calcStretch(inputs: StretchInputs): StretchResult {
     witnessCores: ESA_WITNESS_CORES,
     witnessRamGB: ESA_WITNESS_RAM_GB,
     minBandwidthGbps,
-    effectivePerSiteStorageTB,
+    effectivePerSiteStorageTiB,
     storageNote: 'deployment.stretch.storageNote',
     bandwidthFloorApplied,
     networkChecklist,
