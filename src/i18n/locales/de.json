@@ -121,7 +121,9 @@
       "exportMd": "Markdown exportieren",
       "print": "Drucken / PDF",
       "exportPptx": "PPTX herunterladen",
-      "exportPptxLoading": "Wird erstellt..."
+      "exportPptxLoading": "Wird erstellt...",
+      "preview": "Vorschau",
+      "previewClose": "Vorschau schliessen"
     },
     "hostCount": {
       "title": "Empfohlene Hostanzahl",

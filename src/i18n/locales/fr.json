@@ -121,7 +121,9 @@
       "exportMd": "Exporter en Markdown",
       "print": "Imprimer / PDF",
       "exportPptx": "Exporter PPTX",
-      "exportPptxLoading": "Generation..."
+      "exportPptxLoading": "Generation...",
+      "preview": "Apercu",
+      "previewClose": "Fermer l'apercu"
     },
     "hostCount": {
       "title": "Nombre d'hôtes recommandé",

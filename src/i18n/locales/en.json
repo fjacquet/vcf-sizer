@@ -121,7 +121,9 @@
       "exportMd": "Export Markdown",
       "print": "Print / PDF",
       "exportPptx": "Download PPTX",
-      "exportPptxLoading": "Generating..."
+      "exportPptxLoading": "Generating...",
+      "preview": "Preview",
+      "previewClose": "Close Preview"
     },
     "hostCount": {
       "title": "Recommended Host Count",
