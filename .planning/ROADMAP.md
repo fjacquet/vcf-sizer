@@ -191,4 +191,4 @@ Plans:
 | 20. Storage Units Correction | 2/2 | Complete | 2026-04-11 |
 | 21. Per-Domain Chart Visualizations | 1/1 | Complete | 2026-04-11 |
 | 22. Localized Exports + PPTX Chart Images | 2/2 | Complete | 2026-04-11 |
-| 23. Markdown Preview Panel | 2/2 | Complete   | 2026-04-11 |
+| 23. Markdown Preview Panel | 2/2 | Complete    | 2026-04-11 |
