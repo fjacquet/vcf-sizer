@@ -137,7 +137,10 @@ Plans:
   2. With three configured workload domains, the page shows nine separate charts — three per card — each with distinct data values reflecting their respective domain
   3. Chart canvas elements carry per-domain IDs (e.g., cores-chart-{domainId}) preventing any cross-domain Chart.js instance collision
   4. After each chart renders, its PNG data URL is registered into uiStore.chartImages[domainId], making it available for PPTX embedding in Phase 22
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+
+- [ ] 21-01-PLAN.md — Refactor chart components to props-driven, embed in DomainResultCard, wire PNG capture (CHART-01)
 **UI hint**: yes
 
 ### Phase 22: Localized Exports + PPTX Chart Images
@@ -178,6 +181,6 @@ Plans:
 | 18. Store Foundations + Wizard Navigation | 2/2 | Complete | 2026-04-10 |
 | 19. Topology Confirmation + Domain Duplication | 2/2 | Complete   | 2026-04-11 |
 | 20. Storage Units Correction | 0/2 | Planned | - |
-| 21. Per-Domain Chart Visualizations | 0/? | Not started | - |
+| 21. Per-Domain Chart Visualizations | 0/1 | Planned | - |
 | 22. Localized Exports + PPTX Chart Images | 0/? | Not started | - |
 | 23. Markdown Preview Panel | 0/? | Not started | - |
