@@ -64,7 +64,7 @@ Full details: `.planning/milestones/v3.1-ROADMAP.md`
 - [x] **Phase 20: Storage Units Correction** - Replace TB with TiB throughout engine, schema, UI, and exports (completed 2026-04-11)
 - [x] **Phase 21: Per-Domain Chart Visualizations** - Each result card shows its own Cores/RAM/Storage charts (completed 2026-04-11)
 - [x] **Phase 22: Localized Exports + PPTX Chart Images** - Exports in active locale; chart PNGs embedded in PPTX slides (completed 2026-04-11)
-- [ ] **Phase 23: Markdown Preview Panel** - In-app rendered Markdown preview before download
+- [x] **Phase 23: Markdown Preview Panel** - In-app rendered Markdown preview before download (completed 2026-04-11)
 
 ---
 
@@ -177,7 +177,7 @@ Plans:
 Plans:
 
 - [x] 23-01-PLAN.md — Install deps (marked, dompurify, typography), create MarkdownPreviewPanel.vue, add i18n keys (EXPORT-03)
-- [ ] 23-02-PLAN.md — Wire preview into ExportToolbar, end-to-end human verification (EXPORT-03)
+- [x] 23-02-PLAN.md — Wire preview into ExportToolbar, end-to-end human verification (EXPORT-03)
 **UI hint**: yes
 
 ---
@@ -191,4 +191,4 @@ Plans:
 | 20. Storage Units Correction | 2/2 | Complete | 2026-04-11 |
 | 21. Per-Domain Chart Visualizations | 1/1 | Complete | 2026-04-11 |
 | 22. Localized Exports + PPTX Chart Images | 2/2 | Complete | 2026-04-11 |
-| 23. Markdown Preview Panel | 1/2 | In Progress|  |
+| 23. Markdown Preview Panel | 2/2 | Complete   | 2026-04-11 |
