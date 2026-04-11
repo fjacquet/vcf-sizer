@@ -13,13 +13,19 @@ export const useUiStore = defineStore('ui', () => {
     : navigator.language.startsWith('it') ? 'it'
     : 'en'
   const locale = ref<AppLocale>(browserLocale)
+  const localeLoading = ref(false)
 
   async function setLocale(newLocale: AppLocale): Promise<void> {
     locale.value = newLocale
     if (newLocale === 'en') {
       i18n.global.locale.value = 'en'
     } else {
-      await loadLocale(newLocale)
+      localeLoading.value = true
+      try {
+        await loadLocale(newLocale)
+      } finally {
+        localeLoading.value = false
+      }
     }
   }
 
@@ -64,5 +70,5 @@ export const useUiStore = defineStore('ui', () => {
     chartImages.value[domainId][chartType] = dataUrl
   }
 
-  return { locale, setLocale, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, chartImages, registerChartImage }
+  return { locale, setLocale, localeLoading, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, chartImages, registerChartImage }
 })
