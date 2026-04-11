@@ -30,6 +30,7 @@ The key structural decision documented in STATE.md is that this is **not a label
 - Run `npm run test` to validate; run `npm run type-check` before build
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -54,6 +55,7 @@ No new libraries are needed for this phase. All changes are renames within the e
 ## Architecture Patterns
 
 ### Pattern 1: Field Rename Across Type Hierarchy
+
 The rename `hostStorageTB → hostStorageTiB` must propagate through the type hierarchy in strict order to prevent TypeScript errors:
 
 1. `src/engine/types.ts` — update all four interfaces that carry the field
@@ -67,7 +69,9 @@ The rename `hostStorageTB → hostStorageTiB` must propagate through the type hi
 9. All i18n locale files — rename i18n key `host.storageTB` and update label text
 
 ### Pattern 2: FC/NFS Pool Field Addition
+
 Adding `externalStorageUsableTiB` requires:
+
 1. Add field to `WorkloadDomainConfig` in `types.ts`
 2. Add default value in `defaults.ts` (e.g., 100.0 TiB)
 3. Add to `WorkloadDomainSchema` in `useUrlState.ts`
@@ -77,14 +81,18 @@ Adding `externalStorageUsableTiB` requires:
 7. Update `useMarkdownExport.ts` and `usePptxExport.ts` to use pool field
 
 ### Pattern 3: i18n Key Rename
+
 The key `host.storageTB` must be renamed to `host.storageTiB` in all 4 locale files (en, fr-CH, de-CH, it-CH). The component `HostSpecsForm.vue` references `t('host.storageTB')` — update to `t('host.storageTiB')`. Swiss locales inherit nothing from parent — all 4 files are independent.
 
 ### Pattern 4: URL Schema Backward Compatibility
+
 The `.strip()` behavior on Zod schema means:
+
 - Old URLs with `hostStorageTB: 3.84` will parse → `hostStorageTB` stripped → `hostStorageTiB` defaults to 3.84 TiB
 - Old URLs with `hostStorageTB: X` where X is a user-entered decimal TB value will silently reset to the default. This is acceptable per STATE.md (graceful degradation, not lossless migration).
 
 ### Anti-Patterns to Avoid
+
 - **Conversion arithmetic**: Do NOT add a 1.0995 factor (TB→TiB conversion). The phase is a unit label commit, not a value rescaling. Existing users who entered "3.84 TB" will now see "3.84 TiB" — acceptable.
 - **Partial rename**: Never leave `hostStorageTB` in any production path after the commit. TypeScript will catch most cases, but template strings in export composables require manual audit.
 - **Nested default in Zod without factory**: For nested Zod schemas, `.default({})` bypasses inner field defaults (existing pitfall already documented). Use `.default(() => SchemaName.parse({}))` pattern already established.
@@ -205,6 +213,7 @@ This is a rename/refactor phase — the runtime state audit is required.
 **Note on French locale:** French computing standards use "Tio" for TiB (tebibyte). The existing fr locale already uses "To" (téraoctet) for TB. The correct French binary unit is "Tio" (tébioctet). This should be updated accordingly.
 
 **New i18n key needed (STOR-03):** A new key is required for the FC/NFS pool label:
+
 - `en`: `host.externalStorageTiB: "Total Usable Storage Pool (TiB)"`
 - `fr`: `host.externalStorageTiB: "Pool de stockage utilisable total (Tio)"`
 - `de`: `host.externalStorageTiB: "Gesamter nutzbarer Speicherpool (TiB)"`
@@ -225,36 +234,42 @@ This is a rename/refactor phase — the runtime state audit is required.
 ## Common Pitfalls
 
 ### Pitfall 1: Storage Result Field Names Not Renamed
+
 **What goes wrong:** `StorageResult` interface uses `rawCapacityTB`, `usableAfterRaidTB`, `lfsOverheadTB`, `metadataOverheadTB`, `usableBeforeDedupTB`, `effectiveCapacityTB`, `safeUsableCapacityTB`. If only the input field is renamed and not the output result fields, components still show "TB" from variable names.
 **Why it happens:** The result fields are returned by `calcStorage()` and used directly in components and exports. They are not renamed by renaming the input type.
 **How to avoid:** Include all `StorageResult` fields in the rename sweep. TypeScript will flag usages after the interface update.
 **Warning signs:** tsc errors on `.rawCapacityTB` access in components.
 
 ### Pitfall 2: StretchInputs.hostStorageTB is Dead Code
+
 **What goes wrong:** Believing the `hostStorageTB` field in `StretchInputs` affects stretch calculations and writing conversion logic.
 **Why it happens:** The field exists in `StretchInputs` and `calcStretch()` is called with it, but the function body only destructures 4 other fields. The host storage value plays no role in bandwidth or site storage calculations (those use `vmCount × avgStorageGbPerVm`).
 **How to avoid:** Only rename the field — do not add conversion logic.
 **Warning signs:** Adding a `hostStorageTiB × someConversionFactor` line to `calcStretch()`.
 
 ### Pitfall 3: FC/NFS Engine Path Still Multiplies per-host
+
 **What goes wrong:** After adding `externalStorageUsableTiB`, the FC/NFS branch in `calcStorage()` still computes `hostCount × hostStorageTiB` instead of using the pool value.
 **Why it happens:** The new field is added to the type but `calcStorage()` is not updated to use it.
 **How to avoid:** The `StorageInputs` interface must receive the new field. The FC/NFS branch returns `externalStorageUsableTiB` directly for all TB-labelled result fields.
 **Warning signs:** FC/NFS result still changes when hostCount slider moves.
 
 ### Pitfall 4: Zod Schema Replica in useUrlState.test.ts
+
 **What goes wrong:** The test file contains its own replica of the schema and must be updated independently from `useUrlState.ts`. If only the source is updated, the tests fail with mismatched field names.
 **Why it happens:** The test schema was created as an independent replica to avoid Pinia bootstrap in test context.
 **How to avoid:** Update `useUrlState.test.ts` schemas alongside `useUrlState.ts`.
 **Warning signs:** `hostStorageTB is not a valid field` type errors in test file.
 
 ### Pitfall 5: vSAN Max rawTbPerNode Values
+
 **What goes wrong:** The ReadyNode capacity values (20, 50, 100, 150, 200) are Broadcom marketing specs measured in decimal TB. Renaming the property to `rawTibPerNode` while keeping the same numeric values would be semantically incorrect (20 TiB ≠ 20 TB).
 **Why it happens:** The property name is renamed but the values are not converted.
 **How to avoid:** Two valid approaches: (a) keep values as-is and rename property to `rawTibPerNode` acknowledging ~9% accuracy loss in the label, OR (b) convert values to TiB equivalents (20 TB ÷ 1.0995 ≈ 18.19 TiB). This is a decision point — document in plan for user confirmation via the discuss phase. Current STATE.md says "true binary units" but does not specify vSAN Max profile conversion explicitly.
 **Warning signs:** vSAN Max capacity results changing unexpectedly after rename.
 
 ### Pitfall 6: StorageChart.vue print table header "TB" is hardcoded
+
 **What goes wrong:** `StorageChart.vue:98` has `<th ...>TB</th>` as a hardcoded string (not an i18n key). It will not be caught by an i18n key search.
 **Why it happens:** Print fallback tables sometimes get static strings rather than i18n keys.
 **How to avoid:** Audit component templates for literal "TB" strings, not just i18n key references.
@@ -262,6 +277,7 @@ This is a rename/refactor phase — the runtime state audit is required.
 ## Code Examples
 
 ### FC/NFS Pool Engine Change (StorageInputs)
+
 ```typescript
 // Source: [VERIFIED: src/engine/types.ts — read in this session]
 // Before:
@@ -283,6 +299,7 @@ export interface StorageInputs {
 ```
 
 ### FC/NFS Engine Path Change
+
 ```typescript
 // Source: [VERIFIED: src/engine/storage.ts — read in this session]
 // Before: FC/NFS computes rawCapacity from hostCount × perHostStorage
@@ -305,6 +322,7 @@ case 'nfs':
 ```
 
 ### Zod Schema Field Rename
+
 ```typescript
 // Source: [VERIFIED: src/composables/useUrlState.ts — read in this session]
 // WorkloadDomainSchema — rename and add:
@@ -313,6 +331,7 @@ externalStorageUsableTiB: z.number().positive().default(100),  // new — FC/NFS
 ```
 
 ### i18n Key Rename
+
 ```typescript
 // Source: [VERIFIED: src/i18n/locales/en.json — read in this session]
 // en.json "host" section:
@@ -365,6 +384,7 @@ Step 2.6: SKIPPED (no external dependencies — all changes are code/config only
 ## Validation Architecture
 
 ### Test Framework
+
 | Property | Value |
 |----------|-------|
 | Framework | Vitest (node environment) |
@@ -373,6 +393,7 @@ Step 2.6: SKIPPED (no external dependencies — all changes are code/config only
 | Full suite command | `npm run test` |
 
 ### Phase Requirements → Test Map
+
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
 | STOR-01 | All storage values labeled TiB in exports | unit | `npx vitest run src/composables/usePptxExport.test.ts` | Yes |
@@ -381,11 +402,13 @@ Step 2.6: SKIPPED (no external dependencies — all changes are code/config only
 | STOR-04 | URL round-trip with new field names | unit | `npx vitest run src/composables/useUrlState.test.ts` | Yes |
 
 ### Sampling Rate
+
 - **Per task commit:** `npx vitest run src/engine/storage.test.ts`
 - **Per wave merge:** `npm run test`
 - **Phase gate:** `npm run type-check && npm run test` — both must be green before `/gsd-verify-work`
 
 ### Wave 0 Gaps
+
 - [ ] New test cases for `calcStorage()` FC/NFS path with `externalStorageUsableTiB` — covers STOR-03
 - [ ] New test case for `WorkloadDomainSchema.parse({})` returning `hostStorageTiB` and `externalStorageUsableTiB` defaults — covers STOR-04
 - [ ] Update existing `useUrlState.test.ts` schema replicas to match renamed fields
@@ -416,6 +439,7 @@ Step 2.6: SKIPPED (no external dependencies — all changes are code/config only
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `src/engine/types.ts` — all type interfaces read directly
 - `src/engine/storage.ts` — complete function read
 - `src/engine/storage.test.ts` — all test fixtures read
@@ -437,11 +461,13 @@ Step 2.6: SKIPPED (no external dependencies — all changes are code/config only
 - `.planning/REQUIREMENTS.md`, `STATE.md`, `ROADMAP.md` — requirements and decisions confirmed
 
 ### Secondary (MEDIUM confidence)
+
 - Grep audit across all source files for "TB" and "hostStorageTB" patterns
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — no new libraries; all existing
 - Architecture: HIGH — all files read directly; rename scope fully enumerated
 - Pitfalls: HIGH — derived from direct code reading, not assumptions
