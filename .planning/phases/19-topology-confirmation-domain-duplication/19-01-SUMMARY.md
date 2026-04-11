@@ -55,6 +55,7 @@ requirements:
 ### duplicateDomain store action (DOMAIN-01)
 
 Added to `src/stores/inputStore.ts`:
+
 - `duplicateDomain(id: string, newName: string): void`
 - Uses `structuredClone(toRaw(source))` to produce a deep independent copy that bypasses Pinia's reactive proxy (Pinia #1412)
 - Clone gets a new UUID via `crypto.randomUUID()`
@@ -68,6 +69,7 @@ Added to `src/stores/inputStore.ts`:
 ### ConfirmationDialog.vue (WIZARD-03)
 
 New component at `src/components/shared/ConfirmationDialog.vue`:
+
 - Props: `visible`, `title`, `message`, `confirmLabel`, `cancelLabel`
 - Emits: `confirm`, `cancel`
 - Uses `<Teleport to="body">` to prevent stacking context clipping
@@ -79,6 +81,7 @@ New component at `src/components/shared/ConfirmationDialog.vue`:
 ### Topology change guard (TopologySelector.vue)
 
 Rewrote `src/components/shared/TopologySelector.vue`:
+
 - Imports `ConfirmationDialog`, `createDefaultWorkloadDomain`, `WorkloadDomainConfig`
 - `pendingTopology` and `showConfirmDialog` are local refs — never written to store before confirmation
 - `hasConfiguredDomains()` checks all workload domains against defaults, skipping `id`, `name`, and `deploymentMode`
@@ -90,6 +93,7 @@ Rewrote `src/components/shared/TopologySelector.vue`:
 ### i18n topology namespace
 
 Added `"topology"` key (alphabetically before `"warnings"`) to all 4 locale files:
+
 - **en**: "Change topology?", "Changing the topology will reset all workload domain settings..."
 - **fr**: With typographic non-breaking space before `?`, proper accented characters
 - **de**: With proper umlauts (`\u00e4`, `\u00c4`, `\u00fc`)

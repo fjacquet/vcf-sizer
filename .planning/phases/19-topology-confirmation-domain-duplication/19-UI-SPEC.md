@@ -94,6 +94,7 @@ All tokens are existing Tailwind palette classes — no new color values introdu
 | Neutral button | `bg-white dark:bg-gray-700` + `border-gray-300 dark:border-gray-600` | Cancel button in dialog |
 
 Accent (`blue-600`) is reserved for:
+
 - Confirm CTA button background (`bg-blue-600`)
 - Active tab bottom border (`border-blue-600`)
 - Active wizard step badge (`bg-blue-600`)
@@ -167,32 +168,38 @@ All copy delivered through `vue-i18n` `t()` calls. Raw English strings are forbi
 #### Exact Tailwind Classes
 
 **Overlay div:**
+
 ```
 fixed inset-0 z-50 flex items-center justify-center bg-black/40
 ```
 
 **Dialog card div:**
+
 ```
 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4
 border border-gray-200 dark:border-gray-700
 ```
 
 **Heading `<h3>`:**
+
 ```
 text-base font-semibold text-gray-900 dark:text-gray-100
 ```
 
 **Body `<p>`:**
+
 ```
 mt-2 text-sm text-gray-600 dark:text-gray-400
 ```
 
 **Footer row `<div>`:**
+
 ```
 mt-4 flex justify-end gap-2
 ```
 
 **Cancel `<button>`:**
+
 ```
 px-4 py-2 text-sm rounded border border-gray-300 dark:border-gray-600
 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300
@@ -200,6 +207,7 @@ hover:border-gray-400 font-medium transition-colors
 ```
 
 **Confirm `<button>`:**
+
 ```
 px-4 py-2 text-sm rounded bg-blue-600 text-white border border-blue-600
 hover:bg-blue-700 font-medium transition-colors
@@ -235,6 +243,7 @@ Inside the per-domain tab `<div>`, after the domain name `<span>` (or rename `<i
 #### Exact Tailwind Classes
 
 **Copy `<button>`:**
+
 ```
 ml-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400
 rounded focus:outline-none
@@ -288,6 +297,7 @@ Note: The `duplicateDomain` store action signature is `duplicateDomain(id: strin
 ### Existing Domain Namespace (for reference)
 
 Current `domain` keys in `en.json`:
+
 - `domain.addDomain` — "Add Domain"
 - `domain.deleteConfirm` — "Delete domain \"{name}\"? This cannot be undone."
 - `domain.managementSection` — "Management Domain"
@@ -425,6 +435,7 @@ No third-party component registries. All components are hand-rolled Tailwind. Ze
 **Design System:** none (Tailwind v4 utility-class, hand-rolled components)
 
 ### Contract Summary
+
 - Spacing: 8-point scale — 4, 8, 12, 16, 24px values; no exceptions
 - Typography: 2 sizes (14px body/controls, 16px dialog heading), 3 weights (400/500/600)
 - Color: bg-white/bg-gray-800 surfaces, blue-600 accent (CTAs + active states only), red-500 destructive hover
@@ -432,9 +443,11 @@ No third-party component registries. All components are hand-rolled Tailwind. Ze
 - Registry: none — zero external dependencies
 
 ### Files Created
+
 `/Users/fjacquet/Projects/vcf-sizer/.planning/phases/19-topology-confirmation-domain-duplication/19-UI-SPEC.md`
 
 ### Pre-Populated From
+
 | Source | Decisions Used |
 |--------|---------------|
 | 19-RESEARCH.md | Component API, Tailwind class inventory, i18n key list, pitfall list |
@@ -447,4 +460,5 @@ No third-party component registries. All components are hand-rolled Tailwind. Ze
 | User input | 0 — all decisions answered by upstream artifacts |
 
 ### Ready for Verification
+
 UI-SPEC complete. Checker can now validate.
