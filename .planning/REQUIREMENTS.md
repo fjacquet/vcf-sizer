@@ -23,7 +23,7 @@ Improve user experience through wizard navigation enhancements and domain manage
 ### EXPORT — Export Quality
 
 - [ ] **EXPORT-01**: PPTX slides include chart images (PNG, rasterized from the live Chart.js canvas)
-- [ ] **EXPORT-02**: Markdown and PPTX exports use the active UI locale instead of always rendering in English
+- [x] **EXPORT-02**: Markdown and PPTX exports use the active UI locale instead of always rendering in English
 - [ ] **EXPORT-03**: User can preview rendered Markdown in-app before downloading
 
 ### STOR — Storage Units & Inputs
@@ -64,5 +64,5 @@ Improve user experience through wizard navigation enhancements and domain manage
 | STOR-04 | Phase 20 | Pending |
 | CHART-01 | Phase 21 | Complete |
 | EXPORT-01 | Phase 22 | Pending |
-| EXPORT-02 | Phase 22 | Pending |
+| EXPORT-02 | Phase 22 | Complete |
 | EXPORT-03 | Phase 23 | Pending |

@@ -158,7 +158,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 22-01-PLAN.md — Add export i18n namespace to all locales, localize both export composables, localeLoading guard (EXPORT-02)
+- [x] 22-01-PLAN.md — Add export i18n namespace to all locales, localize both export composables, localeLoading guard (EXPORT-02)
 - [ ] 22-02-PLAN.md — Embed chart PNG images in PPTX slides with graceful fallback, human verification (EXPORT-01)
 
 ### Phase 23: Markdown Preview Panel
@@ -186,5 +186,5 @@ Plans:
 | 19. Topology Confirmation + Domain Duplication | 2/2 | Complete   | 2026-04-11 |
 | 20. Storage Units Correction | 0/2 | Planned | - |
 | 21. Per-Domain Chart Visualizations | 1/1 | Complete    | 2026-04-11 |
-| 22. Localized Exports + PPTX Chart Images | 0/2 | Planned | - |
+| 22. Localized Exports + PPTX Chart Images | 1/2 | In Progress|  |
 | 23. Markdown Preview Panel | 0/? | Not started | - |
