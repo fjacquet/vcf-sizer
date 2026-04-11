@@ -6,7 +6,7 @@
 - ✅ **v2.1 Export Quality** — Phases 6-9 (shipped 2026-03-30)
 - ✅ **v3.0 Multi-Domain Support** — Phases 10-14 (shipped 2026-03-30)
 - ✅ **v3.1 Sizing Correctness & Guided Workflow** — Phases 15-17 (shipped 2026-04-04)
-- 🔄 **v3.3 UX Polish & Export Quality** — Phases 18-23 (in progress)
+- ✅ **v3.3 UX Polish & Export Quality** — Phases 18-23 (shipped 2026-04-11)
 
 ## Phases
 
