@@ -61,9 +61,9 @@ Full details: `.planning/milestones/v3.1-ROADMAP.md`
 
 - [ ] **Phase 18: Store Foundations + Wizard Navigation** - Unblocking store additions and wizard UX (clickable steps, landing view)
 - [x] **Phase 19: Topology Confirmation + Domain Duplication** - Guard topology changes with dialog; add domain copy action (completed 2026-04-11)
-- [ ] **Phase 20: Storage Units Correction** - Replace TB with TiB throughout engine, schema, UI, and exports (atomic)
+- [x] **Phase 20: Storage Units Correction** - Replace TB with TiB throughout engine, schema, UI, and exports (completed 2026-04-11)
 - [x] **Phase 21: Per-Domain Chart Visualizations** - Each result card shows its own Cores/RAM/Storage charts (completed 2026-04-11)
-- [ ] **Phase 22: Localized Exports + PPTX Chart Images** - Exports in active locale; chart PNGs embedded in PPTX slides
+- [x] **Phase 22: Localized Exports + PPTX Chart Images** - Exports in active locale; chart PNGs embedded in PPTX slides (completed 2026-04-11)
 - [ ] **Phase 23: Markdown Preview Panel** - In-app rendered Markdown preview before download
 
 ---
@@ -123,8 +123,8 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 20-01-PLAN.md — TDD engine rename (types, storage, defaults, vsanMax, stretch) + store/URL schema rename (STOR-01, STOR-02, STOR-03, STOR-04)
-- [ ] 20-02-PLAN.md — UI component labels, result displays, export composables, i18n locales, human verification (STOR-01, STOR-02, STOR-03)
+- [x] 20-01-PLAN.md — TDD engine rename (types, storage, defaults, vsanMax, stretch) + store/URL schema rename (STOR-01, STOR-02, STOR-03, STOR-04)
+- [x] 20-02-PLAN.md — UI component labels, result displays, export composables, i18n locales, human verification (STOR-01, STOR-02, STOR-03)
 
 ### Phase 21: Per-Domain Chart Visualizations
 
@@ -159,7 +159,7 @@ Plans:
 Plans:
 
 - [x] 22-01-PLAN.md — Add export i18n namespace to all locales, localize both export composables, localeLoading guard (EXPORT-02)
-- [ ] 22-02-PLAN.md — Embed chart PNG images in PPTX slides with graceful fallback, human verification (EXPORT-01)
+- [x] 22-02-PLAN.md — Embed chart PNG images in PPTX slides with graceful fallback, human verification (EXPORT-01)
 
 ### Phase 23: Markdown Preview Panel
 
@@ -184,7 +184,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 18. Store Foundations + Wizard Navigation | 2/2 | Complete | 2026-04-10 |
 | 19. Topology Confirmation + Domain Duplication | 2/2 | Complete   | 2026-04-11 |
-| 20. Storage Units Correction | 0/2 | Planned | - |
-| 21. Per-Domain Chart Visualizations | 1/1 | Complete    | 2026-04-11 |
-| 22. Localized Exports + PPTX Chart Images | 1/2 | In Progress|  |
+| 20. Storage Units Correction | 2/2 | Complete | 2026-04-11 |
+| 21. Per-Domain Chart Visualizations | 1/1 | Complete | 2026-04-11 |
+| 22. Localized Exports + PPTX Chart Images | 2/2 | Complete | 2026-04-11 |
 | 23. Markdown Preview Panel | 0/? | Not started | - |
