@@ -120,7 +120,11 @@ Plans:
   3. For FC/NFS workload domains, a "Total Usable Storage Pool (TiB)" input replaces the previous per-host raw storage field, and the engine uses the pooled value correctly
   4. URL state round-trips correctly using the new field names (hostStorageTiB, externalStorageUsableTiB); a URL generated after this phase loads all storage values correctly on hydration
   5. Existing Vitest engine tests are updated or added to cover TiB-based storage arithmetic; all tests pass
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 20-01-PLAN.md — TDD engine rename (types, storage, defaults, vsanMax, stretch) + store/URL schema rename (STOR-01, STOR-02, STOR-03, STOR-04)
+- [ ] 20-02-PLAN.md — UI component labels, result displays, export composables, i18n locales, human verification (STOR-01, STOR-02, STOR-03)
 
 ### Phase 21: Per-Domain Chart Visualizations
 
@@ -173,7 +177,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 18. Store Foundations + Wizard Navigation | 2/2 | Complete | 2026-04-10 |
 | 19. Topology Confirmation + Domain Duplication | 0/2 | Planned | - |
-| 20. Storage Units Correction | 0/? | Not started | - |
+| 20. Storage Units Correction | 0/2 | Planned | - |
 | 21. Per-Domain Chart Visualizations | 0/? | Not started | - |
 | 22. Localized Exports + PPTX Chart Images | 0/? | Not started | - |
 | 23. Markdown Preview Panel | 0/? | Not started | - |
