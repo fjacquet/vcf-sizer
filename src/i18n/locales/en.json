@@ -180,7 +180,9 @@
     "addDomain": "Add Domain",
     "deleteConfirm": "Delete domain \"{name}\"? This cannot be undone.",
     "managementSection": "Management Domain",
-    "managementHostSpecs": "Management Host Specifications"
+    "managementHostSpecs": "Management Host Specifications",
+    "copyDomain": "Copy domain \"{name}\"",
+    "copyNameSuffix": "(copy)"
   },
   "print": {
     "header": {

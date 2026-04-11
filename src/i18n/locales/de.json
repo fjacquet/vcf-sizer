@@ -180,7 +180,9 @@
     "addDomain": "Domäne hinzufügen",
     "deleteConfirm": "Domäne \"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",
     "managementSection": "Management-Domain",
-    "managementHostSpecs": "Management-Host-Spezifikationen"
+    "managementHostSpecs": "Management-Host-Spezifikationen",
+    "copyDomain": "Dom\u00e4ne \"{name}\" kopieren",
+    "copyNameSuffix": "(Kopie)"
   },
   "print": {
     "header": {

@@ -180,7 +180,9 @@
     "addDomain": "Ajouter un domaine",
     "deleteConfirm": "Supprimer le domaine \"{name}\" ? Cette action est irréversible.",
     "managementSection": "Domaine de gestion",
-    "managementHostSpecs": "Specifications des hotes de gestion"
+    "managementHostSpecs": "Specifications des hotes de gestion",
+    "copyDomain": "Copier le domaine \"{name}\"",
+    "copyNameSuffix": "(copie)"
   },
   "print": {
     "header": {
