@@ -155,7 +155,11 @@ Plans:
   3. Each per-domain PPTX slide includes a chart image (PNG) showing the domain's utilization; the image is visually accurate (not a white blank)
   4. Export buttons are disabled while a locale is loading, preventing race conditions where i18n resolves to English fallback mid-export
   5. PPTX exports degrade gracefully when chartImages are not yet populated — slides render with data tables in place of images rather than failing
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 22-01-PLAN.md — Add export i18n namespace to all locales, localize both export composables, localeLoading guard (EXPORT-02)
+- [ ] 22-02-PLAN.md — Embed chart PNG images in PPTX slides with graceful fallback, human verification (EXPORT-01)
 
 ### Phase 23: Markdown Preview Panel
 
@@ -181,6 +185,6 @@ Plans:
 | 18. Store Foundations + Wizard Navigation | 2/2 | Complete | 2026-04-10 |
 | 19. Topology Confirmation + Domain Duplication | 2/2 | Complete   | 2026-04-11 |
 | 20. Storage Units Correction | 0/2 | Planned | - |
-| 21. Per-Domain Chart Visualizations | 1/1 | Complete   | 2026-04-11 |
-| 22. Localized Exports + PPTX Chart Images | 0/? | Not started | - |
+| 21. Per-Domain Chart Visualizations | 1/1 | Complete    | 2026-04-11 |
+| 22. Localized Exports + PPTX Chart Images | 0/2 | Planned | - |
 | 23. Markdown Preview Panel | 0/? | Not started | - |
