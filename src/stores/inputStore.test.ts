@@ -142,3 +142,66 @@ describe('inputStore — updateManagementDomain (UI-05)', () => {
     expect(store.managementDomain.socketsPerHost).toBe(4)
   })
 })
+
+describe('inputStore -- duplicateDomain (DOMAIN-01)', () => {
+  it('Test 1: inserts clone at idx+1 -- workloadDomains.length increases by 1', () => {
+    const store = useInputStore()
+    const id = store.workloadDomains[0].id
+    store.duplicateDomain(id, 'WLD-1 (copy)')
+    expect(store.workloadDomains.length).toBe(2)
+  })
+
+  it('Test 2: clone has new UUID different from source', () => {
+    const store = useInputStore()
+    const id = store.workloadDomains[0].id
+    store.duplicateDomain(id, 'WLD-1 (copy)')
+    const clone = store.workloadDomains[1]
+    expect(clone.id).not.toBe(id)
+    expect(typeof clone.id).toBe('string')
+    expect(clone.id.length).toBeGreaterThan(0)
+  })
+
+  it('Test 3: clone name equals the provided newName parameter', () => {
+    const store = useInputStore()
+    const id = store.workloadDomains[0].id
+    store.duplicateDomain(id, 'WLD-1 (copy)')
+    const clone = store.workloadDomains[1]
+    expect(clone.name).toBe('WLD-1 (copy)')
+  })
+
+  it('Test 4: clone has all 26 config fields deeply equal to source (exclude id and name)', () => {
+    const store = useInputStore()
+    store.updateDomain(store.workloadDomains[0].id, { vmCount: 200 })
+    const id = store.workloadDomains[0].id
+    store.duplicateDomain(id, 'WLD-1 (copy)')
+    const source = store.workloadDomains[0]
+    const clone = store.workloadDomains[1]
+    const skip = new Set(['id', 'name'])
+    for (const key of Object.keys(source)) {
+      if (!skip.has(key)) expect((clone as Record<string, unknown>)[key]).toEqual((source as Record<string, unknown>)[key])
+    }
+  })
+
+  it('Test 5: activeDomainIndex advances to the new domain index (idx + 1)', () => {
+    const store = useInputStore()
+    const id = store.workloadDomains[0].id
+    store.duplicateDomain(id, 'WLD-1 (copy)')
+    expect(store.activeDomainIndex).toBe(1)
+  })
+
+  it('Test 6: duplicateDomain with nonexistent id is a no-op', () => {
+    const store = useInputStore()
+    store.duplicateDomain('nonexistent-id', 'x')
+    expect(store.workloadDomains.length).toBe(1)
+  })
+
+  it('Test 7: clone is an independent copy -- mutating clone does not affect source', () => {
+    const store = useInputStore()
+    const id = store.workloadDomains[0].id
+    store.duplicateDomain(id, 'WLD-1 (copy)')
+    const cloneId = store.workloadDomains[1].id
+    store.updateDomain(cloneId, { vmCount: 999 })
+    expect(store.workloadDomains[0].vmCount).toBe(100)
+    expect(store.workloadDomains[1].vmCount).toBe(999)
+  })
+})
