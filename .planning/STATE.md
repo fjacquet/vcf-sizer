@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.3
 milestone_name: UX Polish & Export Quality
 status: executing
-last_updated: "2026-04-10T20:00:00.000Z"
-last_activity: 2026-04-10 -- Phase 18 complete
+last_updated: "2026-04-11T02:56:00Z"
+last_activity: 2026-04-11 -- Phase 19 Plan 01 complete
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 17
+  total_plans: 3
+  completed_plans: 3
+  percent: 33
 ---
 
 # Project State
@@ -24,15 +24,15 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 ## Current Position
 
-Phase: 19 (Topology Confirmation + Domain Duplication) — not yet started
-Plan: —
-Status: Ready to execute
-Last activity: 2026-04-10 -- Phase 18 complete (279 tests, build clean)
+Phase: 19 (Topology Confirmation + Domain Duplication) — Plan 01 complete
+Plan: 01 done, Plan 02 pending
+Status: Executing
+Last activity: 2026-04-11 -- Phase 19 Plan 01 complete (286 tests, build clean)
 
 ## Progress Bar
 
 ```
-v3.3: [##        ] 1/6 phases complete
+v3.3: [███░░░░░░░] 33%
 ```
 
 ## Pending Todos
@@ -67,10 +67,19 @@ v3.3: [##        ] 1/6 phases complete
 - marked pinned at ^15.x — v16+ drops CommonJS; v18 requires TypeScript v6
 - New npm packages for v3.3: marked@^15.0.12 + dompurify@^3.3.3 (~20 KB gzipped combined)
 
+### v3.3 Phase 19 Decisions
+
+- structuredClone(toRaw(source)) is the canonical domain clone pattern — bare structuredClone throws on Pinia reactive proxy (Pinia #1412)
+- duplicateDomain name is a parameter (not hardcoded suffix) — keeps store i18n-clean
+- pendingTopology stored in local ref, never written to store before user confirms (PITFALL-5)
+- hasConfiguredDomains skips deploymentMode in addition to id/name — topology change should not trigger its own confirmation
+- applyTopology calls confirmTopology() (idempotent) + setWizardStep(1) per ROADMAP criterion 3
+
 ### Test Baseline
 
-- 279 tests passing as of Phase 18 — TDD discipline maintained throughout
+- 286 tests passing as of Phase 19 Plan 01 — TDD discipline maintained throughout
 
 ## Session Continuity
 
-Next action: Run `/gsd-plan-phase 19` to plan Phase 19 (Topology Confirmation + Domain Duplication).
+Last session: 2026-04-11 — Completed 19-01-PLAN.md (duplicateDomain + ConfirmationDialog + topology guard + i18n)
+Next action: Execute Phase 19 Plan 02 (domain copy button UI + tab strip integration).
