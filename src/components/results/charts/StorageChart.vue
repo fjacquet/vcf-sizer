@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePreferredDark } from '@vueuse/core'
 import { Bar } from 'vue-chartjs'
@@ -13,40 +13,40 @@ import {
   LinearScale,
 } from 'chart.js'
 import type { ChartData, ChartOptions } from 'chart.js'
-import { useCalculationStore } from '@/stores/calculationStore'
-import { storeToRefs } from 'pinia'
+import type { StorageResult } from '@/engine/types'
+import { useUiStore } from '@/stores/uiStore'
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
+const props = defineProps<{ storage: StorageResult; domainId: string }>()
+
 const { t } = useI18n()
-const calc = useCalculationStore()
-const { domainResults } = storeToRefs(calc)
+const uiStore = useUiStore()
 const isDark = usePreferredDark()
 
-// First-domain bridge — charts show first domain until Phase 14 multi-domain export
-const storage = computed(() => domainResults.value[0]?.storage)
+const canvasId = computed(() => 'storage-chart-' + props.domainId)
 
 const chartData = computed((): ChartData<'bar'> => ({
   labels: [t('results.charts.storage')],
   datasets: [
     {
       label: t('results.charts.storageUsable'),
-      data: [storage.value?.safeUsableCapacityTB ?? 0],
+      data: [props.storage.safeUsableCapacityTiB],
       backgroundColor: 'rgba(20,184,166,0.75)',
     },
     {
       label: t('results.charts.storageLfs'),
-      data: [storage.value?.lfsOverheadTB ?? 0],
+      data: [props.storage.lfsOverheadTiB],
       backgroundColor: 'rgba(251,191,36,0.75)',
     },
     {
       label: t('results.charts.storageMetadata'),
-      data: [storage.value?.metadataOverheadTB ?? 0],
+      data: [props.storage.metadataOverheadTiB],
       backgroundColor: 'rgba(148,163,184,0.75)',
     },
     {
       label: t('results.charts.storageRaid'),
-      data: [(storage.value?.rawCapacityTB ?? 0) - (storage.value?.usableAfterRaidTB ?? 0)],
+      data: [props.storage.rawCapacityTiB - props.storage.usableAfterRaidTiB],
       backgroundColor: 'rgba(239,68,68,0.75)',
     },
   ],
@@ -57,6 +57,7 @@ const chartOptions = computed((): ChartOptions<'bar'> => {
   const gridColor = isDark.value ? 'rgba(75,85,99,0.3)' : 'rgba(156,163,175,0.3)'
   const legendColor = isDark.value ? 'rgb(209,213,219)' : 'rgb(55,65,81)'
   return {
+    animation: false,
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -82,13 +83,24 @@ const chartOptions = computed((): ChartOptions<'bar'> => {
     },
   }
 })
+
+function captureChartImage(): void {
+  nextTick(() => {
+    const chart = ChartJS.getChart(canvasId.value)
+    if (chart) {
+      uiStore.registerChartImage(props.domainId, 'storage', chart.toBase64Image())
+    }
+  })
+}
+onMounted(captureChartImage)
+watch(() => props.storage, captureChartImage, { deep: true })
 </script>
 
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 break-inside-avoid">
     <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ t('results.charts.storage') }}</h3>
     <div class="h-48 relative print:hidden">
-      <Bar :data="chartData" :options="chartOptions" />
+      <Bar :id="canvasId" :data="chartData" :options="chartOptions" />
     </div>
     <!-- Print fallback: data table -->
     <table class="hidden print:table w-full text-sm border-collapse mt-2">
@@ -101,19 +113,19 @@ const chartOptions = computed((): ChartOptions<'bar'> => {
       <tbody>
         <tr>
           <td class="py-1">{{ t('results.charts.storageUsable') }}</td>
-          <td class="text-right font-mono">{{ storage?.safeUsableCapacityTB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ props.storage.safeUsableCapacityTiB.toFixed(2) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageLfs') }}</td>
-          <td class="text-right font-mono">{{ storage?.lfsOverheadTB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ props.storage.lfsOverheadTiB.toFixed(2) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageMetadata') }}</td>
-          <td class="text-right font-mono">{{ storage?.metadataOverheadTB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ props.storage.metadataOverheadTiB.toFixed(2) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageRaid') }}</td>
-          <td class="text-right font-mono">{{ ((storage?.rawCapacityTB ?? 0) - (storage?.usableAfterRaidTB ?? 0)).toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ (props.storage.rawCapacityTiB - props.storage.usableAfterRaidTiB).toFixed(2) }}</td>
         </tr>
       </tbody>
     </table>
