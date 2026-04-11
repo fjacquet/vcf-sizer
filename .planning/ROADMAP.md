@@ -71,10 +71,12 @@ Full details: `.planning/milestones/v3.1-ROADMAP.md`
 ## Phase Details
 
 ### Phase 18: Store Foundations + Wizard Navigation
+
 **Goal**: Users can navigate the wizard freely by clicking completed steps, and new users see an intro screen before starting
 **Depends on**: Phase 17 (wizard step state already in uiStore)
 **Requirements**: WIZARD-01, WIZARD-02
 **Success Criteria** (what must be TRUE):
+
   1. User can click any completed (grey checkmark) step badge in WizardStepper and immediately land on that step's content without losing entered data
   2. User sees a landing/intro view on first load that explains the 3-step VCF sizing flow before any wizard step is shown
   3. User arriving via a shared URL bypasses the landing view entirely and lands directly at step 1 with their configuration hydrated
@@ -82,28 +84,37 @@ Full details: `.planning/milestones/v3.1-ROADMAP.md`
   5. uiStore exposes chartImages registry and registerChartImage() action (consumed by Phase 21); isLandingVisible and dismissLanding() action are available
 **Plans**: 2 plans
 Plans:
+
 - [ ] 18-01-PLAN.md — Store foundations (uiStore additions + TDD tests) and WizardStepper click-back (WIZARD-01)
 - [ ] 18-02-PLAN.md — LandingView component, App.vue integration, main.ts URL bypass, i18n keys (WIZARD-02)
 **UI hint**: yes
 
 ### Phase 19: Topology Confirmation + Domain Duplication
+
 **Goal**: Users are protected from accidental topology changes that would invalidate configured workloads, and can copy a domain instead of re-entering 26 fields
 **Depends on**: Phase 18 (ConfirmationDialog.vue reuses patterns; duplicateDomain stores toRaw() pattern)
 **Requirements**: WIZARD-03, DOMAIN-01
 **Success Criteria** (what must be TRUE):
+
   1. User who changes topology after configuring at least one workload domain sees a styled confirmation dialog before any store state changes
   2. User who cancels the topology change confirmation finds all workload domain data unchanged and the topology selector unchanged
   3. User who confirms the topology change sees the new topology applied and the wizard reset to step 1
   4. User can click a "Copy domain" button on any domain tab and see a new domain tab appear immediately after the original, containing all the same settings with a generated name (e.g., "WLD-1 (copy)")
   5. The duplicated domain is given a new UUID and all 26 configuration fields are faithfully cloned (not shared references)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 19-01-PLAN.md — TDD duplicateDomain store action, ConfirmationDialog component, TopologySelector guard, topology i18n keys (WIZARD-03, DOMAIN-01)
+- [ ] 19-02-PLAN.md — DomainTabStrip copy button, domain copy i18n keys, end-to-end human verification (DOMAIN-01, WIZARD-03)
 **UI hint**: yes
 
 ### Phase 20: Storage Units Correction
+
 **Goal**: All storage quantities throughout the application — inputs, calculated outputs, exports — display and compute in TiB (binary 2^40 bytes) rather than TB (decimal 10^12 bytes)
 **Depends on**: Phase 17 (engine storage calculations established; URL state schema baseline)
 **Requirements**: STOR-01, STOR-02, STOR-03, STOR-04
 **Success Criteria** (what must be TRUE):
+
   1. All storage input fields and result displays show "TiB" unit labels; no "TB" labels remain anywhere in the UI or export output
   2. For vSAN ESA workload domains, the "Raw Storage per Host" input slider/field is labeled in TiB and the engine uses that value as TiB in calculations
   3. For FC/NFS workload domains, a "Total Usable Storage Pool (TiB)" input replaces the previous per-host raw storage field, and the engine uses the pooled value correctly
@@ -112,10 +123,12 @@ Plans:
 **Plans**: TBD
 
 ### Phase 21: Per-Domain Chart Visualizations
+
 **Goal**: Each workload domain result card shows its own Cores, RAM, and Storage charts that reflect that domain's sizing data, rather than a single shared chart set
 **Depends on**: Phase 18 (chartImages registry in uiStore available for PNG registration)
 **Requirements**: CHART-01
 **Success Criteria** (what must be TRUE):
+
   1. Each DomainResultCard displays three charts (Cores utilization, RAM utilization, Storage breakdown) showing only that domain's data
   2. With three configured workload domains, the page shows nine separate charts — three per card — each with distinct data values reflecting their respective domain
   3. Chart canvas elements carry per-domain IDs (e.g., cores-chart-{domainId}) preventing any cross-domain Chart.js instance collision
@@ -124,10 +137,12 @@ Plans:
 **UI hint**: yes
 
 ### Phase 22: Localized Exports + PPTX Chart Images
+
 **Goal**: Markdown and PPTX exports render all labels and section headings in the active UI locale, and PPTX slides include embedded chart images rasterized from live Chart.js canvases
 **Depends on**: Phase 21 (chartImages registry populated by per-domain charts); Phase 18 (i18n keys for export namespace established)
 **Requirements**: EXPORT-01, EXPORT-02
 **Success Criteria** (what must be TRUE):
+
   1. User who has the UI set to French generates a Markdown export and all section headings, labels, and column names appear in French
   2. User who has the UI set to German generates a PPTX export and all slide titles, bullet labels, and table headers appear in German
   3. Each per-domain PPTX slide includes a chart image (PNG) showing the domain's utilization; the image is visually accurate (not a white blank)
@@ -136,10 +151,12 @@ Plans:
 **Plans**: TBD
 
 ### Phase 23: Markdown Preview Panel
+
 **Goal**: Users can preview the full rendered Markdown report inside the application before downloading, seeing the localized and formatted output in context
 **Depends on**: Phase 22 (localized Markdown content; exports render in correct locale before preview exists)
 **Requirements**: EXPORT-03
 **Success Criteria** (what must be TRUE):
+
   1. User clicks a "Preview" button in the export toolbar and sees a rendered Markdown panel appear in the UI without downloading a file
   2. The preview panel renders tables, headings, and code blocks with correct HTML styling (not raw Markdown syntax)
   3. All domain names and user-entered text in the preview are sanitized — injecting `<script>` tags into a domain name does not execute JavaScript
@@ -155,7 +172,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 18. Store Foundations + Wizard Navigation | 2/2 | Complete | 2026-04-10 |
-| 19. Topology Confirmation + Domain Duplication | 0/? | Not started | - |
+| 19. Topology Confirmation + Domain Duplication | 0/2 | Planned | - |
 | 20. Storage Units Correction | 0/? | Not started | - |
 | 21. Per-Domain Chart Visualizations | 0/? | Not started | - |
 | 22. Localized Exports + PPTX Chart Images | 0/? | Not started | - |
