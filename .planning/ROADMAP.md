@@ -173,7 +173,11 @@ Plans:
   3. All domain names and user-entered text in the preview are sanitized — injecting `<script>` tags into a domain name does not execute JavaScript
   4. User can close the preview panel and return to the results view without losing any entered data
   5. The `marked` library is loaded lazily on first preview open and does not increase the initial page bundle
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 23-01-PLAN.md — Install deps (marked, dompurify, typography), create MarkdownPreviewPanel.vue, add i18n keys (EXPORT-03)
+- [ ] 23-02-PLAN.md — Wire preview into ExportToolbar, end-to-end human verification (EXPORT-03)
 **UI hint**: yes
 
 ---
@@ -187,4 +191,4 @@ Plans:
 | 20. Storage Units Correction | 2/2 | Complete | 2026-04-11 |
 | 21. Per-Domain Chart Visualizations | 1/1 | Complete | 2026-04-11 |
 | 22. Localized Exports + PPTX Chart Images | 2/2 | Complete | 2026-04-11 |
-| 23. Markdown Preview Panel | 0/? | Not started | - |
+| 23. Markdown Preview Panel | 0/2 | Not started | - |
