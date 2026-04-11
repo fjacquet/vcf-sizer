@@ -35,25 +35,25 @@ describe('calcStorage — vSAN ESA overhead stack (STOR-03)', () => {
     const result = calcStorage({
       storageType: 'vsan-esa',
       hostCount: 4,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       fttLevel: 1,
       raidType: 'raid5',
       dedupEnabled: false,
       dedupRatio: 2,
     })
-    // rawCapacityTB = 4 × 3.84 = 15.36
-    expect(result.rawCapacityTB).toBeCloseTo(15.36, 5)
+    // rawCapacityTiB = 4 × 3.84 = 15.36
+    expect(result.rawCapacityTiB).toBeCloseTo(15.36, 5)
     // 4 hosts < 6 → 2+1 scheme → raidMultiplier = 1.5
     expect(result.raidMultiplier).toBe(1.5)
     // safeUsable = 7.3728 × 0.70 = 5.16096
-    expect(result.safeUsableCapacityTB).toBeCloseTo(5.16, 2)
+    expect(result.safeUsableCapacityTiB).toBeCloseTo(5.16, 2)
   })
 
   it('vSAN ESA with 6 hosts, RAID-5 FTT=1 — uses 4+1 scheme (1.25x)', () => {
     const result = calcStorage({
       storageType: 'vsan-esa',
       hostCount: 6,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       fttLevel: 1,
       raidType: 'raid5',
       dedupEnabled: false,
@@ -69,17 +69,17 @@ describe('calcStorage — FC pass-through (STOR-07)', () => {
     const result = calcStorage({
       storageType: 'fc',
       hostCount: 4,
-      hostStorageTB: 10,
+      hostStorageTiB: 10,
       fttLevel: 1,
       raidType: 'raid1',
       dedupEnabled: false,
       dedupRatio: 2,
     })
-    expect(result.rawCapacityTB).toBe(40)
+    expect(result.rawCapacityTiB).toBe(40)
     expect(result.raidMultiplier).toBe(1)
-    expect(result.lfsOverheadTB).toBe(0)
-    expect(result.metadataOverheadTB).toBe(0)
-    expect(result.safeUsableCapacityTB).toBe(40)
+    expect(result.lfsOverheadTiB).toBe(0)
+    expect(result.metadataOverheadTiB).toBe(0)
+    expect(result.safeUsableCapacityTiB).toBe(40)
   })
 })
 
@@ -88,17 +88,47 @@ describe('calcStorage — NFS pass-through (STOR-07)', () => {
     const result = calcStorage({
       storageType: 'nfs',
       hostCount: 4,
-      hostStorageTB: 10,
+      hostStorageTiB: 10,
       fttLevel: 1,
       raidType: 'raid1',
       dedupEnabled: false,
       dedupRatio: 2,
     })
-    expect(result.rawCapacityTB).toBe(40)
+    expect(result.rawCapacityTiB).toBe(40)
     expect(result.raidMultiplier).toBe(1)
-    expect(result.lfsOverheadTB).toBe(0)
-    expect(result.metadataOverheadTB).toBe(0)
-    expect(result.safeUsableCapacityTB).toBe(40)
+    expect(result.lfsOverheadTiB).toBe(0)
+    expect(result.metadataOverheadTiB).toBe(0)
+    expect(result.safeUsableCapacityTiB).toBe(40)
+  })
+})
+
+describe('calcStorage — FC/NFS pool input (STOR-03)', () => {
+  it('FC with externalStorageUsableTiB uses pool value directly (not hostCount * perHost)', () => {
+    const result = calcStorage({
+      storageType: 'fc', hostCount: 4, hostStorageTiB: 10,
+      externalStorageUsableTiB: 200,
+      fttLevel: 1, raidType: 'raid1', dedupEnabled: false, dedupRatio: 2,
+    })
+    expect(result.rawCapacityTiB).toBe(200)
+    expect(result.safeUsableCapacityTiB).toBe(200)
+  })
+
+  it('NFS with externalStorageUsableTiB uses pool value directly', () => {
+    const result = calcStorage({
+      storageType: 'nfs', hostCount: 4, hostStorageTiB: 10,
+      externalStorageUsableTiB: 150,
+      fttLevel: 1, raidType: 'raid1', dedupEnabled: false, dedupRatio: 2,
+    })
+    expect(result.rawCapacityTiB).toBe(150)
+    expect(result.safeUsableCapacityTiB).toBe(150)
+  })
+
+  it('FC without externalStorageUsableTiB falls back to hostCount * hostStorageTiB', () => {
+    const result = calcStorage({
+      storageType: 'fc', hostCount: 4, hostStorageTiB: 10,
+      fttLevel: 1, raidType: 'raid1', dedupEnabled: false, dedupRatio: 2,
+    })
+    expect(result.rawCapacityTiB).toBe(40)
   })
 })
 
@@ -107,14 +137,14 @@ describe('calcStorage — vsan-max pass-through', () => {
     const result = calcStorage({
       storageType: 'vsan-max',
       hostCount: 8,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       fttLevel: 1,
       raidType: 'raid5',
       dedupEnabled: false,
       dedupRatio: 2,
     })
     expect(result.raidMultiplier).toBe(1)
-    expect(result.lfsOverheadTB).toBe(0)
+    expect(result.lfsOverheadTiB).toBe(0)
     expect(result.raidScheme).toBe('Pass-through (vSAN Max compute)')
   })
 })
@@ -123,34 +153,34 @@ describe('calcStorage — stretch PFTT=1 site mirroring (STRCH-03)', () => {
   const baseInputs = {
     storageType: 'vsan-esa' as const,
     hostCount: 6,
-    hostStorageTB: 10,
+    hostStorageTiB: 10,
     fttLevel: 1 as const,
     raidType: 'raid5' as const,
     dedupEnabled: false,
     dedupRatio: 1,
   }
 
-  it('stretch: safeUsableCapacityTB is half of simple mode (PFTT=1 site mirroring)', () => {
+  it('stretch: safeUsableCapacityTiB is half of simple mode (PFTT=1 site mirroring)', () => {
     const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
     const stretch = calcStorage({ ...baseInputs, deploymentMode: 'stretch' })
-    expect(stretch.safeUsableCapacityTB).toBeCloseTo(simple.safeUsableCapacityTB / 2, 6)
+    expect(stretch.safeUsableCapacityTiB).toBeCloseTo(simple.safeUsableCapacityTiB / 2, 6)
   })
 
-  it('stretch: effectiveCapacityTB is half of simple mode', () => {
+  it('stretch: effectiveCapacityTiB is half of simple mode', () => {
     const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
     const stretch = calcStorage({ ...baseInputs, deploymentMode: 'stretch' })
-    expect(stretch.effectiveCapacityTB).toBeCloseTo(simple.effectiveCapacityTB / 2, 6)
+    expect(stretch.effectiveCapacityTiB).toBeCloseTo(simple.effectiveCapacityTiB / 2, 6)
   })
 
-  it('stretch: rawCapacityTB unchanged (full-cluster physical capacity)', () => {
+  it('stretch: rawCapacityTiB unchanged (full-cluster physical capacity)', () => {
     const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
     const stretch = calcStorage({ ...baseInputs, deploymentMode: 'stretch' })
-    expect(stretch.rawCapacityTB).toBe(simple.rawCapacityTB)
+    expect(stretch.rawCapacityTiB).toBe(simple.rawCapacityTiB)
   })
 
   it('simple/ha: no mirroring factor (backward compat)', () => {
     const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
     const noMode = calcStorage(baseInputs)
-    expect(noMode.safeUsableCapacityTB).toBeCloseTo(simple.safeUsableCapacityTB, 6)
+    expect(noMode.safeUsableCapacityTiB).toBeCloseTo(simple.safeUsableCapacityTiB, 6)
   })
 })

@@ -92,14 +92,14 @@ describe('calculationStore — aggregateTotals (DOM-06)', () => {
     expect(Array.isArray(calc.aggregateTotals.allValidationErrors)).toBe(true)
   })
 
-  it('totalRawStorageTB is a positive number', () => {
+  it('totalRawStorageTiB is a positive number', () => {
     const calc = useCalculationStore()
-    expect(calc.aggregateTotals.totalRawStorageTB).toBeGreaterThan(0)
+    expect(calc.aggregateTotals.totalRawStorageTiB).toBeGreaterThan(0)
   })
 
-  it('totalEffectiveStorageTB is a positive number', () => {
+  it('totalEffectiveStorageTiB is a positive number', () => {
     const calc = useCalculationStore()
-    expect(calc.aggregateTotals.totalEffectiveStorageTB).toBeGreaterThan(0)
+    expect(calc.aggregateTotals.totalEffectiveStorageTiB).toBeGreaterThan(0)
   })
 })
 

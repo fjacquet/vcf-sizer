@@ -2,7 +2,7 @@
 import { calcVsanMax, READYNODE_PROFILES } from './vsanMax'
 
 // Usable capacity formula for MED profile, 4 nodes (2+1 RAID-5):
-// rawCapacityTB = 4 * 100 = 400
+// rawCapacityTiB = 4 * 100 = 400
 // raidMultiplier = 1.5 (2+1, since 4 < 6 hosts)
 // usableAfterRaid = 400 / 1.5 = 266.667
 // lfsOverhead = 266.667 * 0.13 = 34.667
@@ -12,14 +12,14 @@ import { calcVsanMax, READYNODE_PROFILES } from './vsanMax'
 // safeUsable = 192.00 * 0.70 = 134.40
 
 describe('calcVsanMax — MED profile, 4 nodes (2+1 RAID-5)', () => {
-  it('returns rawCapacityTB=400', () => {
+  it('returns rawCapacityTiB=400', () => {
     const result = calcVsanMax({ profile: 'med', storageNodeCount: 4, computeNodeCount: 8 })
-    expect(result.rawCapacityTB).toBe(400)
+    expect(result.rawCapacityTiB).toBe(400)
   })
 
-  it('returns usableCapacityTB ~134.40', () => {
+  it('returns usableCapacityTiB ~134.40', () => {
     const result = calcVsanMax({ profile: 'med', storageNodeCount: 4, computeNodeCount: 8 })
-    expect(result.usableCapacityTB).toBeCloseTo(134.40, 1)
+    expect(result.usableCapacityTiB).toBeCloseTo(134.40, 1)
   })
 
   it('returns raidScheme=2+1 (FTT=1 RAID-5)', () => {
@@ -33,30 +33,30 @@ describe('calcVsanMax — MED profile, 4 nodes (2+1 RAID-5)', () => {
   })
 })
 
-describe('calcVsanMax — all 5 profiles rawCapacityTB', () => {
-  it('XS profile, 4 nodes: rawCapacityTB=80 (4 * 20)', () => {
+describe('calcVsanMax — all 5 profiles rawCapacityTiB', () => {
+  it('XS profile, 4 nodes: rawCapacityTiB=80 (4 * 20)', () => {
     const result = calcVsanMax({ profile: 'xs', storageNodeCount: 4, computeNodeCount: 8 })
-    expect(result.rawCapacityTB).toBe(80)
+    expect(result.rawCapacityTiB).toBe(80)
   })
 
-  it('SM profile, 4 nodes: rawCapacityTB=200 (4 * 50)', () => {
+  it('SM profile, 4 nodes: rawCapacityTiB=200 (4 * 50)', () => {
     const result = calcVsanMax({ profile: 'sm', storageNodeCount: 4, computeNodeCount: 8 })
-    expect(result.rawCapacityTB).toBe(200)
+    expect(result.rawCapacityTiB).toBe(200)
   })
 
-  it('MED profile, 4 nodes: rawCapacityTB=400 (4 * 100)', () => {
+  it('MED profile, 4 nodes: rawCapacityTiB=400 (4 * 100)', () => {
     const result = calcVsanMax({ profile: 'med', storageNodeCount: 4, computeNodeCount: 8 })
-    expect(result.rawCapacityTB).toBe(400)
+    expect(result.rawCapacityTiB).toBe(400)
   })
 
-  it('LRG profile, 4 nodes: rawCapacityTB=600 (4 * 150)', () => {
+  it('LRG profile, 4 nodes: rawCapacityTiB=600 (4 * 150)', () => {
     const result = calcVsanMax({ profile: 'lrg', storageNodeCount: 4, computeNodeCount: 8 })
-    expect(result.rawCapacityTB).toBe(600)
+    expect(result.rawCapacityTiB).toBe(600)
   })
 
-  it('XL profile, 4 nodes: rawCapacityTB=800 (4 * 200)', () => {
+  it('XL profile, 4 nodes: rawCapacityTiB=800 (4 * 200)', () => {
     const result = calcVsanMax({ profile: 'xl', storageNodeCount: 4, computeNodeCount: 8 })
-    expect(result.rawCapacityTB).toBe(800)
+    expect(result.rawCapacityTiB).toBe(800)
   })
 })
 

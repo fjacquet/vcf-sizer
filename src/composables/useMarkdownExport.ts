@@ -69,7 +69,7 @@ export function generateMarkdownReport(): string {
       `| Cores per socket | ${domain.coresPerSocket} |`,
       `| Sockets per host | ${domain.socketsPerHost} |`,
       `| RAM per host | ${domain.hostRamGB} GB |`,
-      `| Storage per host | ${domain.hostStorageTB} TB |`,
+      `| Storage per host | ${domain.hostStorageTiB} TB |`,
     )
 
     // H3: Workload Profile
@@ -114,11 +114,11 @@ export function generateMarkdownReport(): string {
       `|--------|-------|`,
       `| Storage type | ${domain.storageType} |`,
       `| RAID scheme | ${result.storage.raidScheme} |`,
-      `| Raw capacity | ${result.storage.rawCapacityTB.toFixed(2)} TB |`,
-      `| Usable after RAID | ${result.storage.usableAfterRaidTB.toFixed(2)} TB |`,
-      `| LFS overhead | ${result.storage.lfsOverheadTB.toFixed(2)} TB |`,
-      `| Metadata overhead | ${result.storage.metadataOverheadTB.toFixed(2)} TB |`,
-      `| **Safe usable capacity** | **${result.storage.safeUsableCapacityTB.toFixed(2)} TB** |`,
+      `| Raw capacity | ${result.storage.rawCapacityTiB.toFixed(2)} TB |`,
+      `| Usable after RAID | ${result.storage.usableAfterRaidTiB.toFixed(2)} TB |`,
+      `| LFS overhead | ${result.storage.lfsOverheadTiB.toFixed(2)} TB |`,
+      `| Metadata overhead | ${result.storage.metadataOverheadTiB.toFixed(2)} TB |`,
+      `| **Safe usable capacity** | **${result.storage.safeUsableCapacityTiB.toFixed(2)} TB** |`,
     )
 
     // H3: Network Configuration (always present per domain)
@@ -174,7 +174,7 @@ export function generateMarkdownReport(): string {
         `| Min inter-site bandwidth | ${s!.minBandwidthGbps} Gbps |`,
         `| Witness vCPU | ${s!.witnessCores} |`,
         `| Witness RAM | ${s!.witnessRamGB} GB |`,
-        `| Effective per-site storage | ${s!.effectivePerSiteStorageTB.toFixed(2)} TB |`,
+        `| Effective per-site storage | ${s!.effectivePerSiteStorageTiB.toFixed(2)} TB |`,
         ``,
         `**Network Checklist:**`,
         ``,
@@ -201,8 +201,8 @@ export function generateMarkdownReport(): string {
         `| Storage node count | ${v.storageNodeCount} |`,
         `| Compute node count | ${v.computeNodeCount} |`,
         `| RAID scheme | ${v.raidScheme} |`,
-        `| Raw capacity | ${v.rawCapacityTB.toFixed(2)} TB |`,
-        `| Usable capacity | ${v.usableCapacityTB.toFixed(2)} TB |`,
+        `| Raw capacity | ${v.rawCapacityTiB.toFixed(2)} TB |`,
+        `| Usable capacity | ${v.usableCapacityTiB.toFixed(2)} TB |`,
       )
     }
   }
@@ -218,8 +218,8 @@ export function generateMarkdownReport(): string {
     `| Total recommended hosts (all domains) | ${totals.totalRecommendedHosts} |`,
     `| Management hosts | ${store.managementArchitecture === 'dedicated' && calc.dedicatedMgmtHostCount !== null ? String(calc.dedicatedMgmtHostCount) : 'colocated with WLD-1'} |`,
     `| Total VM count | ${totals.totalVmCount} |`,
-    `| Total raw storage | ${totals.totalRawStorageTB.toFixed(2)} TB |`,
-    `| Total effective storage | ${totals.totalEffectiveStorageTB.toFixed(2)} TB |`,
+    `| Total raw storage | ${totals.totalRawStorageTiB.toFixed(2)} TB |`,
+    `| Total effective storage | ${totals.totalEffectiveStorageTiB.toFixed(2)} TB |`,
   )
 
   // Validation Warnings (conditional: allValidationErrors.length > 0)

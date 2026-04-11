@@ -18,7 +18,7 @@ describe('inputStore — v3.0 structure (DOM-01)', () => {
     expect(store.managementDomain.coresPerSocket).toBe(16)
     expect(store.managementDomain.socketsPerHost).toBe(2)
     expect(store.managementDomain.hostRamGB).toBe(512)
-    expect(store.managementDomain.hostStorageTB).toBe(3.84)
+    expect(store.managementDomain.hostStorageTiB).toBe(3.84)
   })
 
   it('has managementArchitecture global ref', () => {

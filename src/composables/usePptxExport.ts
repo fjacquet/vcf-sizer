@@ -85,7 +85,7 @@ export function buildConfigSummaryData(
     { label: 'Cores per socket', value: String(domain.coresPerSocket) },
     { label: 'Sockets per host', value: String(domain.socketsPerHost) },
     { label: 'RAM per host', value: `${domain.hostRamGB} GB` },
-    { label: 'Storage per host', value: `${domain.hostStorageTB} TB` },
+    { label: 'Storage per host', value: `${domain.hostStorageTiB} TB` },
     { label: 'Storage type', value: domain.storageType },
     { label: 'Network speed', value: `${domain.networkSpeedGbE} GbE` },
     { label: 'Management architecture', value: managementArchitecture },
@@ -152,19 +152,19 @@ export function buildComputeResultsData(compute: ComputeResult): {
  * buildStorageResultsData — returns key storage metrics for storage results slide (PPTX-08)
  */
 export function buildStorageResultsData(storage: StorageResult): {
-  rawCapacityTB: number
-  usableAfterRaidTB: number
-  lfsOverheadTB: number
-  metadataOverheadTB: number
-  safeUsableCapacityTB: number
+  rawCapacityTiB: number
+  usableAfterRaidTiB: number
+  lfsOverheadTiB: number
+  metadataOverheadTiB: number
+  safeUsableCapacityTiB: number
   raidScheme: string
 } {
   return {
-    rawCapacityTB: storage.rawCapacityTB,
-    usableAfterRaidTB: storage.usableAfterRaidTB,
-    lfsOverheadTB: storage.lfsOverheadTB,
-    metadataOverheadTB: storage.metadataOverheadTB,
-    safeUsableCapacityTB: storage.safeUsableCapacityTB,
+    rawCapacityTiB: storage.rawCapacityTiB,
+    usableAfterRaidTiB: storage.usableAfterRaidTiB,
+    lfsOverheadTiB: storage.lfsOverheadTiB,
+    metadataOverheadTiB: storage.metadataOverheadTiB,
+    safeUsableCapacityTiB: storage.safeUsableCapacityTiB,
     raidScheme: storage.raidScheme,
   }
 }
@@ -192,8 +192,8 @@ export function buildAggregateSlideData(
   }
   rows.push(
     { label: 'Total VM count', value: String(totals.totalVmCount) },
-    { label: 'Total raw storage', value: `${totals.totalRawStorageTB.toFixed(2)} TB` },
-    { label: 'Total effective storage', value: `${totals.totalEffectiveStorageTB.toFixed(2)} TB` },
+    { label: 'Total raw storage', value: `${totals.totalRawStorageTiB.toFixed(2)} TB` },
+    { label: 'Total effective storage', value: `${totals.totalEffectiveStorageTiB.toFixed(2)} TB` },
   )
   return rows
 }
@@ -240,7 +240,7 @@ export function buildStretchTopologySlideData(
     { label: 'Min inter-site bandwidth', value: `${stretch.minBandwidthGbps} Gbps` },
     { label: 'Witness vCPU', value: String(stretch.witnessCores) },
     { label: 'Witness RAM', value: `${stretch.witnessRamGB} GB` },
-    { label: 'Effective per-site storage', value: `${stretch.effectivePerSiteStorageTB.toFixed(2)} TB` },
+    { label: 'Effective per-site storage', value: `${stretch.effectivePerSiteStorageTiB.toFixed(2)} TB` },
   ]
   const nc = stretch.networkChecklist
   const checklist = [
@@ -267,8 +267,8 @@ export function buildVsanMaxSlideData(
     { label: 'Storage node count', value: String(vsanMax.storageNodeCount) },
     { label: 'Compute node count', value: String(vsanMax.computeNodeCount) },
     { label: 'RAID scheme', value: vsanMax.raidScheme },
-    { label: 'Raw capacity', value: `${vsanMax.rawCapacityTB.toFixed(2)} TB` },
-    { label: 'Usable capacity', value: `${vsanMax.usableCapacityTB.toFixed(2)} TB` },
+    { label: 'Raw capacity', value: `${vsanMax.rawCapacityTiB.toFixed(2)} TB` },
+    { label: 'Usable capacity', value: `${vsanMax.usableCapacityTiB.toFixed(2)} TB` },
   ]
 }
 
@@ -466,13 +466,13 @@ export async function generatePptxReport(): Promise<void> {
     const storRows: TableRow[] = [
       [hdrCell('Metric'), hdrCell('Value')],
       [cell('RAID Scheme'), cell(storageData.raidScheme)],
-      [cell('Raw Capacity'), cell(`${storageData.rawCapacityTB.toFixed(2)} TB`)],
-      [cell('Usable After RAID'), cell(`${storageData.usableAfterRaidTB.toFixed(2)} TB`)],
-      [cell('LFS Overhead'), cell(`${storageData.lfsOverheadTB.toFixed(2)} TB`)],
-      [cell('Metadata Overhead'), cell(`${storageData.metadataOverheadTB.toFixed(2)} TB`)],
+      [cell('Raw Capacity'), cell(`${storageData.rawCapacityTiB.toFixed(2)} TB`)],
+      [cell('Usable After RAID'), cell(`${storageData.usableAfterRaidTiB.toFixed(2)} TB`)],
+      [cell('LFS Overhead'), cell(`${storageData.lfsOverheadTiB.toFixed(2)} TB`)],
+      [cell('Metadata Overhead'), cell(`${storageData.metadataOverheadTiB.toFixed(2)} TB`)],
       [
         cell('Safe Usable Capacity', true),
-        cell(`${storageData.safeUsableCapacityTB.toFixed(2)} TB`, true),
+        cell(`${storageData.safeUsableCapacityTiB.toFixed(2)} TB`, true),
       ],
     ]
     sStor.addTable(storRows, {

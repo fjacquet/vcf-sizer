@@ -15,7 +15,8 @@ const WorkloadDomainSchema = z
     coresPerSocket: z.number().int().min(1).max(256).default(16),
     socketsPerHost: z.number().int().min(1).max(8).default(2),
     hostRamGB: z.number().positive().default(512),
-    hostStorageTB: z.number().positive().default(3.84),
+    hostStorageTiB: z.number().positive().default(3.84),
+    externalStorageUsableTiB: z.number().positive().default(100),
     hostCount: z.number().int().min(1).max(64).default(4),
     nvmeTieringEnabled: z.boolean().default(false),
     activeMemoryPct: z.number().min(1).max(100).default(50),
@@ -46,7 +47,7 @@ const ManagementDomainSchema = z
     coresPerSocket: z.number().int().min(1).max(256).default(16),
     socketsPerHost: z.number().int().min(1).max(8).default(2),
     hostRamGB: z.number().positive().default(512),
-    hostStorageTB: z.number().positive().default(3.84),
+    hostStorageTiB: z.number().positive().default(3.84),
   })
   .strip()
 
@@ -112,7 +113,19 @@ describe('URL-01 — New schema structure', () => {
     expect(result.coresPerSocket).toBe(16)
     expect(result.socketsPerHost).toBe(2)
     expect(result.hostRamGB).toBe(512)
-    expect(result.hostStorageTB).toBe(3.84)
+    expect(result.hostStorageTiB).toBe(3.84)
+  })
+
+  it('WorkloadDomainSchema.parse({}) returns hostStorageTiB and externalStorageUsableTiB defaults', () => {
+    const result = WorkloadDomainSchema.parse({})
+    expect(result.hostStorageTiB).toBe(3.84)
+    expect(result.externalStorageUsableTiB).toBe(100)
+  })
+
+  it('backward compat: old hostStorageTB key is stripped, hostStorageTiB uses default', () => {
+    const result = WorkloadDomainSchema.parse({ hostStorageTB: 5.0 })
+    expect(result.hostStorageTiB).toBe(3.84) // default, old key stripped
+    expect((result as Record<string, unknown>)['hostStorageTB']).toBeUndefined()
   })
 })
 
@@ -124,7 +137,7 @@ describe('URL-02 — v2.x backward compatibility', () => {
     coresPerSocket: 16,
     socketsPerHost: 2,
     hostRamGB: 512,
-    hostStorageTB: 3.84,
+    hostStorageTiB: 3.84,
     avgVcpuPerVm: 4,
     avgVramGbPerVm: 8,
     avgStorageGbPerVm: 100,
@@ -190,7 +203,7 @@ describe('URL-03 — Multi-domain round-trip', () => {
 
   const threeDomainsState = {
     managementArchitecture: 'colocated' as const,
-    managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTB: 3.84 },
+    managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTiB: 3.84 },
     workloadDomains: [domain0, domain1, domain2],
   }
 
@@ -225,10 +238,10 @@ describe('URL-03 — Multi-domain round-trip', () => {
     }
   })
 
-  it('5-domain config serializes to URL param under 2,048 characters', () => {
+  it('5-domain config serializes to URL param under 4,096 characters', () => {
     const fiveDomains = {
       managementArchitecture: 'colocated' as const,
-      managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTB: 3.84 },
+      managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTiB: 3.84 },
       workloadDomains: [
         createDefaultWorkloadDomain(0),
         createDefaultWorkloadDomain(1),
@@ -239,7 +252,7 @@ describe('URL-03 — Multi-domain round-trip', () => {
     }
     const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(fiveDomains))
     const urlParam = `?c=${compressed}`
-    expect(urlParam.length).toBeLessThan(2048)
+    expect(urlParam.length).toBeLessThan(4096)
   })
 })
 
@@ -247,7 +260,7 @@ describe('URL-04 — activeTabIndex exclusion', () => {
   it('serialized payload with activeDomainIndex does NOT contain that key after .strip()', () => {
     const stateWithEphemeral = {
       managementArchitecture: 'colocated',
-      managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTB: 3.84 },
+      managementDomain: { coresPerSocket: 16, socketsPerHost: 2, hostRamGB: 512, hostStorageTiB: 3.84 },
       workloadDomains: [createDefaultWorkloadDomain(0)],
       activeDomainIndex: 2,  // ephemeral UI state — must be stripped
     }

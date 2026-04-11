@@ -203,34 +203,34 @@ describe('buildStorageResultsData — PPTX-08', () => {
     setActivePinia(createPinia())
   })
 
-  it('returns safeUsableCapacityTB as a number', () => {
+  it('returns safeUsableCapacityTiB as a number', () => {
     const calc = useCalculationStore()
     const result = buildStorageResultsData(calc.domainResults[0].storage)
-    expect(typeof result.safeUsableCapacityTB).toBe('number')
+    expect(typeof result.safeUsableCapacityTiB).toBe('number')
   })
 
-  it('returns rawCapacityTB as a number', () => {
+  it('returns rawCapacityTiB as a number', () => {
     const calc = useCalculationStore()
     const result = buildStorageResultsData(calc.domainResults[0].storage)
-    expect(typeof result.rawCapacityTB).toBe('number')
+    expect(typeof result.rawCapacityTiB).toBe('number')
   })
 
-  it('returns lfsOverheadTB as a number', () => {
+  it('returns lfsOverheadTiB as a number', () => {
     const calc = useCalculationStore()
     const result = buildStorageResultsData(calc.domainResults[0].storage)
-    expect(typeof result.lfsOverheadTB).toBe('number')
+    expect(typeof result.lfsOverheadTiB).toBe('number')
   })
 
-  it('returns metadataOverheadTB as a number', () => {
+  it('returns metadataOverheadTiB as a number', () => {
     const calc = useCalculationStore()
     const result = buildStorageResultsData(calc.domainResults[0].storage)
-    expect(typeof result.metadataOverheadTB).toBe('number')
+    expect(typeof result.metadataOverheadTiB).toBe('number')
   })
 
-  it('returns usableAfterRaidTB as a number', () => {
+  it('returns usableAfterRaidTiB as a number', () => {
     const calc = useCalculationStore()
     const result = buildStorageResultsData(calc.domainResults[0].storage)
-    expect(typeof result.usableAfterRaidTB).toBe('number')
+    expect(typeof result.usableAfterRaidTiB).toBe('number')
   })
 })
 

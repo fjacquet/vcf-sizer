@@ -6,7 +6,7 @@ describe('calcStretch — witness and topology (STRCH-01/02/03/05)', () => {
     const result = calcStretch({
       preferredSiteHosts: 3,
       secondarySiteHosts: 3,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 100,
     })
@@ -17,7 +17,7 @@ describe('calcStretch — witness and topology (STRCH-01/02/03/05)', () => {
     const result = calcStretch({
       preferredSiteHosts: 3,
       secondarySiteHosts: 3,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 100,
     })
@@ -29,7 +29,7 @@ describe('calcStretch — witness and topology (STRCH-01/02/03/05)', () => {
     const result = calcStretch({
       preferredSiteHosts: 3,
       secondarySiteHosts: 3,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 100,
     })
@@ -41,7 +41,7 @@ describe('calcStretch — witness and topology (STRCH-01/02/03/05)', () => {
     const result = calcStretch({
       preferredSiteHosts: 3,
       secondarySiteHosts: 3,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 200_000,
     })
@@ -53,7 +53,7 @@ describe('calcStretch — witness and topology (STRCH-01/02/03/05)', () => {
     const result = calcStretch({
       preferredSiteHosts: 4,
       secondarySiteHosts: 2,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 50,
       avgStorageGbPerVm: 200,
     })
@@ -64,7 +64,7 @@ describe('calcStretch — witness and topology (STRCH-01/02/03/05)', () => {
     const result = calcStretch({
       preferredSiteHosts: 3,
       secondarySiteHosts: 3,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 100,
     })
@@ -77,7 +77,7 @@ describe('calcStretch -- network checklist (STRCH-08)', () => {
     const result = calcStretch({
       preferredSiteHosts: 3,
       secondarySiteHosts: 3,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 100,
     })
@@ -91,7 +91,7 @@ describe('calcStretch -- network checklist (STRCH-08)', () => {
     const result = calcStretch({
       preferredSiteHosts: 5,
       secondarySiteHosts: 5,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 100,
     })
@@ -102,7 +102,7 @@ describe('calcStretch -- network checklist (STRCH-08)', () => {
     const result = calcStretch({
       preferredSiteHosts: 8,
       secondarySiteHosts: 12,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 100,
     })
@@ -113,7 +113,7 @@ describe('calcStretch -- network checklist (STRCH-08)', () => {
     const result = calcStretch({
       preferredSiteHosts: 3,
       secondarySiteHosts: 20,
-      hostStorageTB: 3.84,
+      hostStorageTiB: 3.84,
       vmCount: 100,
       avgStorageGbPerVm: 100,
     })

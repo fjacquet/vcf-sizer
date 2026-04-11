@@ -79,7 +79,8 @@ export const useCalculationStore = defineStore('calculation', () => {
         storage: calcStorage({
           storageType: domain.storageType,
           hostCount: effectiveHostCount,
-          hostStorageTB: domain.hostStorageTB,
+          hostStorageTiB: domain.hostStorageTiB,
+          externalStorageUsableTiB: domain.externalStorageUsableTiB,
           fttLevel: domain.fttLevel,
           raidType: domain.raidType,
           dedupEnabled: domain.dedupEnabled,
@@ -90,7 +91,7 @@ export const useCalculationStore = defineStore('calculation', () => {
           ? calcStretch({
               preferredSiteHosts: domain.preferredSiteHosts,
               secondarySiteHosts: domain.secondarySiteHosts,
-              hostStorageTB: domain.hostStorageTB,
+              hostStorageTiB: domain.hostStorageTiB,
               vmCount: domain.vmCount,
               avgStorageGbPerVm: domain.avgStorageGbPerVm,
             })
@@ -131,8 +132,8 @@ export const useCalculationStore = defineStore('calculation', () => {
       totalRecommendedHosts: workloadHosts + mgmtHosts,
       mgmtHostCount: mgmtHosts,
       totalVmCount: input.workloadDomains.reduce((sum, d) => sum + d.vmCount, 0),
-      totalRawStorageTB: domainResults.value.reduce((sum, d) => sum + d.storage.rawCapacityTB, 0),
-      totalEffectiveStorageTB: domainResults.value.reduce((sum, d) => sum + d.storage.effectiveCapacityTB, 0),
+      totalRawStorageTiB: domainResults.value.reduce((sum, d) => sum + d.storage.rawCapacityTiB, 0),
+      totalEffectiveStorageTiB: domainResults.value.reduce((sum, d) => sum + d.storage.effectiveCapacityTiB, 0),
       allValidationErrors: domainResults.value.flatMap(d => d.validationErrors),
     }
   })

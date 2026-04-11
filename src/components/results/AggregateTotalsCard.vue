@@ -47,10 +47,10 @@ const workloadHostCount = computed(() =>
       <span class="font-mono text-right">{{ totals.totalVmCount }}</span>
 
       <span>{{ t('results.aggregate.totalRawStorage') }}</span>
-      <span class="font-mono text-right">{{ totals.totalRawStorageTB.toFixed(2) }} TB</span>
+      <span class="font-mono text-right">{{ totals.totalRawStorageTiB.toFixed(2) }} TB</span>
 
       <span>{{ t('results.aggregate.totalEffectiveStorage') }}</span>
-      <span class="font-mono text-right">{{ totals.totalEffectiveStorageTB.toFixed(2) }} TB</span>
+      <span class="font-mono text-right">{{ totals.totalEffectiveStorageTiB.toFixed(2) }} TB</span>
     </div>
 
     <!-- Aggregate validation warnings -->
