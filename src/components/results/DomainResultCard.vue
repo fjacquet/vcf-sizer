@@ -4,6 +4,9 @@ import { useI18n } from 'vue-i18n'
 import type { DomainResult } from '@/engine/types'
 import StretchNetworkChecklist from './StretchNetworkChecklist.vue'
 import VsanMaxClusterCard from './VsanMaxClusterCard.vue'
+import CoresChart from './charts/CoresChart.vue'
+import RamChart from './charts/RamChart.vue'
+import StorageChart from './charts/StorageChart.vue'
 
 const props = defineProps<{ result: DomainResult }>()
 const { t } = useI18n()
@@ -63,10 +66,17 @@ const isSufficient = computed(() => {
       </span>
 
       <span>{{ t('results.domain.storageUsable') }}</span>
-      <span class="font-mono text-right">{{ result.storage.safeUsableCapacityTB.toFixed(2) }} TB</span>
+      <span class="font-mono text-right">{{ result.storage.safeUsableCapacityTiB.toFixed(2) }} TB</span>
 
       <span>{{ t('results.domain.raidScheme') }}</span>
       <span class="font-mono text-right">{{ result.storage.raidScheme }}</span>
+    </div>
+
+    <!-- Per-domain charts (CHART-01) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+      <CoresChart :compute="result.compute" :domain-id="result.id" />
+      <RamChart :compute="result.compute" :domain-id="result.id" />
+      <StorageChart :storage="result.storage" :domain-id="result.id" />
     </div>
 
     <!-- Stretch network checklist (only when stretch mode) -->
