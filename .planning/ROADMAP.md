@@ -176,7 +176,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 23-01-PLAN.md — Install deps (marked, dompurify, typography), create MarkdownPreviewPanel.vue, add i18n keys (EXPORT-03)
+- [x] 23-01-PLAN.md — Install deps (marked, dompurify, typography), create MarkdownPreviewPanel.vue, add i18n keys (EXPORT-03)
 - [ ] 23-02-PLAN.md — Wire preview into ExportToolbar, end-to-end human verification (EXPORT-03)
 **UI hint**: yes
 
@@ -191,4 +191,4 @@ Plans:
 | 20. Storage Units Correction | 2/2 | Complete | 2026-04-11 |
 | 21. Per-Domain Chart Visualizations | 1/1 | Complete | 2026-04-11 |
 | 22. Localized Exports + PPTX Chart Images | 2/2 | Complete | 2026-04-11 |
-| 23. Markdown Preview Panel | 0/2 | Not started | - |
+| 23. Markdown Preview Panel | 1/2 | In Progress|  |
