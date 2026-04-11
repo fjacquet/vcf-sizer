@@ -95,6 +95,12 @@
     "netUsablePassthrough": "Nutzbar netto (pass-through)",
     "minHosts": "mind. {count} Hosts"
   },
+  "topology": {
+    "confirmTitle": "Topologie \u00e4ndern?",
+    "confirmMessage": "Das \u00c4ndern der Topologie setzt alle Einstellungen der Workload-Dom\u00e4ne zur\u00fcck. Diese Aktion kann nicht r\u00fcckg\u00e4ngig gemacht werden.",
+    "confirmCta": "Topologie \u00e4ndern",
+    "cancelCta": "Aktuelle Topologie beibehalten"
+  },
   "warnings": {
     "vcfaMinCores": "WARNUNG: VCF Automation (VCFA) erfordert einen Host mit mindestens 12 physischen Kernen (24 Threads). Die Bereitstellung wird mit der aktuellen Host-Spezifikation blockiert.",
     "dedupStretchExclusion": "Globale Deduplizierung kann nicht mit Stretch Cluster aktiviert werden.",
