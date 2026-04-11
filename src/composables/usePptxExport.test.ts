@@ -8,6 +8,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
+import { useUiStore } from '@/stores/uiStore'
 import {
   PPTX_MASTER_COLOR,
   buildTitleSlideData,
@@ -528,6 +529,72 @@ describe('buildValidationWarningsSlideData — PPTX-14', () => {
       const result = buildValidationWarningsSlideData(calc)
       expect(Array.isArray(result)).toBe(true)
     }
+  })
+})
+
+// ─── Chart image embedding logic (EXPORT-01) ─────────────────────────────────
+
+describe('chart image embedding in PPTX (EXPORT-01)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('chartImages with all 3 types for a domain produces 3 available charts', () => {
+    const uiStore = useUiStore()
+    const store = useInputStore()
+    const domainId = store.workloadDomains[0].id
+
+    uiStore.registerChartImage(domainId, 'cores', 'data:image/png;base64,coresABC')
+    uiStore.registerChartImage(domainId, 'ram', 'data:image/png;base64,ramDEF')
+    uiStore.registerChartImage(domainId, 'storage', 'data:image/png;base64,storGHI')
+
+    const domainCharts = uiStore.chartImages[domainId]
+    const chartTypes: Array<{ key: 'cores' | 'ram' | 'storage' }> = [
+      { key: 'cores' }, { key: 'ram' }, { key: 'storage' },
+    ]
+    const available = chartTypes.filter(ct => domainCharts?.[ct.key])
+    expect(available).toHaveLength(3)
+  })
+
+  it('empty chartImages for a domain produces 0 available charts (no Charts slide)', () => {
+    const uiStore = useUiStore()
+    const store = useInputStore()
+    const domainId = store.workloadDomains[0].id
+
+    const domainCharts = uiStore.chartImages[domainId]
+    const chartTypes: Array<{ key: 'cores' | 'ram' | 'storage' }> = [
+      { key: 'cores' }, { key: 'ram' }, { key: 'storage' },
+    ]
+    const available = chartTypes.filter(ct => domainCharts?.[ct.key])
+    expect(available).toHaveLength(0)
+  })
+
+  it('partial chartImages (only cores) produces 1 available chart', () => {
+    const uiStore = useUiStore()
+    const store = useInputStore()
+    const domainId = store.workloadDomains[0].id
+
+    uiStore.registerChartImage(domainId, 'cores', 'data:image/png;base64,coresOnly')
+
+    const domainCharts = uiStore.chartImages[domainId]
+    const chartTypes: Array<{ key: 'cores' | 'ram' | 'storage' }> = [
+      { key: 'cores' }, { key: 'ram' }, { key: 'storage' },
+    ]
+    const available = chartTypes.filter(ct => domainCharts?.[ct.key])
+    expect(available).toHaveLength(1)
+    expect(available[0].key).toBe('cores')
+  })
+
+  it('chart data URLs contain full data:image/png;base64 prefix (PITFALL-7)', () => {
+    const uiStore = useUiStore()
+    const store = useInputStore()
+    const domainId = store.workloadDomains[0].id
+
+    const dataUrl = 'data:image/png;base64,abc123'
+    uiStore.registerChartImage(domainId, 'cores', dataUrl)
+
+    expect(uiStore.chartImages[domainId]['cores']).toBe(dataUrl)
+    expect(uiStore.chartImages[domainId]['cores']).toMatch(/^data:image\/png;base64,/)
   })
 })
 

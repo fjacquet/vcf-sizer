@@ -5,6 +5,7 @@
 
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
+import { useUiStore } from '@/stores/uiStore'
 import { i18n } from '@/i18n'
 import type {
   MgmtDomainResult,
@@ -309,6 +310,7 @@ export function buildValidationWarningsSlideData(
 export async function generatePptxReport(): Promise<void> {
   const store = useInputStore()
   const calc = useCalculationStore()
+  const uiStore = useUiStore()
   const t = i18n.global.t
 
   // Dynamic import — Vite code-splits this automatically (PPTX-15)
@@ -577,6 +579,38 @@ export async function generatePptxReport(): Promise<void> {
         x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
         fontSize: 13, color: 'F0F0F0',
         border: { type: 'solid', pt: 1, color: '444444' },
+      })
+    }
+    // Domain: Conditional Slide — Charts (EXPORT-01)
+    const domainCharts = uiStore.chartImages[domain.id]
+    const chartTypes: Array<{ key: 'cores' | 'ram' | 'storage'; labelKey: string }> = [
+      { key: 'cores', labelKey: 'export.cpuUtilization' },
+      { key: 'ram', labelKey: 'export.ramUtilization' },
+      { key: 'storage', labelKey: 'export.storageSizing' },
+    ]
+    const availableCharts = chartTypes.filter(ct => domainCharts?.[ct.key])
+
+    if (availableCharts.length > 0) {
+      const sCharts = pres.addSlide({ masterName: MASTER_NAME })
+      sCharts.addText(`${domain.name} — ${t('export.charts')}`, {
+        x: 0.5, y: 0.3, w: 12, h: 0.8,
+        fontSize: 24, bold: true, color: PPTX_WHITE,
+      })
+
+      // Layout: up to 3 charts side by side on LAYOUT_WIDE (13.33 x 7.5)
+      const positions = [
+        { x: 0.3, y: 1.5, w: 4.0, h: 3.0 },
+        { x: 4.5, y: 1.5, w: 4.0, h: 3.0 },
+        { x: 8.7, y: 1.5, w: 4.0, h: 3.0 },
+      ]
+
+      availableCharts.forEach((ct, idx) => {
+        const pos = positions[idx]
+        sCharts.addImage({
+          data: domainCharts![ct.key],  // full data:image/png;base64,... (PITFALL-7)
+          x: pos.x, y: pos.y, w: pos.w, h: pos.h,
+          altText: `${domain.name} ${ct.key} chart`,
+        })
       })
     }
   } // end per-domain loop

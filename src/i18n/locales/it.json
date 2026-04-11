@@ -256,6 +256,7 @@
     "nvmeTiering": "Tiering memoria NVMe",
     "aiGpu": "Carichi di lavoro AI / GPU",
     "stretchTopology": "Topologia cluster esteso",
+    "charts": "Grafici",
     "vsanMaxCluster": "Cluster vSAN Max",
     "aggregateTotals": "Totali aggregati",
     "validationWarnings": "Avvisi di validazione",
