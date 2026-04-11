@@ -10,11 +10,11 @@ Improve user experience through wizard navigation enhancements and domain manage
 
 - [ ] **WIZARD-01**: User can click any completed WizardStepper step badge to jump back to that step
 - [ ] **WIZARD-02**: User sees a landing/intro view on first load before the wizard starts
-- [ ] **WIZARD-03**: User is prompted to confirm before changing topology after workloads have been configured
+- [x] **WIZARD-03**: User is prompted to confirm before changing topology after workloads have been configured
 
 ### DOMAIN — Management
 
-- [ ] **DOMAIN-01**: User can duplicate a workload domain ("Copy domain") with all its settings cloned and a new name assigned
+- [x] **DOMAIN-01**: User can duplicate a workload domain ("Copy domain") with all its settings cloned and a new name assigned
 
 ### CHART — Per-Domain Visualizations
 
@@ -56,8 +56,8 @@ Improve user experience through wizard navigation enhancements and domain manage
 |--------|-------|--------|
 | WIZARD-01 | Phase 18 | Pending |
 | WIZARD-02 | Phase 18 | Pending |
-| WIZARD-03 | Phase 19 | Pending |
-| DOMAIN-01 | Phase 19 | Pending |
+| WIZARD-03 | Phase 19 | Complete |
+| DOMAIN-01 | Phase 19 | Complete |
 | STOR-01 | Phase 20 | Pending |
 | STOR-02 | Phase 20 | Pending |
 | STOR-03 | Phase 20 | Pending |

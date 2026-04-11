@@ -60,7 +60,7 @@ Full details: `.planning/milestones/v3.1-ROADMAP.md`
 ### v3.3 UX Polish & Export Quality (Phases 18-23)
 
 - [ ] **Phase 18: Store Foundations + Wizard Navigation** - Unblocking store additions and wizard UX (clickable steps, landing view)
-- [ ] **Phase 19: Topology Confirmation + Domain Duplication** - Guard topology changes with dialog; add domain copy action
+- [x] **Phase 19: Topology Confirmation + Domain Duplication** - Guard topology changes with dialog; add domain copy action (completed 2026-04-11)
 - [ ] **Phase 20: Storage Units Correction** - Replace TB with TiB throughout engine, schema, UI, and exports (atomic)
 - [ ] **Phase 21: Per-Domain Chart Visualizations** - Each result card shows its own Cores/RAM/Storage charts
 - [ ] **Phase 22: Localized Exports + PPTX Chart Images** - Exports in active locale; chart PNGs embedded in PPTX slides
@@ -104,8 +104,8 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 19-01-PLAN.md — TDD duplicateDomain store action, ConfirmationDialog component, TopologySelector guard, topology i18n keys (WIZARD-03, DOMAIN-01)
-- [ ] 19-02-PLAN.md — DomainTabStrip copy button, domain copy i18n keys, end-to-end human verification (DOMAIN-01, WIZARD-03)
+- [x] 19-01-PLAN.md — TDD duplicateDomain store action, ConfirmationDialog component, TopologySelector guard, topology i18n keys (WIZARD-03, DOMAIN-01)
+- [x] 19-02-PLAN.md — DomainTabStrip copy button, domain copy i18n keys, end-to-end human verification (DOMAIN-01, WIZARD-03)
 **UI hint**: yes
 
 ### Phase 20: Storage Units Correction
@@ -176,7 +176,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 18. Store Foundations + Wizard Navigation | 2/2 | Complete | 2026-04-10 |
-| 19. Topology Confirmation + Domain Duplication | 0/2 | Planned | - |
+| 19. Topology Confirmation + Domain Duplication | 2/2 | Complete   | 2026-04-11 |
 | 20. Storage Units Correction | 0/2 | Planned | - |
 | 21. Per-Domain Chart Visualizations | 0/? | Not started | - |
 | 22. Localized Exports + PPTX Chart Images | 0/? | Not started | - |
