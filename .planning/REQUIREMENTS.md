@@ -18,7 +18,7 @@ Improve user experience through wizard navigation enhancements and domain manage
 
 ### CHART — Per-Domain Visualizations
 
-- [ ] **CHART-01**: Each workload domain result card shows its own Cores, RAM, and Storage charts (not a shared single chart set)
+- [x] **CHART-01**: Each workload domain result card shows its own Cores, RAM, and Storage charts (not a shared single chart set)
 
 ### EXPORT — Export Quality
 
@@ -62,7 +62,7 @@ Improve user experience through wizard navigation enhancements and domain manage
 | STOR-02 | Phase 20 | Pending |
 | STOR-03 | Phase 20 | Pending |
 | STOR-04 | Phase 20 | Pending |
-| CHART-01 | Phase 21 | Pending |
+| CHART-01 | Phase 21 | Complete |
 | EXPORT-01 | Phase 22 | Pending |
 | EXPORT-02 | Phase 22 | Pending |
 | EXPORT-03 | Phase 23 | Pending |

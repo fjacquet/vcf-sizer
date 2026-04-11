@@ -62,7 +62,7 @@ Full details: `.planning/milestones/v3.1-ROADMAP.md`
 - [ ] **Phase 18: Store Foundations + Wizard Navigation** - Unblocking store additions and wizard UX (clickable steps, landing view)
 - [x] **Phase 19: Topology Confirmation + Domain Duplication** - Guard topology changes with dialog; add domain copy action (completed 2026-04-11)
 - [ ] **Phase 20: Storage Units Correction** - Replace TB with TiB throughout engine, schema, UI, and exports (atomic)
-- [ ] **Phase 21: Per-Domain Chart Visualizations** - Each result card shows its own Cores/RAM/Storage charts
+- [x] **Phase 21: Per-Domain Chart Visualizations** - Each result card shows its own Cores/RAM/Storage charts (completed 2026-04-11)
 - [ ] **Phase 22: Localized Exports + PPTX Chart Images** - Exports in active locale; chart PNGs embedded in PPTX slides
 - [ ] **Phase 23: Markdown Preview Panel** - In-app rendered Markdown preview before download
 
@@ -140,7 +140,7 @@ Plans:
 **Plans**: 1 plan
 Plans:
 
-- [ ] 21-01-PLAN.md — Refactor chart components to props-driven, embed in DomainResultCard, wire PNG capture (CHART-01)
+- [x] 21-01-PLAN.md — Refactor chart components to props-driven, embed in DomainResultCard, wire PNG capture (CHART-01)
 **UI hint**: yes
 
 ### Phase 22: Localized Exports + PPTX Chart Images
@@ -181,6 +181,6 @@ Plans:
 | 18. Store Foundations + Wizard Navigation | 2/2 | Complete | 2026-04-10 |
 | 19. Topology Confirmation + Domain Duplication | 2/2 | Complete   | 2026-04-11 |
 | 20. Storage Units Correction | 0/2 | Planned | - |
-| 21. Per-Domain Chart Visualizations | 0/1 | Planned | - |
+| 21. Per-Domain Chart Visualizations | 1/1 | Complete   | 2026-04-11 |
 | 22. Localized Exports + PPTX Chart Images | 0/? | Not started | - |
 | 23. Markdown Preview Panel | 0/? | Not started | - |
