@@ -119,6 +119,25 @@ describe('calculationStore — aggregateTotals (DOM-06)', () => {
     expect(calc.aggregateTotals.totalWorkloadStorageRequiredTiB).toBeCloseTo(947.265625, 2)
   })
 
+  it('FC domain: totalRawStorageTiB uses workload demand, not pool capacity', () => {
+    const input = useInputStore()
+    input.updateDomain(input.workloadDomains[0].id, {
+      storageType: 'fc',
+      vmCount: 1000,
+      avgStorageGbPerVm: 970,
+    })
+    const calc = useCalculationStore()
+    // workload = 1000 × 970 / 1024 = 947.265625, NOT the 100 TiB pool default
+    expect(calc.aggregateTotals.totalRawStorageTiB).toBeCloseTo(947.265625, 2)
+    expect(calc.aggregateTotals.totalEffectiveStorageTiB).toBeCloseTo(947.265625, 2)
+  })
+
+  it('vsan-esa domain: totalRawStorageTiB uses physical capacity (not workload)', () => {
+    const calc = useCalculationStore()
+    // Default: 4 hosts × 3.84 TiB = 15.36 TiB (physical drives, not workload demand)
+    expect(calc.aggregateTotals.totalRawStorageTiB).toBeCloseTo(15.36, 2)
+  })
+
   it('stretch domain: totalRecommendedHosts uses effectiveHostCount (preferred + secondary)', () => {
     const input = useInputStore()
     const calc = useCalculationStore()

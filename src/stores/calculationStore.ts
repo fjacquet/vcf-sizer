@@ -134,8 +134,11 @@ export const useCalculationStore = defineStore('calculation', () => {
       totalRecommendedHosts: workloadHosts + mgmtHosts,
       mgmtHostCount: mgmtHosts,
       totalVmCount: input.workloadDomains.reduce((sum, d) => sum + d.vmCount, 0),
-      totalRawStorageTiB: domainResults.value.reduce((sum, d) => sum + d.storage.rawCapacityTiB, 0),
-      totalEffectiveStorageTiB: domainResults.value.reduce((sum, d) => sum + d.storage.effectiveCapacityTiB, 0),
+      // FC/NFS: use workload demand (what VMs need); vSAN: use physical capacity
+      totalRawStorageTiB: domainResults.value.reduce((sum, d) =>
+        sum + (d.storage.workloadStorageRequiredTiB > 0 ? d.storage.workloadStorageRequiredTiB : d.storage.rawCapacityTiB), 0),
+      totalEffectiveStorageTiB: domainResults.value.reduce((sum, d) =>
+        sum + (d.storage.workloadStorageRequiredTiB > 0 ? d.storage.workloadStorageRequiredTiB : d.storage.effectiveCapacityTiB), 0),
       totalWorkloadStorageRequiredTiB: domainResults.value.reduce((sum, d) => sum + d.storage.workloadStorageRequiredTiB, 0),
       allValidationErrors: domainResults.value.flatMap(d => d.validationErrors),
     }
