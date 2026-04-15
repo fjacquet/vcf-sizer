@@ -125,7 +125,7 @@ export const useCalculationStore = defineStore('calculation', () => {
   // ENGINE-03: totalRecommendedHosts = workload hosts + management hosts (grand procurement total)
   const aggregateTotals = computed<AggregateTotals>(() => {
     const workloadHosts = domainResults.value.reduce(
-      (sum, d) => sum + d.compute.recommendedHostCount, 0
+      (sum, d) => sum + d.compute.effectiveHostCount, 0
     )
     const mgmtHosts = dedicatedMgmtHostCount.value ?? 0
     return {

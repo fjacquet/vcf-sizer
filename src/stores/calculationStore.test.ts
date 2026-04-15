@@ -59,10 +59,10 @@ describe('calculationStore — domainResults (DOM-05)', () => {
 })
 
 describe('calculationStore — aggregateTotals (DOM-06)', () => {
-  it('totalRecommendedHosts equals domainResults[0].compute.recommendedHostCount with 1 domain', () => {
+  it('totalRecommendedHosts equals domainResults[0].compute.effectiveHostCount with 1 domain', () => {
     const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalRecommendedHosts).toBe(
-      calc.domainResults[0].compute.recommendedHostCount
+      calc.domainResults[0].compute.effectiveHostCount
     )
   })
 
@@ -100,6 +100,24 @@ describe('calculationStore — aggregateTotals (DOM-06)', () => {
   it('totalEffectiveStorageTiB is a positive number', () => {
     const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalEffectiveStorageTiB).toBeGreaterThan(0)
+  })
+
+  it('stretch domain: totalRecommendedHosts uses effectiveHostCount (preferred + secondary)', () => {
+    const input = useInputStore()
+    const calc = useCalculationStore()
+    // Switch to stretch mode with 14+14 hosts
+    input.updateDomain(input.workloadDomains[0].id, {
+      deploymentMode: 'stretch',
+      preferredSiteHosts: 14,
+      secondarySiteHosts: 14,
+    })
+    // effectiveHostCount = 14 + 14 = 28
+    expect(calc.domainResults[0].compute.effectiveHostCount).toBe(28)
+    // totalRecommendedHosts should include all 28, not just recommendedHostCount (which is much lower)
+    expect(calc.aggregateTotals.totalRecommendedHosts).toBe(28)
+    expect(calc.aggregateTotals.totalRecommendedHosts).toBeGreaterThan(
+      calc.domainResults[0].compute.recommendedHostCount
+    )
   })
 })
 

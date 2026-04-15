@@ -296,6 +296,7 @@
     "ramUtilization": "RAM-Auslastung",
     "raidScheme": "RAID-Schema",
     "rawCapacity": "Rohkapazitaet",
+    "externalPoolCapacity": "Externe Pool-Kapazitaet",
     "usableAfterRaid": "Nutzbar nach RAID",
     "lfsOverhead": "LFS-Overhead",
     "metadataOverhead": "Metadaten-Overhead",

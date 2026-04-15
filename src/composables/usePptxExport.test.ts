@@ -78,14 +78,16 @@ describe('buildConfigSummaryData — PPTX-04', () => {
 
   it('returns an array with at least 8 config field rows', () => {
     const store = useInputStore()
-    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture, t)
+    const domain = store.workloadDomains[0]
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(8)
   })
 
   it('each row has label and value properties', () => {
     const store = useInputStore()
-    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture, t)
+    const domain = store.workloadDomains[0]
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -94,7 +96,9 @@ describe('buildConfigSummaryData — PPTX-04', () => {
 
   it('hostCount row value contains the default value 4', () => {
     const store = useInputStore()
-    const result = buildConfigSummaryData(store.workloadDomains[0], store.managementArchitecture, t)
+    const domain = store.workloadDomains[0]
+    const effectiveHostCount = domain.hostCount // HA mode: effectiveHostCount = hostCount
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, effectiveHostCount, t)
     const hostRow = result.find((row) =>
       String(row.label).toLowerCase().includes('host')
     )
@@ -319,8 +323,8 @@ describe('buildAggregateSlideData — EXP-04', () => {
     const effRow = result.find((r) => r.label.toLowerCase().includes('effective'))
     expect(rawRow).toBeDefined()
     expect(effRow).toBeDefined()
-    expect(rawRow!.value).toContain('TB')
-    expect(effRow!.value).toContain('TB')
+    expect(rawRow!.value).toContain('TiB')
+    expect(effRow!.value).toContain('TiB')
   })
 })
 
@@ -612,12 +616,14 @@ describe('multi-domain PPTX helpers (EXP-03, EXP-04)', () => {
     store.updateDomain(store.workloadDomains[1].id, { hostCount: 12, vmCount: 500 })
     const managementArchitecture = store.managementArchitecture
     // Domain 2 config
-    const result2 = buildConfigSummaryData(store.workloadDomains[1], managementArchitecture, t)
+    const domain2 = store.workloadDomains[1]
+    const result2 = buildConfigSummaryData(domain2, managementArchitecture, domain2.hostCount, t)
     const hostRow = result2.find((r) => r.label.toLowerCase().includes('host'))
     expect(hostRow).toBeDefined()
     expect(String(hostRow!.value)).toContain('12')
     // Domain 1 config should still reflect domain 1 defaults
-    const result1 = buildConfigSummaryData(store.workloadDomains[0], managementArchitecture, t)
+    const domain1 = store.workloadDomains[0]
+    const result1 = buildConfigSummaryData(domain1, managementArchitecture, domain1.hostCount, t)
     const hostRow1 = result1.find((r) => r.label.toLowerCase().includes('host'))
     expect(hostRow1).toBeDefined()
     expect(String(hostRow1!.value)).toContain('4')

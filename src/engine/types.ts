@@ -87,6 +87,7 @@ export interface ComputeResult {
   minHostsForCpu: number
   minHostsForRam: number
   recommendedHostCount: number
+  effectiveHostCount: number  // actual hostCount used for capacity calculations
 }
 
 export interface StorageInputs {

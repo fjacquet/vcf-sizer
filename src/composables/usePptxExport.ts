@@ -83,14 +83,19 @@ export function buildTitleSlideData(domainCount: number, date?: string): {
 export function buildConfigSummaryData(
   domain: WorkloadDomainConfig,
   managementArchitecture: string,
+  effectiveHostCount: number,
   t: (key: string) => string = (k) => k
 ): Array<{ label: string; value: string }> {
   return [
-    { label: t('export.hosts'), value: String(domain.hostCount) },
+    { label: t('export.hosts'), value: String(effectiveHostCount) },
+    ...(domain.deploymentMode === 'stretch' ? [
+      { label: t('export.preferredSiteHosts'), value: String(domain.preferredSiteHosts) },
+      { label: t('export.secondarySiteHosts'), value: String(domain.secondarySiteHosts) },
+    ] : []),
     { label: t('export.coresPerSocket'), value: String(domain.coresPerSocket) },
     { label: t('export.socketsPerHost'), value: String(domain.socketsPerHost) },
     { label: t('export.ramPerHost'), value: `${domain.hostRamGB} GB` },
-    { label: t('export.storagePerHost'), value: `${domain.hostStorageTiB} TB` },
+    { label: t('export.storagePerHost'), value: `${domain.hostStorageTiB} TiB` },
     { label: t('export.storageType'), value: domain.storageType },
     { label: t('export.networkSpeed'), value: `${domain.networkSpeedGbE} GbE` },
     { label: t('export.mgmtArch'), value: managementArchitecture },
@@ -200,8 +205,8 @@ export function buildAggregateSlideData(
   }
   rows.push(
     { label: t('export.totalVmCount'), value: String(totals.totalVmCount) },
-    { label: t('export.totalRawStorage'), value: `${totals.totalRawStorageTiB.toFixed(2)} TB` },
-    { label: t('export.totalEffectiveStorage'), value: `${totals.totalEffectiveStorageTiB.toFixed(2)} TB` },
+    { label: t('export.totalRawStorage'), value: `${totals.totalRawStorageTiB.toFixed(2)} TiB` },
+    { label: t('export.totalEffectiveStorage'), value: `${totals.totalEffectiveStorageTiB.toFixed(2)} TiB` },
   )
   return rows
 }
@@ -251,7 +256,7 @@ export function buildStretchTopologySlideData(
     { label: t('export.minInterSiteBw'), value: `${stretch.minBandwidthGbps} Gbps` },
     { label: t('export.witnessVcpu'), value: String(stretch.witnessCores) },
     { label: t('export.witnessRam'), value: `${stretch.witnessRamGB} GB` },
-    { label: t('export.effectivePerSiteStorage'), value: `${stretch.effectivePerSiteStorageTiB.toFixed(2)} TB` },
+    { label: t('export.effectivePerSiteStorage'), value: `${stretch.effectivePerSiteStorageTiB.toFixed(2)} TiB` },
   ]
   const nc = stretch.networkChecklist
   const checklist = [
@@ -279,8 +284,8 @@ export function buildVsanMaxSlideData(
     { label: t('export.storageNodeCount'), value: String(vsanMax.storageNodeCount) },
     { label: t('export.computeNodeCount'), value: String(vsanMax.computeNodeCount) },
     { label: t('export.raidScheme'), value: vsanMax.raidScheme },
-    { label: t('export.rawCapacity'), value: `${vsanMax.rawCapacityTiB.toFixed(2)} TB` },
-    { label: t('export.usableCapacity'), value: `${vsanMax.usableCapacityTiB.toFixed(2)} TB` },
+    { label: t('export.rawCapacity'), value: `${vsanMax.rawCapacityTiB.toFixed(2)} TiB` },
+    { label: t('export.usableCapacity'), value: `${vsanMax.usableCapacityTiB.toFixed(2)} TiB` },
   ]
 }
 
@@ -416,7 +421,7 @@ export async function generatePptxReport(): Promise<void> {
     const result = calc.domainResults.find(r => r.id === domain.id)!
 
     // Domain: Configuration Summary
-    const configData = buildConfigSummaryData(domain, store.managementArchitecture, t)
+    const configData = buildConfigSummaryData(domain, store.managementArchitecture, result.compute.effectiveHostCount, t)
     const sCfg = pres.addSlide({ masterName: MASTER_NAME })
     sCfg.addText(`${t('export.domain')}: ${domain.name}`, {
       x: 0.5, y: 0.3, w: 12, h: 0.8,
@@ -479,17 +484,22 @@ export async function generatePptxReport(): Promise<void> {
       x: 0.5, y: 0.3, w: 12, h: 0.8,
       fontSize: 24, bold: true, color: PPTX_WHITE,
     })
+    const isExternalStorage = domain.storageType === 'fc' || domain.storageType === 'nfs'
     const storRows: TableRow[] = [
       [hdrCell(t('export.metric')), hdrCell(t('export.value'))],
-      [cell(t('export.raidScheme')), cell(storageData.raidScheme)],
-      [cell(t('export.rawCapacity')), cell(`${storageData.rawCapacityTiB.toFixed(2)} TB`)],
-      [cell(t('export.usableAfterRaid')), cell(`${storageData.usableAfterRaidTiB.toFixed(2)} TB`)],
-      [cell(t('export.lfsOverhead')), cell(`${storageData.lfsOverheadTiB.toFixed(2)} TB`)],
-      [cell(t('export.metadataOverhead')), cell(`${storageData.metadataOverheadTiB.toFixed(2)} TB`)],
-      [
-        cell(t('export.safeUsableCapacity'), true),
-        cell(`${storageData.safeUsableCapacityTiB.toFixed(2)} TB`, true),
-      ],
+      ...(isExternalStorage ? [
+        [cell(t('export.externalPoolCapacity')), cell(`${storageData.rawCapacityTiB.toFixed(2)} TiB`)] as TableRow,
+      ] : [
+        [cell(t('export.raidScheme')), cell(storageData.raidScheme)] as TableRow,
+        [cell(t('export.rawCapacity')), cell(`${storageData.rawCapacityTiB.toFixed(2)} TiB`)] as TableRow,
+        [cell(t('export.usableAfterRaid')), cell(`${storageData.usableAfterRaidTiB.toFixed(2)} TiB`)] as TableRow,
+        [cell(t('export.lfsOverhead')), cell(`${storageData.lfsOverheadTiB.toFixed(2)} TiB`)] as TableRow,
+        [cell(t('export.metadataOverhead')), cell(`${storageData.metadataOverheadTiB.toFixed(2)} TiB`)] as TableRow,
+        [
+          cell(t('export.safeUsableCapacity'), true),
+          cell(`${storageData.safeUsableCapacityTiB.toFixed(2)} TiB`, true),
+        ] as TableRow,
+      ]),
     ]
     sStor.addTable(storRows, {
       x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,

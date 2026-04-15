@@ -69,11 +69,15 @@ export function generateMarkdownReport(): string {
       ``,
       `| ${t('export.parameter')} | ${t('export.value')} |`,
       `|-----------|-------|`,
-      `| ${t('export.hosts')} | ${domain.hostCount} |`,
+      `| ${t('export.hosts')} | ${result.compute.effectiveHostCount} |`,
+      ...(domain.deploymentMode === 'stretch' ? [
+        `| ${t('export.preferredSiteHosts')} | ${domain.preferredSiteHosts} |`,
+        `| ${t('export.secondarySiteHosts')} | ${domain.secondarySiteHosts} |`,
+      ] : []),
       `| ${t('export.coresPerSocket')} | ${domain.coresPerSocket} |`,
       `| ${t('export.socketsPerHost')} | ${domain.socketsPerHost} |`,
       `| ${t('export.ramPerHost')} | ${domain.hostRamGB} GB |`,
-      `| ${t('export.storagePerHost')} | ${domain.hostStorageTiB} TB |`,
+      `| ${t('export.storagePerHost')} | ${domain.hostStorageTiB} TiB |`,
     )
 
     // H3: Workload Profile
@@ -117,12 +121,16 @@ export function generateMarkdownReport(): string {
       `| ${t('export.metric')} | ${t('export.value')} |`,
       `|--------|-------|`,
       `| ${t('export.storageType')} | ${domain.storageType} |`,
-      `| ${t('export.raidScheme')} | ${result.storage.raidScheme} |`,
-      `| ${t('export.rawCapacity')} | ${result.storage.rawCapacityTiB.toFixed(2)} TB |`,
-      `| ${t('export.usableAfterRaid')} | ${result.storage.usableAfterRaidTiB.toFixed(2)} TB |`,
-      `| ${t('export.lfsOverhead')} | ${result.storage.lfsOverheadTiB.toFixed(2)} TB |`,
-      `| ${t('export.metadataOverhead')} | ${result.storage.metadataOverheadTiB.toFixed(2)} TB |`,
-      `| **${t('export.safeUsableCapacity')}** | **${result.storage.safeUsableCapacityTiB.toFixed(2)} TB** |`,
+      ...(domain.storageType === 'fc' || domain.storageType === 'nfs' ? [
+        `| ${t('export.externalPoolCapacity')} | ${result.storage.rawCapacityTiB.toFixed(2)} TiB |`,
+      ] : [
+        `| ${t('export.raidScheme')} | ${result.storage.raidScheme} |`,
+        `| ${t('export.rawCapacity')} | ${result.storage.rawCapacityTiB.toFixed(2)} TiB |`,
+        `| ${t('export.usableAfterRaid')} | ${result.storage.usableAfterRaidTiB.toFixed(2)} TiB |`,
+        `| ${t('export.lfsOverhead')} | ${result.storage.lfsOverheadTiB.toFixed(2)} TiB |`,
+        `| ${t('export.metadataOverhead')} | ${result.storage.metadataOverheadTiB.toFixed(2)} TiB |`,
+        `| **${t('export.safeUsableCapacity')}** | **${result.storage.safeUsableCapacityTiB.toFixed(2)} TiB** |`,
+      ]),
     )
 
     // H3: Network Configuration (always present per domain)
@@ -178,7 +186,7 @@ export function generateMarkdownReport(): string {
         `| ${t('export.minInterSiteBw')} | ${s!.minBandwidthGbps} Gbps |`,
         `| ${t('export.witnessVcpu')} | ${s!.witnessCores} |`,
         `| ${t('export.witnessRam')} | ${s!.witnessRamGB} GB |`,
-        `| ${t('export.effectivePerSiteStorage')} | ${s!.effectivePerSiteStorageTiB.toFixed(2)} TB |`,
+        `| ${t('export.effectivePerSiteStorage')} | ${s!.effectivePerSiteStorageTiB.toFixed(2)} TiB |`,
         ``,
         `**${t('export.networkChecklist')}:**`,
         ``,
@@ -205,8 +213,8 @@ export function generateMarkdownReport(): string {
         `| ${t('export.storageNodeCount')} | ${v.storageNodeCount} |`,
         `| ${t('export.computeNodeCount')} | ${v.computeNodeCount} |`,
         `| ${t('export.raidScheme')} | ${v.raidScheme} |`,
-        `| ${t('export.rawCapacity')} | ${v.rawCapacityTiB.toFixed(2)} TB |`,
-        `| ${t('export.usableCapacity')} | ${v.usableCapacityTiB.toFixed(2)} TB |`,
+        `| ${t('export.rawCapacity')} | ${v.rawCapacityTiB.toFixed(2)} TiB |`,
+        `| ${t('export.usableCapacity')} | ${v.usableCapacityTiB.toFixed(2)} TiB |`,
       )
     }
   }
@@ -222,8 +230,8 @@ export function generateMarkdownReport(): string {
     `| ${t('export.totalRecommendedHosts')} | ${totals.totalRecommendedHosts} |`,
     `| ${t('export.managementHosts')} | ${store.managementArchitecture === 'dedicated' && calc.dedicatedMgmtHostCount !== null ? String(calc.dedicatedMgmtHostCount) : t('export.colocatedWld1')} |`,
     `| ${t('export.totalVmCount')} | ${totals.totalVmCount} |`,
-    `| ${t('export.totalRawStorage')} | ${totals.totalRawStorageTiB.toFixed(2)} TB |`,
-    `| ${t('export.totalEffectiveStorage')} | ${totals.totalEffectiveStorageTiB.toFixed(2)} TB |`,
+    `| ${t('export.totalRawStorage')} | ${totals.totalRawStorageTiB.toFixed(2)} TiB |`,
+    `| ${t('export.totalEffectiveStorage')} | ${totals.totalEffectiveStorageTiB.toFixed(2)} TiB |`,
   )
 
   // Validation Warnings (conditional: allValidationErrors.length > 0)

@@ -184,3 +184,44 @@ describe('calcCompute — GPU RAM overhead (GPU-01/02/03)', () => {
     expect(result.totalRamRequiredGB).toBe(baseline.totalRamRequiredGB)
   })
 })
+
+describe('calcCompute — effectiveHostCount', () => {
+  it('effectiveHostCount matches hostCount input (simple mode)', () => {
+    const result = calcCompute({
+      deploymentMode: 'simple',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostRamGB: 512,
+      hostCount: 4,
+      vmCount: 100,
+      avgVcpuPerVm: 4,
+      avgVramGbPerVm: 8,
+      cpuOvercommitRatio: 4,
+      ramOvercommitRatio: 1,
+      managementCores: 0,
+      managementRamGB: 0,
+    })
+    expect(result.effectiveHostCount).toBe(4)
+  })
+
+  it('effectiveHostCount matches hostCount input (stretch, passed as effective)', () => {
+    // In stretch mode, the store passes effectiveHostCount = preferred + secondary
+    // Here we simulate that by passing hostCount = 28
+    const result = calcCompute({
+      deploymentMode: 'stretch',
+      coresPerSocket: 48,
+      socketsPerHost: 2,
+      hostRamGB: 2048,
+      hostCount: 28,
+      vmCount: 100,
+      avgVcpuPerVm: 4,
+      avgVramGbPerVm: 8,
+      cpuOvercommitRatio: 4,
+      ramOvercommitRatio: 1,
+      managementCores: 0,
+      managementRamGB: 0,
+    })
+    expect(result.effectiveHostCount).toBe(28)
+    expect(result.availableCores).toBe(28 * 48 * 2)
+  })
+})

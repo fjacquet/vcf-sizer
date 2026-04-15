@@ -119,5 +119,6 @@ export function calcCompute(inputs: ComputeInputs): ComputeResult {
     minHostsForCpu,
     minHostsForRam,
     recommendedHostCount,
+    effectiveHostCount: hostCount,
   }
 }
