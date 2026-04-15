@@ -37,8 +37,8 @@ const t = (k: string) => k
 // ─── PPTX_MASTER_COLOR constant — PPTX-02 ────────────────────────────────────
 
 describe('PPTX_MASTER_COLOR constant — PPTX-02', () => {
-  it('equals 003087 (Broadcom blue, no # prefix)', () => {
-    expect(PPTX_MASTER_COLOR).toBe('003087')
+  it('equals 1A3B6E (primary brand blue, no # prefix)', () => {
+    expect(PPTX_MASTER_COLOR).toBe('1A3B6E')
   })
 })
 

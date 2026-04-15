@@ -1,7 +1,8 @@
 // PPTX export composable — generates VCF sizing report as .pptx browser download
+// Visual redesign: modern light theme with VMware teal accent, hero KPIs, native doughnut charts
 // Plain TypeScript — NO Vue lifecycle hooks (CALC-01/CALC-02 compliant)
 // pptxgenjs is loaded via dynamic import() to keep it out of the main bundle (PPTX-15)
-// Phase 22: All user-visible strings localized via i18n.global.t() (EXPORT-02)
+// All user-visible strings localized via i18n.global.t() (EXPORT-02)
 
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
@@ -30,34 +31,55 @@ interface TableCell {
     align?: 'left' | 'center' | 'right'
     valign?: 'top' | 'middle' | 'bottom'
     fontSize?: number
+    fontFace?: string
   }
 }
 type TableRow = TableCell[]
 
-// ─── Exported color constants ──────────────────────────────────────────────────
+// ─── Color palette ────────────────────────────────────────────────────────────
+// Modern light theme — VMware teal accent, dark blue primary
 // All hex values WITHOUT # prefix — pptxgenjs uses bare 6-digit hex (Pitfall 1)
 
-export const PPTX_MASTER_COLOR = '003087' // Broadcom blue
-export const PPTX_FOOTER_COLOR = '001F5B'
+const PALETTE = {
+  slideBg: 'F5F7FA',
+  primary: '1A3B6E',
+  accent: '00B0CA',
+  cardBg: 'FFFFFF',
+  altRowBg: 'EEF4FB',
+  textDark: '1A1A2E',
+  textMuted: '6B7280',
+  footerBg: '1A3B6E',
+  footerText: 'B0C4DE',
+  headerBg: '00B0CA',
+  headerText: 'FFFFFF',
+  warnBg: 'FEF3C7',
+  warnText: '92400E',
+  border: 'E5E7EB',
+  chartFree: 'E5E7EB',
+} as const
+
+// ─── Exported color constants ──────────────────────────────────────────────────
+
+export const PPTX_MASTER_COLOR = PALETTE.primary
+export const PPTX_FOOTER_COLOR = PALETTE.footerBg
 export const PPTX_WHITE = 'FFFFFF'
-export const PPTX_LIGHT_TEXT = 'CCCCCC'
-export const PPTX_HEADER_BG = 'E8E8E8'
-export const MASTER_NAME = 'VCF_MASTER'
+export const PPTX_LIGHT_TEXT = PALETTE.footerText
+export const PPTX_HEADER_BG = PALETTE.headerBg
+export const MASTER_NAME = 'VCF_MODERN'
+
+const FONT = 'Segoe UI'
 
 // ─── Internal helpers ──────────────────────────────────────────────────────────
 
-/** Create a header cell with grey background fill */
+/** Create a header cell with teal background */
 function hdrCell(text: string): TableCell {
   return {
     text,
-    options: { bold: true, fill: { color: PPTX_HEADER_BG }, color: '000000' },
+    options: { bold: true, fill: { color: PALETTE.headerBg }, color: PALETTE.headerText, fontFace: FONT, fontSize: 11 },
   }
 }
 
-/** Create a plain data cell */
-function cell(text: string, bold = false): TableCell {
-  return bold ? { text, options: { bold: true } } : { text }
-}
+// Note: individual data cells are built inline by modernTable() and warning row builders
 
 // ─── Data-mapping helpers (pure functions — testable without pptxgenjs) ────────
 // Phase 22: t parameter added as last arg for i18n localization (PITFALL-3/4)
@@ -307,10 +329,9 @@ export function buildValidationWarningsSlideData(
 
 /**
  * generatePptxReport — creates multi-domain VCF sizing report and triggers browser download.
+ * Modern visual design: light background, teal accent, hero KPI cards, native doughnut charts.
  * pptxgenjs is dynamically imported to avoid including it in the main bundle (PPTX-15).
  * A fresh PptxGenJS instance is created per call — no state carryover (Pitfall 6).
- * Phase 14: full multi-domain loop — one slide group per workload domain + aggregate totals slide.
- * Phase 22: All slide text uses i18n.global.t() for active locale (PITFALL-3).
  */
 export async function generatePptxReport(): Promise<void> {
   const store = useInputStore()
@@ -320,278 +341,350 @@ export async function generatePptxReport(): Promise<void> {
 
   // Dynamic import — Vite code-splits this automatically (PPTX-15)
   const PptxGenJS = (await import('pptxgenjs')).default
-  // Fresh instance per export — no state carryover (Pitfall 6)
   const pres = new PptxGenJS()
   pres.layout = 'LAYOUT_WIDE' // 13.33 x 7.5 inches
+  pres.theme = { headFontFace: FONT, bodyFontFace: FONT }
+  pres.author = 'VCF Sizer'
+  pres.company = 'VMware by Broadcom'
+  pres.title = t('export.title')
 
-  // MUST call defineSlideMaster() ONCE BEFORE any addSlide() (Pitfall 2)
-  // Brand footer remains hardcoded — NOT localized (brand string)
+  // ── Visual helpers (closures — need pres for ShapeType/ChartType) ───────────
+
+  /** Add standard slide frame: title + teal divider + optional section label */
+  function addSlideFrame(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    slide: any,
+    title: string,
+    sectionLabel?: string,
+  ) {
+    slide.addText(title, {
+      x: 0.4, y: 0.25, w: 12, h: 0.7,
+      fontSize: 22, bold: true, color: PALETTE.primary, fontFace: FONT,
+    })
+    slide.addShape(pres.ShapeType.line, {
+      x: 0.4, y: 0.95, w: 2.5, h: 0,
+      line: { color: PALETTE.accent, width: 3 },
+    })
+    if (sectionLabel) {
+      slide.addText(sectionLabel, {
+        x: 0.4, y: 1.05, w: 12, h: 0.35,
+        fontSize: 10, color: PALETTE.textMuted, fontFace: FONT,
+      })
+    }
+  }
+
+  /** Render a hero KPI card: white rounded rect with teal left accent, large value, label */
+  function addHeroKpi(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    slide: any,
+    x: number, y: number, w: number, h: number,
+    label: string, value: string, unit?: string,
+  ) {
+    slide.addShape(pres.ShapeType.roundRect, {
+      x, y, w, h,
+      rectRadius: 0.1,
+      fill: { color: PALETTE.cardBg },
+      shadow: { type: 'outer', color: '000000', blur: 6, offset: 2, angle: 270, opacity: 0.12 },
+    })
+    slide.addShape(pres.ShapeType.rect, {
+      x, y: y + 0.12, w: 0.06, h: h - 0.24,
+      fill: { color: PALETTE.accent },
+    })
+    const displayValue = unit ? `${value} ${unit}` : value
+    slide.addText(displayValue, {
+      x: x + 0.15, y: y + 0.05, w: w - 0.3, h: h * 0.55,
+      fontSize: 28, bold: true, color: PALETTE.textDark, fontFace: FONT,
+      align: 'center', valign: 'bottom',
+    })
+    slide.addText(label, {
+      x: x + 0.15, y: y + h * 0.55 + 0.05, w: w - 0.3, h: h * 0.35,
+      fontSize: 10, color: PALETTE.textMuted, fontFace: FONT,
+      align: 'center', valign: 'top',
+    })
+  }
+
+  /** Render a native doughnut chart with centered percentage overlay */
+  function addDoughnutChart(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    slide: any,
+    x: number, y: number, w: number, h: number,
+    pct: number, label: string,
+  ) {
+    const used = Math.min(Math.max(pct, 0), 100)
+    slide.addChart(pres.ChartType.doughnut, [{
+      name: label,
+      labels: ['Used', 'Free'],
+      values: [used, 100 - used],
+    }], {
+      x, y, w, h,
+      holeSize: 70,
+      showPercent: false,
+      showValue: false,
+      showTitle: false,
+      showLegend: false,
+      showSerName: false,
+      chartColors: [PALETTE.accent, PALETTE.chartFree],
+    })
+    slide.addText(`${pct.toFixed(1)}%`, {
+      x, y: y + h * 0.32, w, h: h * 0.36,
+      fontSize: 20, bold: true, color: PALETTE.textDark, fontFace: FONT,
+      align: 'center', valign: 'middle',
+    })
+    slide.addText(label, {
+      x, y: y + h - 0.05, w, h: 0.35,
+      fontSize: 10, color: PALETTE.textMuted, fontFace: FONT,
+      align: 'center',
+    })
+  }
+
+  /** Build a modern table with teal header row and alternating row fills */
+  function modernTable(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    slide: any,
+    headers: string[],
+    dataRows: string[][],
+    colW: number[],
+    opts?: { y?: number; lastRowBold?: boolean },
+  ) {
+    const startY = opts?.y ?? 1.5
+    const lastBold = opts?.lastRowBold ?? false
+    const rows: TableRow[] = [
+      headers.map(h => hdrCell(h)),
+      ...dataRows.map((row, idx): TableRow => {
+        const bg = idx % 2 === 0 ? PALETTE.cardBg : PALETTE.altRowBg
+        const isBold = lastBold && idx === dataRows.length - 1
+        return row.map(text => ({
+          text,
+          options: {
+            fill: { color: bg },
+            color: PALETTE.textDark,
+            bold: isBold,
+            fontFace: FONT,
+            fontSize: 11,
+          },
+        }))
+      }),
+    ]
+    slide.addTable(rows, {
+      x: 0.4, y: startY, w: 12.5, colW,
+      rowH: 0.38,
+      border: { type: 'solid', pt: 0.5, color: PALETTE.border },
+    })
+  }
+
+  // ── Slide master: light background with teal accent bar + brand footer ──────
   pres.defineSlideMaster({
     title: MASTER_NAME,
-    background: { color: PPTX_MASTER_COLOR },
+    background: { color: PALETTE.slideBg },
     objects: [
-      {
-        rect: {
-          x: 0,
-          y: 6.8,
-          w: '100%',
-          h: 0.7,
-          fill: { color: PPTX_FOOTER_COLOR },
-        },
-      },
+      { rect: { x: 0, y: 0, w: 0.12, h: '100%', fill: { color: PALETTE.accent } } },
+      { rect: { x: 0, y: 6.9, w: '100%', h: 0.6, fill: { color: PALETTE.footerBg } } },
       {
         text: {
-          text: 'VMware by Broadcom  |  VCF Sizer',
-          options: {
-            x: 0.3,
-            y: 6.9,
-            w: 9,
-            h: 0.4,
-            color: PPTX_LIGHT_TEXT,
-            fontSize: 9,
-          },
+          text: t('export.slideMasterFooter'),
+          options: { x: 0.3, y: 7.0, w: 9, h: 0.35, color: PALETTE.footerText, fontSize: 9, fontFace: FONT },
         },
       },
     ],
-    slideNumber: { x: 12.5, y: 6.9, color: PPTX_LIGHT_TEXT, fontSize: 9 },
+    slideNumber: { x: 12.5, y: 7.0, color: PALETTE.footerText, fontSize: 9 },
   })
 
-  // ── Global slide 1: Title ────────────────────────────────────────────────────
+  // ── Section: Overview ───────────────────────────────────────────────────────
+  pres.addSection({ title: 'Overview' })
+
+  // ── Title slide (custom — no master, split layout) ──────────────────────────
   const titleData = buildTitleSlideData(store.workloadDomains.length)
-  const s1 = pres.addSlide({ masterName: MASTER_NAME })
-  s1.addText(t('export.title'), {
-    x: 0.5,
-    y: 1.5,
-    w: 12,
-    h: 1.5,
-    fontSize: 36,
-    bold: true,
-    color: PPTX_WHITE,
+  const s1 = pres.addSlide({ sectionTitle: 'Overview' })
+  s1.background = { color: PALETTE.primary }
+  // White right panel
+  s1.addShape(pres.ShapeType.rect, {
+    x: 5.8, y: 0, w: 7.53, h: 7.5,
+    fill: { color: PALETTE.cardBg },
   })
-  s1.addText(`${t('export.domains')}: ${titleData.domainCount}`, {
-    x: 0.5,
-    y: 3.2,
-    w: 12,
-    h: 0.8,
-    fontSize: 20,
-    color: PPTX_LIGHT_TEXT,
+  // Teal accent divider
+  s1.addShape(pres.ShapeType.rect, {
+    x: 5.8, y: 0, w: 0.06, h: 7.5,
+    fill: { color: PALETTE.accent },
+  })
+  // Title on left panel
+  s1.addText(t('export.title'), {
+    x: 0.5, y: 1.8, w: 5.0, h: 1.5,
+    fontSize: 32, bold: true, color: PPTX_WHITE, fontFace: FONT,
+  })
+  s1.addText(`${titleData.domainCount} ${t('export.domains')}`, {
+    x: 0.5, y: 3.4, w: 5.0, h: 0.6,
+    fontSize: 18, color: PALETTE.footerText, fontFace: FONT,
+  })
+  // Date + decorative accent on right panel
+  s1.addShape(pres.ShapeType.line, {
+    x: 6.3, y: 3.0, w: 3, h: 0,
+    line: { color: PALETTE.accent, width: 3 },
   })
   s1.addText(`${t('export.generated')}: ${titleData.date}`, {
-    x: 0.5,
-    y: 4.0,
-    w: 12,
-    h: 0.6,
-    fontSize: 14,
-    color: PPTX_LIGHT_TEXT,
+    x: 6.3, y: 3.2, w: 6, h: 0.5,
+    fontSize: 14, color: PALETTE.textMuted, fontFace: FONT,
+  })
+  // Footer bar (title slide has its own)
+  s1.addShape(pres.ShapeType.rect, {
+    x: 0, y: 6.9, w: '100%', h: 0.6,
+    fill: { color: PALETTE.footerBg },
+  })
+  s1.addText(t('export.slideMasterFooter'), {
+    x: 0.3, y: 7.0, w: 9, h: 0.35,
+    color: PALETTE.footerText, fontSize: 9, fontFace: FONT,
   })
 
-  // ── Global slide 2: Management Domain Overhead ───────────────────────────────
+  // ── Management Domain Overhead ──────────────────────────────────────────────
   const mgmtData = buildMgmtOverheadData(calc.management, t)
-  const s2 = pres.addSlide({ masterName: MASTER_NAME })
-  s2.addText(t('export.mgmtOverhead'), {
-    x: 0.5,
-    y: 0.3,
-    w: 12,
-    h: 0.8,
-    fontSize: 24,
-    bold: true,
-    color: PPTX_WHITE,
-  })
-  const mgmtRows: TableRow[] = [
-    [hdrCell(t('export.component')), hdrCell(t('export.vcpu')), hdrCell(t('export.ramGb'))],
-    ...mgmtData.map((r): TableRow => [
-      cell(r.label, r.label === t('export.total')),
-      cell(String(r.cores), r.label === t('export.total')),
-      cell(String(r.ramGB), r.label === t('export.total')),
-    ]),
-  ]
-  s2.addTable(mgmtRows, {
-    x: 0.5,
-    y: 1.3,
-    w: 12,
-    colW: [5, 3.5, 3.5],
-    rowH: 0.45,
-    fontSize: 13,
-    color: 'F0F0F0',
-    border: { type: 'solid', pt: 1, color: '444444' },
-  })
+  const s2 = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Overview' })
+  addSlideFrame(s2, t('export.mgmtOverhead'))
+  modernTable(
+    s2,
+    [t('export.component'), t('export.vcpu'), t('export.ramGb')],
+    mgmtData.map(r => [r.label, String(r.cores), String(r.ramGB)]),
+    [5, 3.75, 3.75],
+    { lastRowBold: true },
+  )
 
   // ── Per-domain slide groups ──────────────────────────────────────────────────
   for (const domain of store.workloadDomains) {
     const result = calc.domainResults.find(r => r.id === domain.id)!
+    pres.addSection({ title: domain.name })
 
     // Domain: Configuration Summary
     const configData = buildConfigSummaryData(domain, store.managementArchitecture, result.compute.effectiveHostCount, t)
-    const sCfg = pres.addSlide({ masterName: MASTER_NAME })
-    sCfg.addText(`${t('export.domain')}: ${domain.name}`, {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
-    })
-    const configRows: TableRow[] = [
-      [hdrCell(t('export.parameter')), hdrCell(t('export.value'))],
-      ...configData.map((r): TableRow => [cell(r.label), cell(r.value)]),
-    ]
-    sCfg.addTable(configRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
-      border: { type: 'solid', pt: 1, color: '444444' },
-    })
+    const sCfg = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+    addSlideFrame(sCfg, `${t('export.domain')}: ${domain.name}`, t('export.hostConfig'))
+    modernTable(
+      sCfg,
+      [t('export.parameter'), t('export.value')],
+      configData.map(r => [r.label, r.value]),
+      [6.25, 6.25],
+    )
 
     // Domain: Workload Profile
     const workloadData = buildWorkloadSlideData(domain, t)
-    const sWkld = pres.addSlide({ masterName: MASTER_NAME })
-    sWkld.addText(`${domain.name} — ${t('export.workloadProfile')}`, {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
-    })
-    const wkldRows: TableRow[] = [
-      [hdrCell(t('export.parameter')), hdrCell(t('export.value'))],
-      ...workloadData.map((r): TableRow => [cell(r.label), cell(r.value)]),
-    ]
-    sWkld.addTable(wkldRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
-      border: { type: 'solid', pt: 1, color: '444444' },
-    })
+    const sWkld = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+    addSlideFrame(sWkld, `${domain.name} — ${t('export.workloadProfile')}`)
+    modernTable(
+      sWkld,
+      [t('export.parameter'), t('export.value')],
+      workloadData.map(r => [r.label, r.value]),
+      [6.25, 6.25],
+    )
 
-    // Domain: Compute Results
+    // Domain: Compute Results — hero KPIs + doughnut charts
     const computeData = buildComputeResultsData(result.compute)
-    const sComp = pres.addSlide({ masterName: MASTER_NAME })
-    sComp.addText(`${domain.name} — ${t('export.computeSizing')}`, {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
-    })
-    const compRows: TableRow[] = [
-      [hdrCell(t('export.metric')), hdrCell(t('export.value'))],
-      [cell(t('export.recommendedHostCount')), cell(String(computeData.recommendedHostCount), true)],
-      [cell(t('export.minHostsCpu')), cell(String(computeData.minHostsForCpu))],
-      [cell(t('export.minHostsRam')), cell(String(computeData.minHostsForRam))],
-      [cell(t('export.availableVcpu')), cell(String(computeData.availableCores))],
-      [cell(t('export.availableRamGb')), cell(String(Math.round(computeData.availableRamGB)))],
-      [cell(t('export.cpuUtilization')), cell(`${computeData.coreUtilizationPct.toFixed(1)}%`)],
-      [cell(t('export.ramUtilization')), cell(`${computeData.ramUtilizationPct.toFixed(1)}%`)],
-    ]
-    sComp.addTable(compRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
-      border: { type: 'solid', pt: 1, color: '444444' },
+    const sComp = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+    addSlideFrame(sComp, `${domain.name} — ${t('export.computeSizing')}`)
+
+    // 3 hero KPI cards across the top
+    addHeroKpi(sComp, 0.4, 1.4, 3.9, 1.3, t('export.recommendedHostCount'), String(computeData.recommendedHostCount), 'hosts')
+    addHeroKpi(sComp, 4.7, 1.4, 3.9, 1.3, t('export.minHostsCpu'), String(computeData.minHostsForCpu))
+    addHeroKpi(sComp, 9.0, 1.4, 3.9, 1.3, t('export.minHostsRam'), String(computeData.minHostsForRam))
+
+    // 2 native doughnut charts
+    addDoughnutChart(sComp, 1.5, 3.1, 3.5, 3.2, computeData.coreUtilizationPct, t('export.cpuUtilization'))
+    addDoughnutChart(sComp, 8.3, 3.1, 3.5, 3.2, computeData.ramUtilizationPct, t('export.ramUtilization'))
+
+    // Compact detail column between doughnuts
+    sComp.addText([
+      { text: `${t('export.availableVcpu')}: `, options: { fontSize: 10, color: PALETTE.textMuted } },
+      { text: String(computeData.availableCores), options: { fontSize: 10, bold: true, color: PALETTE.textDark } },
+      { text: '\n', options: { fontSize: 10, breakLine: true } },
+      { text: `${t('export.availableRamGb')}: `, options: { fontSize: 10, color: PALETTE.textMuted } },
+      { text: `${Math.round(computeData.availableRamGB)} GB`, options: { fontSize: 10, bold: true, color: PALETTE.textDark } },
+    ], {
+      x: 5.4, y: 3.8, w: 2.7, h: 1.5,
+      fontFace: FONT, valign: 'middle', align: 'center',
     })
 
     // Domain: Storage Results
     const storageData = buildStorageResultsData(result.storage)
-    const sStor = pres.addSlide({ masterName: MASTER_NAME })
-    sStor.addText(`${domain.name} — ${t('export.storageSizing')}`, {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
-    })
+    const sStor = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+    addSlideFrame(sStor, `${domain.name} — ${t('export.storageSizing')}`)
     const isExternalStorage = domain.storageType === 'fc' || domain.storageType === 'nfs'
-    const storRows: TableRow[] = [
-      [hdrCell(t('export.metric')), hdrCell(t('export.value'))],
-      ...(isExternalStorage ? [
-        [cell(t('export.externalPoolCapacity')), cell(`${storageData.rawCapacityTiB.toFixed(2)} TiB`)] as TableRow,
-      ] : [
-        [cell(t('export.raidScheme')), cell(storageData.raidScheme)] as TableRow,
-        [cell(t('export.rawCapacity')), cell(`${storageData.rawCapacityTiB.toFixed(2)} TiB`)] as TableRow,
-        [cell(t('export.usableAfterRaid')), cell(`${storageData.usableAfterRaidTiB.toFixed(2)} TiB`)] as TableRow,
-        [cell(t('export.lfsOverhead')), cell(`${storageData.lfsOverheadTiB.toFixed(2)} TiB`)] as TableRow,
-        [cell(t('export.metadataOverhead')), cell(`${storageData.metadataOverheadTiB.toFixed(2)} TiB`)] as TableRow,
-        [
-          cell(t('export.safeUsableCapacity'), true),
-          cell(`${storageData.safeUsableCapacityTiB.toFixed(2)} TiB`, true),
-        ] as TableRow,
-      ]),
-    ]
-    sStor.addTable(storRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
-      border: { type: 'solid', pt: 1, color: '444444' },
+    const storDataRows = isExternalStorage
+      ? [[t('export.externalPoolCapacity'), `${storageData.rawCapacityTiB.toFixed(2)} TiB`]]
+      : [
+          [t('export.raidScheme'), storageData.raidScheme],
+          [t('export.rawCapacity'), `${storageData.rawCapacityTiB.toFixed(2)} TiB`],
+          [t('export.usableAfterRaid'), `${storageData.usableAfterRaidTiB.toFixed(2)} TiB`],
+          [t('export.lfsOverhead'), `${storageData.lfsOverheadTiB.toFixed(2)} TiB`],
+          [t('export.metadataOverhead'), `${storageData.metadataOverheadTiB.toFixed(2)} TiB`],
+          [t('export.safeUsableCapacity'), `${storageData.safeUsableCapacityTiB.toFixed(2)} TiB`],
+        ]
+    modernTable(sStor, [t('export.metric'), t('export.value')], storDataRows, [6.25, 6.25], {
+      lastRowBold: !isExternalStorage,
     })
 
-    // Domain: Conditional Slide — AI/GPU Workloads (PPTX-10)
+    // Domain: Conditional — AI/GPU Workloads (PPTX-10)
     if (domain.gpuVmCount > 0) {
       const gpuData = buildAiGpuSlideData(domain, t)
-      const sGpu = pres.addSlide({ masterName: MASTER_NAME })
-      sGpu.addText(`${domain.name} — ${t('export.aiGpu')}`, {
-        x: 0.5, y: 0.3, w: 12, h: 0.8,
-        fontSize: 24, bold: true, color: PPTX_WHITE,
-      })
-      const gpuRows: TableRow[] = [
-        [hdrCell(t('export.parameter')), hdrCell(t('export.value'))],
-        ...gpuData.map((r): TableRow => [cell(r.label), cell(r.value)]),
-      ]
-      sGpu.addTable(gpuRows, {
-        x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-        fontSize: 13, color: 'F0F0F0',
-        border: { type: 'solid', pt: 1, color: '444444' },
-      })
+      const sGpu = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+      addSlideFrame(sGpu, `${domain.name} — ${t('export.aiGpu')}`)
+      modernTable(
+        sGpu,
+        [t('export.parameter'), t('export.value')],
+        gpuData.map(r => [r.label, r.value]),
+        [6.25, 6.25],
+      )
     }
 
-    // Domain: Conditional Slide — NVMe Memory Tiering (PPTX-11)
+    // Domain: Conditional — NVMe Memory Tiering (PPTX-11)
     if (domain.nvmeTieringEnabled) {
       const nvmeData = buildNvmeTieringSlideData(domain, t)
-      const sNvme = pres.addSlide({ masterName: MASTER_NAME })
-      sNvme.addText(`${domain.name} — ${t('export.nvmeTiering')}`, {
-        x: 0.5, y: 0.3, w: 12, h: 0.8,
-        fontSize: 24, bold: true, color: PPTX_WHITE,
-      })
-      const nvmeRows: TableRow[] = [
-        [hdrCell(t('export.parameter')), hdrCell(t('export.value'))],
-        ...nvmeData.map((r): TableRow => [cell(r.label), cell(r.value)]),
-      ]
-      sNvme.addTable(nvmeRows, {
-        x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-        fontSize: 13, color: 'F0F0F0',
-        border: { type: 'solid', pt: 1, color: '444444' },
-      })
+      const sNvme = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+      addSlideFrame(sNvme, `${domain.name} — ${t('export.nvmeTiering')}`)
+      modernTable(
+        sNvme,
+        [t('export.parameter'), t('export.value')],
+        nvmeData.map(r => [r.label, r.value]),
+        [6.25, 6.25],
+      )
     }
 
-    // Domain: Conditional Slide — Stretch Cluster Topology (PPTX-12)
+    // Domain: Conditional — Stretch Cluster Topology (PPTX-12)
     if (domain.deploymentMode === 'stretch') {
       const stretchData = buildStretchTopologySlideData(domain, result.stretch!, t)
-      const sStretch = pres.addSlide({ masterName: MASTER_NAME })
-      sStretch.addText(`${domain.name} — ${t('export.stretchTopology')}`, {
-        x: 0.5, y: 0.3, w: 12, h: 0.8,
-        fontSize: 24, bold: true, color: PPTX_WHITE,
-      })
-      const topoRows: TableRow[] = [
-        [hdrCell(t('export.parameter')), hdrCell(t('export.value'))],
-        ...stretchData.topology.map((r): TableRow => [cell(r.label), cell(r.value)]),
-      ]
-      sStretch.addTable(topoRows, {
-        x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.35,
-        fontSize: 11, color: 'F0F0F0',
-        border: { type: 'solid', pt: 1, color: '444444' },
-      })
+      const sStretch = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+      addSlideFrame(sStretch, `${domain.name} — ${t('export.stretchTopology')}`)
+      modernTable(
+        sStretch,
+        [t('export.parameter'), t('export.value')],
+        stretchData.topology.map(r => [r.label, r.value]),
+        [6.25, 6.25],
+        { y: 1.4 },
+      )
       sStretch.addText(t('export.networkChecklist'), {
-        x: 0.5, y: 4.3, w: 12, h: 0.5,
-        fontSize: 16, bold: true, color: PPTX_WHITE,
+        x: 0.4, y: 4.2, w: 12, h: 0.45,
+        fontSize: 14, bold: true, color: PALETTE.primary, fontFace: FONT,
       })
-      const checkText = stretchData.checklist.map((c) => `  \u2022  ${c}`).join('\n')
+      sStretch.addShape(pres.ShapeType.line, {
+        x: 0.4, y: 4.65, w: 1.8, h: 0,
+        line: { color: PALETTE.accent, width: 2 },
+      })
+      const checkText = stretchData.checklist.map(c => `  \u2022  ${c}`).join('\n')
       sStretch.addText(checkText, {
-        x: 0.5, y: 4.9, w: 12, h: 1.8,
-        fontSize: 11, color: PPTX_WHITE, valign: 'top', lineSpacingMultiple: 1.3,
+        x: 0.4, y: 4.8, w: 12, h: 1.8,
+        fontSize: 11, color: PALETTE.textDark, fontFace: FONT, valign: 'top', lineSpacingMultiple: 1.4,
       })
     }
 
-    // Domain: Conditional Slide — vSAN Max Cluster (PPTX-13)
+    // Domain: Conditional — vSAN Max Cluster (PPTX-13)
     if (domain.storageType === 'vsan-max' && result.vsanMax !== null) {
       const vmaxData = buildVsanMaxSlideData(domain, result.vsanMax, t)
-      const sVmax = pres.addSlide({ masterName: MASTER_NAME })
-      sVmax.addText(`${domain.name} — ${t('export.vsanMaxCluster')}`, {
-        x: 0.5, y: 0.3, w: 12, h: 0.8,
-        fontSize: 24, bold: true, color: PPTX_WHITE,
-      })
-      const vmaxRows: TableRow[] = [
-        [hdrCell(t('export.parameter')), hdrCell(t('export.value'))],
-        ...vmaxData.map((r): TableRow => [cell(r.label), cell(r.value)]),
-      ]
-      sVmax.addTable(vmaxRows, {
-        x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-        fontSize: 13, color: 'F0F0F0',
-        border: { type: 'solid', pt: 1, color: '444444' },
-      })
+      const sVmax = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+      addSlideFrame(sVmax, `${domain.name} — ${t('export.vsanMaxCluster')}`)
+      modernTable(
+        sVmax,
+        [t('export.parameter'), t('export.value')],
+        vmaxData.map(r => [r.label, r.value]),
+        [6.25, 6.25],
+      )
     }
-    // Domain: Conditional Slide — Charts (EXPORT-01)
+
+    // Domain: Conditional — Charts (EXPORT-01, PNG images from UI)
     const domainCharts = uiStore.chartImages[domain.id]
     const chartTypes: Array<{ key: 'cores' | 'ram' | 'storage'; labelKey: string }> = [
       { key: 'cores', labelKey: 'export.cpuUtilization' },
@@ -601,66 +694,84 @@ export async function generatePptxReport(): Promise<void> {
     const availableCharts = chartTypes.filter(ct => domainCharts?.[ct.key])
 
     if (availableCharts.length > 0) {
-      const sCharts = pres.addSlide({ masterName: MASTER_NAME })
-      sCharts.addText(`${domain.name} — ${t('export.charts')}`, {
-        x: 0.5, y: 0.3, w: 12, h: 0.8,
-        fontSize: 24, bold: true, color: PPTX_WHITE,
-      })
+      const sCharts = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
+      addSlideFrame(sCharts, `${domain.name} — ${t('export.charts')}`)
 
-      // Layout: up to 3 charts side by side on LAYOUT_WIDE (13.33 x 7.5)
       const positions = [
-        { x: 0.3, y: 1.5, w: 4.0, h: 3.0 },
-        { x: 4.5, y: 1.5, w: 4.0, h: 3.0 },
-        { x: 8.7, y: 1.5, w: 4.0, h: 3.0 },
+        { x: 0.4, y: 1.5, w: 3.9, h: 3.5 },
+        { x: 4.6, y: 1.5, w: 3.9, h: 3.5 },
+        { x: 8.8, y: 1.5, w: 3.9, h: 3.5 },
       ]
-
       availableCharts.forEach((ct, idx) => {
         const pos = positions[idx]
+        // White card backdrop for chart image
+        sCharts.addShape(pres.ShapeType.roundRect, {
+          x: pos.x - 0.1, y: pos.y - 0.1, w: pos.w + 0.2, h: pos.h + 0.55,
+          rectRadius: 0.08,
+          fill: { color: PALETTE.cardBg },
+          shadow: { type: 'outer', color: '000000', blur: 4, offset: 1, angle: 270, opacity: 0.08 },
+        })
         sCharts.addImage({
-          data: domainCharts![ct.key],  // full data:image/png;base64,... (PITFALL-7)
+          data: domainCharts![ct.key], // full data:image/png;base64,... (PITFALL-7)
           x: pos.x, y: pos.y, w: pos.w, h: pos.h,
           altText: `${domain.name} ${ct.key} chart`,
+        })
+        sCharts.addText(t(ct.labelKey), {
+          x: pos.x, y: pos.y + pos.h + 0.05, w: pos.w, h: 0.3,
+          fontSize: 10, color: PALETTE.textMuted, fontFace: FONT, align: 'center',
         })
       })
     }
   } // end per-domain loop
 
-  // ── After domain loop: Aggregate Totals slide ────────────────────────────────
-  const aggData = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, store.managementDomain.storageType ?? 'vsan-esa', t)
-  const sAgg = pres.addSlide({ masterName: MASTER_NAME })
-  sAgg.addText(t('export.aggregateTotals'), {
-    x: 0.5, y: 0.3, w: 12, h: 0.8,
-    fontSize: 24, bold: true, color: PPTX_WHITE,
-  })
-  const aggRows: TableRow[] = [
-    [hdrCell(t('export.metric')), hdrCell(t('export.value'))],
-    ...aggData.map((r): TableRow => [cell(r.label), cell(r.value)]),
-  ]
-  sAgg.addTable(aggRows, {
-    x: 0.5, y: 1.3, w: 12, colW: [6, 6], rowH: 0.45,
-    fontSize: 13, color: 'F0F0F0',
-    border: { type: 'solid', pt: 1, color: '444444' },
-  })
+  // ── Section: Summary ────────────────────────────────────────────────────────
+  pres.addSection({ title: 'Summary' })
 
-  // ── Conditional Slide: Validation Warnings (PPTX-14) — always last ───────────
+  // ── Aggregate Totals slide — hero KPIs + detail table ───────────────────────
+  const aggData = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, store.managementDomain.storageType ?? 'vsan-esa', t)
+  const sAgg = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
+  addSlideFrame(sAgg, t('export.aggregateTotals'))
+
+  // 3 hero KPI cards
+  addHeroKpi(sAgg, 0.4, 1.4, 3.9, 1.3, t('export.totalRecommendedHosts'), String(calc.aggregateTotals.totalRecommendedHosts), 'hosts')
+  addHeroKpi(sAgg, 4.7, 1.4, 3.9, 1.3, t('export.totalVmCount'), String(calc.aggregateTotals.totalVmCount), 'VMs')
+  addHeroKpi(sAgg, 9.0, 1.4, 3.9, 1.3, t('export.totalEffectiveStorage'), `${calc.aggregateTotals.totalEffectiveStorageTiB.toFixed(1)}`, 'TiB')
+
+  // Detail table below KPIs
+  modernTable(
+    sAgg,
+    [t('export.metric'), t('export.value')],
+    aggData.map(r => [r.label, r.value]),
+    [6.25, 6.25],
+    { y: 3.1 },
+  )
+
+  // ── Conditional: Validation Warnings (PPTX-14) — always last ────────────────
   if (calc.aggregateTotals.allValidationErrors.length > 0) {
     const warningsData = buildValidationWarningsSlideData(calc)
-    const sWarn = pres.addSlide({ masterName: MASTER_NAME })
-    sWarn.addText(t('export.validationWarnings'), {
-      x: 0.5, y: 0.3, w: 12, h: 0.8,
-      fontSize: 24, bold: true, color: PPTX_WHITE,
-    })
+    const sWarn = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
+    addSlideFrame(sWarn, t('export.validationWarnings'))
+
     const warnRows: TableRow[] = [
       [hdrCell(t('export.severity')), hdrCell(t('export.message'))],
-      ...warningsData.map((w): TableRow => [
-        cell(`[${w.severity.toUpperCase()}]`),
-        cell(t(w.messageKey)),
-      ]),
+      ...warningsData.map((w, idx): TableRow => {
+        const bg = idx % 2 === 0 ? PALETTE.warnBg : PALETTE.cardBg
+        return [
+          {
+            text: `[${w.severity.toUpperCase()}]`,
+            options: { fill: { color: bg }, color: PALETTE.warnText, bold: true, fontFace: FONT, fontSize: 11 },
+          },
+          {
+            text: t(w.messageKey),
+            options: { fill: { color: bg }, color: PALETTE.textDark, fontFace: FONT, fontSize: 11 },
+          },
+        ]
+      }),
     ]
     sWarn.addTable(warnRows, {
-      x: 0.5, y: 1.3, w: 12, colW: [3, 9], rowH: 0.45,
-      fontSize: 13, color: 'F0F0F0',
-      border: { type: 'solid', pt: 1, color: '444444' },
+      x: 0.4, y: 1.5, w: 12.5, colW: [2.5, 10],
+      rowH: 0.4,
+      border: { type: 'solid', pt: 0.5, color: PALETTE.border },
     })
   }
 
