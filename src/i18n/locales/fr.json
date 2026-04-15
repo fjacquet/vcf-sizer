@@ -297,6 +297,8 @@
     "raidScheme": "Schema RAID",
     "rawCapacity": "Capacite brute",
     "externalPoolCapacity": "Capacite du pool externe",
+    "workloadStorageRequired": "Stockage requis par les charges",
+    "totalWorkloadStorageRequired": "Stockage total requis par les charges",
     "usableAfterRaid": "Utilisable apres RAID",
     "lfsOverhead": "Surcharge LFS",
     "metadataOverhead": "Surcharge metadonnees",

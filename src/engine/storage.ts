@@ -93,6 +93,8 @@ export function calcStorage(inputs: StorageInputs): StorageResult {
     dedupEnabled,
     dedupRatio,
     deploymentMode = 'simple',
+    vmCount = 0,
+    avgStorageGbPerVm = 0,
   } = inputs
 
   const rawCapacityTiB = new Decimal(hostCount).times(hostStorageTiB).toNumber()
@@ -102,6 +104,11 @@ export function calcStorage(inputs: StorageInputs): StorageResult {
     case 'nfs': {
       // FC and NFS: use pool value if provided, otherwise fallback to hostCount * hostStorageTiB
       const poolTiB = externalStorageUsableTiB ?? rawCapacityTiB
+      // Workload storage = total VM storage demand (same formula as stretch.ts:25-28)
+      const workloadStorageRequiredTiB = new Decimal(vmCount)
+        .times(avgStorageGbPerVm)
+        .dividedBy(1024)
+        .toNumber()
       return {
         rawCapacityTiB: poolTiB,
         raidMultiplier: 1,
@@ -113,6 +120,7 @@ export function calcStorage(inputs: StorageInputs): StorageResult {
         safeUsableCapacityTiB: poolTiB,
         raidScheme: 'Pass-through',
         minHostsRequired: 0,
+        workloadStorageRequiredTiB,
       }
     }
 
@@ -130,6 +138,7 @@ export function calcStorage(inputs: StorageInputs): StorageResult {
         safeUsableCapacityTiB: rawCapacityTiB,
         raidScheme: 'Pass-through (vSAN Max compute)',
         minHostsRequired: 0,
+        workloadStorageRequiredTiB: 0,
       }
 
     case 'vsan-esa': {
@@ -188,6 +197,7 @@ export function calcStorage(inputs: StorageInputs): StorageResult {
         safeUsableCapacityTiB,
         raidScheme,
         minHostsRequired,
+        workloadStorageRequiredTiB: 0,
       }
     }
 

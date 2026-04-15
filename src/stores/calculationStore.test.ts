@@ -102,6 +102,23 @@ describe('calculationStore — aggregateTotals (DOM-06)', () => {
     expect(calc.aggregateTotals.totalEffectiveStorageTiB).toBeGreaterThan(0)
   })
 
+  it('totalWorkloadStorageRequiredTiB is 0 for default vsan-esa domain', () => {
+    const calc = useCalculationStore()
+    expect(calc.aggregateTotals.totalWorkloadStorageRequiredTiB).toBe(0)
+  })
+
+  it('totalWorkloadStorageRequiredTiB is computed for FC domain', () => {
+    const input = useInputStore()
+    input.updateDomain(input.workloadDomains[0].id, {
+      storageType: 'fc',
+      vmCount: 1000,
+      avgStorageGbPerVm: 970,
+    })
+    const calc = useCalculationStore()
+    // 1000 × 970 / 1024 = 947.265625
+    expect(calc.aggregateTotals.totalWorkloadStorageRequiredTiB).toBeCloseTo(947.265625, 2)
+  })
+
   it('stretch domain: totalRecommendedHosts uses effectiveHostCount (preferred + secondary)', () => {
     const input = useInputStore()
     const calc = useCalculationStore()

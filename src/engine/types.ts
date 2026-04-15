@@ -100,6 +100,8 @@ export interface StorageInputs {
   dedupEnabled: boolean
   dedupRatio: number
   deploymentMode?: DeploymentMode  // default 'simple'; 'stretch' halves effective usable (PFTT=1)
+  vmCount?: number                 // FC/NFS: used to compute workload storage required
+  avgStorageGbPerVm?: number       // FC/NFS: used to compute workload storage required
 }
 
 export interface StorageResult {
@@ -113,6 +115,7 @@ export interface StorageResult {
   safeUsableCapacityTiB: number
   raidScheme: string
   minHostsRequired: number
+  workloadStorageRequiredTiB: number  // vmCount × avgStorageGbPerVm / 1024; 0 for vSAN types
 }
 
 export interface ValidationInputs {
@@ -202,5 +205,6 @@ export interface AggregateTotals {
   totalVmCount: number
   totalRawStorageTiB: number
   totalEffectiveStorageTiB: number
+  totalWorkloadStorageRequiredTiB: number  // sum of FC/NFS workload needs (0 when all vSAN)
   allValidationErrors: ValidationWarning[]
 }

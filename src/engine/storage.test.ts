@@ -47,6 +47,8 @@ describe('calcStorage — vSAN ESA overhead stack (STOR-03)', () => {
     expect(result.raidMultiplier).toBe(1.5)
     // safeUsable = 7.3728 × 0.70 = 5.16096
     expect(result.safeUsableCapacityTiB).toBeCloseTo(5.16, 2)
+    // vSAN ESA: workload storage not applicable (capacity from physical drives)
+    expect(result.workloadStorageRequiredTiB).toBe(0)
   })
 
   it('vSAN ESA with 6 hosts, RAID-5 FTT=1 — uses 4+1 scheme (1.25x)', () => {
@@ -80,6 +82,40 @@ describe('calcStorage — FC pass-through (STOR-07)', () => {
     expect(result.lfsOverheadTiB).toBe(0)
     expect(result.metadataOverheadTiB).toBe(0)
     expect(result.safeUsableCapacityTiB).toBe(40)
+    expect(result.workloadStorageRequiredTiB).toBe(0)
+  })
+
+  it('FC with vmCount and avgStorageGbPerVm computes workloadStorageRequiredTiB', () => {
+    const result = calcStorage({
+      storageType: 'fc',
+      hostCount: 28,
+      hostStorageTiB: 3.84,
+      externalStorageUsableTiB: 100,
+      fttLevel: 1,
+      raidType: 'raid1',
+      dedupEnabled: false,
+      dedupRatio: 2,
+      vmCount: 1000,
+      avgStorageGbPerVm: 970,
+    })
+    // 1000 × 970 / 1024 = 947.265625
+    expect(result.workloadStorageRequiredTiB).toBeCloseTo(947.265625, 4)
+    expect(result.rawCapacityTiB).toBe(100)
+  })
+
+  it('FC with vmCount=0 returns workloadStorageRequiredTiB=0', () => {
+    const result = calcStorage({
+      storageType: 'fc',
+      hostCount: 4,
+      hostStorageTiB: 10,
+      fttLevel: 1,
+      raidType: 'raid1',
+      dedupEnabled: false,
+      dedupRatio: 2,
+      vmCount: 0,
+      avgStorageGbPerVm: 970,
+    })
+    expect(result.workloadStorageRequiredTiB).toBe(0)
   })
 })
 
@@ -99,6 +135,25 @@ describe('calcStorage — NFS pass-through (STOR-07)', () => {
     expect(result.lfsOverheadTiB).toBe(0)
     expect(result.metadataOverheadTiB).toBe(0)
     expect(result.safeUsableCapacityTiB).toBe(40)
+    expect(result.workloadStorageRequiredTiB).toBe(0)
+  })
+
+  it('NFS with vmCount and avgStorageGbPerVm computes workloadStorageRequiredTiB', () => {
+    const result = calcStorage({
+      storageType: 'nfs',
+      hostCount: 4,
+      hostStorageTiB: 10,
+      externalStorageUsableTiB: 150,
+      fttLevel: 1,
+      raidType: 'raid1',
+      dedupEnabled: false,
+      dedupRatio: 2,
+      vmCount: 100,
+      avgStorageGbPerVm: 100,
+    })
+    // 100 × 100 / 1024 = 9.765625
+    expect(result.workloadStorageRequiredTiB).toBeCloseTo(9.765625, 4)
+    expect(result.rawCapacityTiB).toBe(150)
   })
 })
 

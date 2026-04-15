@@ -55,3 +55,10 @@
 **Context:** Swiss French, German, and Italian use distinct number formatting (e.g., apostrophe as thousands separator) that differs from their parent locales (fr, de, it).
 **Decision:** Define explicit `numberFormats` for `fr-CH`, `de-CH`, and `it-CH` in the i18n configuration. Do not inherit from parent locales. Swiss locales are lazy-loaded on demand via `uiStore.setLocale`.
 **Consequences:** Numbers display correctly for Swiss users. Each Swiss locale file is self-contained. Adding a new locale requires explicit number format definition.
+
+## ADR-009: Workload Storage Required for FC/NFS Domains
+
+**Status:** Accepted
+**Context:** FC (Fibre Channel) and NFS storage domains use external SAN/NAS — the storage engine passes through `externalStorageUsableTiB` (the pool capacity the admin provisions). However, the report never showed how much storage the VMs actually need (`vmCount × avgStorageGbPerVm / 1024`). For 1000 VMs × 970 GB, the workload requires ~947 TiB but the report only showed the 100 TiB default pool — a critical sizing gap. Additionally, "Storage per host" appeared for FC/NFS even though hosts don't store VM data locally.
+**Decision:** Add `workloadStorageRequiredTiB` to `StorageResult`. For FC/NFS, compute it as `vmCount × avgStorageGbPerVm / 1024` (same formula already in `calcStretch()`). For vSAN types, set to 0 (capacity derives from physical drives). Hide `storagePerHost` in exports for FC/NFS. Show both workload requirement and pool capacity in FC/NFS storage sections. Aggregate totals include `totalWorkloadStorageRequiredTiB`.
+**Consequences:** SAN/NAS admins see the actual workload demand alongside provisioned pool capacity, enabling right-sizing. The formula is standard VMware capacity planning math, already validated in the stretch engine. New optional fields on `StorageInputs` (`vmCount`, `avgStorageGbPerVm`) are backward-compatible — existing callers unaffected.

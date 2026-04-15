@@ -297,6 +297,8 @@
     "raidScheme": "RAID Scheme",
     "rawCapacity": "Raw Capacity",
     "externalPoolCapacity": "External Pool Capacity",
+    "workloadStorageRequired": "Workload Storage Required",
+    "totalWorkloadStorageRequired": "Total Workload Storage Required",
     "usableAfterRaid": "Usable After RAID",
     "lfsOverhead": "LFS Overhead",
     "metadataOverhead": "Metadata Overhead",

@@ -117,7 +117,9 @@ export function buildConfigSummaryData(
     { label: t('export.coresPerSocket'), value: String(domain.coresPerSocket) },
     { label: t('export.socketsPerHost'), value: String(domain.socketsPerHost) },
     { label: t('export.ramPerHost'), value: `${domain.hostRamGB} GB` },
-    { label: t('export.storagePerHost'), value: `${domain.hostStorageTiB} TiB` },
+    ...(domain.storageType !== 'fc' && domain.storageType !== 'nfs' ? [
+      { label: t('export.storagePerHost'), value: `${domain.hostStorageTiB} TiB` },
+    ] : []),
     { label: t('export.storageType'), value: domain.storageType },
     { label: t('export.networkSpeed'), value: `${domain.networkSpeedGbE} GbE` },
     { label: t('export.mgmtArch'), value: managementArchitecture },
@@ -192,6 +194,7 @@ export function buildStorageResultsData(storage: StorageResult): {
   metadataOverheadTiB: number
   safeUsableCapacityTiB: number
   raidScheme: string
+  workloadStorageRequiredTiB: number
 } {
   return {
     rawCapacityTiB: storage.rawCapacityTiB,
@@ -200,6 +203,7 @@ export function buildStorageResultsData(storage: StorageResult): {
     metadataOverheadTiB: storage.metadataOverheadTiB,
     safeUsableCapacityTiB: storage.safeUsableCapacityTiB,
     raidScheme: storage.raidScheme,
+    workloadStorageRequiredTiB: storage.workloadStorageRequiredTiB,
   }
 }
 
@@ -230,6 +234,9 @@ export function buildAggregateSlideData(
     { label: t('export.totalRawStorage'), value: `${totals.totalRawStorageTiB.toFixed(2)} TiB` },
     { label: t('export.totalEffectiveStorage'), value: `${totals.totalEffectiveStorageTiB.toFixed(2)} TiB` },
   )
+  if (totals.totalWorkloadStorageRequiredTiB > 0) {
+    rows.push({ label: t('export.totalWorkloadStorageRequired'), value: `${totals.totalWorkloadStorageRequiredTiB.toFixed(2)} TiB` })
+  }
   return rows
 }
 
@@ -605,7 +612,12 @@ export async function generatePptxReport(): Promise<void> {
     addSlideFrame(sStor, `${domain.name} — ${t('export.storageSizing')}`)
     const isExternalStorage = domain.storageType === 'fc' || domain.storageType === 'nfs'
     const storDataRows = isExternalStorage
-      ? [[t('export.externalPoolCapacity'), `${storageData.rawCapacityTiB.toFixed(2)} TiB`]]
+      ? [
+          ...(storageData.workloadStorageRequiredTiB > 0 ? [
+            [t('export.workloadStorageRequired'), `${storageData.workloadStorageRequiredTiB.toFixed(2)} TiB`],
+          ] : []),
+          [t('export.externalPoolCapacity'), `${storageData.rawCapacityTiB.toFixed(2)} TiB`],
+        ]
       : [
           [t('export.raidScheme'), storageData.raidScheme],
           [t('export.rawCapacity'), `${storageData.rawCapacityTiB.toFixed(2)} TiB`],

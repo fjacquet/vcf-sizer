@@ -86,6 +86,8 @@ export const useCalculationStore = defineStore('calculation', () => {
           dedupEnabled: domain.dedupEnabled,
           dedupRatio: domain.dedupRatio,
           deploymentMode: domain.deploymentMode,
+          vmCount: domain.vmCount,
+          avgStorageGbPerVm: domain.avgStorageGbPerVm,
         }),
         stretch: domain.deploymentMode === 'stretch'
           ? calcStretch({
@@ -134,6 +136,7 @@ export const useCalculationStore = defineStore('calculation', () => {
       totalVmCount: input.workloadDomains.reduce((sum, d) => sum + d.vmCount, 0),
       totalRawStorageTiB: domainResults.value.reduce((sum, d) => sum + d.storage.rawCapacityTiB, 0),
       totalEffectiveStorageTiB: domainResults.value.reduce((sum, d) => sum + d.storage.effectiveCapacityTiB, 0),
+      totalWorkloadStorageRequiredTiB: domainResults.value.reduce((sum, d) => sum + d.storage.workloadStorageRequiredTiB, 0),
       allValidationErrors: domainResults.value.flatMap(d => d.validationErrors),
     }
   })

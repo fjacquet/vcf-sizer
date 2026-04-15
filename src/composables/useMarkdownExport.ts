@@ -77,7 +77,9 @@ export function generateMarkdownReport(): string {
       `| ${t('export.coresPerSocket')} | ${domain.coresPerSocket} |`,
       `| ${t('export.socketsPerHost')} | ${domain.socketsPerHost} |`,
       `| ${t('export.ramPerHost')} | ${domain.hostRamGB} GB |`,
-      `| ${t('export.storagePerHost')} | ${domain.hostStorageTiB} TiB |`,
+      ...(domain.storageType !== 'fc' && domain.storageType !== 'nfs' ? [
+        `| ${t('export.storagePerHost')} | ${domain.hostStorageTiB} TiB |`,
+      ] : []),
     )
 
     // H3: Workload Profile
@@ -122,6 +124,9 @@ export function generateMarkdownReport(): string {
       `|--------|-------|`,
       `| ${t('export.storageType')} | ${domain.storageType} |`,
       ...(domain.storageType === 'fc' || domain.storageType === 'nfs' ? [
+        ...(result.storage.workloadStorageRequiredTiB > 0 ? [
+          `| ${t('export.workloadStorageRequired')} | ${result.storage.workloadStorageRequiredTiB.toFixed(2)} TiB |`,
+        ] : []),
         `| ${t('export.externalPoolCapacity')} | ${result.storage.rawCapacityTiB.toFixed(2)} TiB |`,
       ] : [
         `| ${t('export.raidScheme')} | ${result.storage.raidScheme} |`,
@@ -232,6 +237,9 @@ export function generateMarkdownReport(): string {
     `| ${t('export.totalVmCount')} | ${totals.totalVmCount} |`,
     `| ${t('export.totalRawStorage')} | ${totals.totalRawStorageTiB.toFixed(2)} TiB |`,
     `| ${t('export.totalEffectiveStorage')} | ${totals.totalEffectiveStorageTiB.toFixed(2)} TiB |`,
+    ...(totals.totalWorkloadStorageRequiredTiB > 0 ? [
+      `| ${t('export.totalWorkloadStorageRequired')} | ${totals.totalWorkloadStorageRequiredTiB.toFixed(2)} TiB |`,
+    ] : []),
   )
 
   // Validation Warnings (conditional: allValidationErrors.length > 0)

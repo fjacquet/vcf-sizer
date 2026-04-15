@@ -107,6 +107,38 @@ describe('buildConfigSummaryData — PPTX-04', () => {
   })
 })
 
+describe('buildConfigSummaryData — FC/NFS storagePerHost (ADR-009)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('FC domain does NOT include storagePerHost row', () => {
+    const store = useInputStore()
+    store.updateDomain(store.workloadDomains[0].id, { storageType: 'fc' })
+    const domain = store.workloadDomains[0]
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
+    const storagePerHostRow = result.find((r) => r.label === 'export.storagePerHost')
+    expect(storagePerHostRow).toBeUndefined()
+  })
+
+  it('NFS domain does NOT include storagePerHost row', () => {
+    const store = useInputStore()
+    store.updateDomain(store.workloadDomains[0].id, { storageType: 'nfs' })
+    const domain = store.workloadDomains[0]
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
+    const storagePerHostRow = result.find((r) => r.label === 'export.storagePerHost')
+    expect(storagePerHostRow).toBeUndefined()
+  })
+
+  it('vsan-esa domain DOES include storagePerHost row', () => {
+    const store = useInputStore()
+    const domain = store.workloadDomains[0] // default is vsan-esa
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
+    const storagePerHostRow = result.find((r) => r.label === 'export.storagePerHost')
+    expect(storagePerHostRow).toBeDefined()
+  })
+})
+
 // ─── buildWorkloadSlideData — PPTX-05 ────────────────────────────────────────
 
 describe('buildWorkloadSlideData — PPTX-05', () => {
@@ -245,6 +277,31 @@ describe('buildStorageResultsData — PPTX-08', () => {
     const calc = useCalculationStore()
     const result = buildStorageResultsData(calc.domainResults[0].storage)
     expect(typeof result.usableAfterRaidTiB).toBe('number')
+  })
+
+  it('returns workloadStorageRequiredTiB as a number', () => {
+    const calc = useCalculationStore()
+    const result = buildStorageResultsData(calc.domainResults[0].storage)
+    expect(typeof result.workloadStorageRequiredTiB).toBe('number')
+  })
+
+  it('workloadStorageRequiredTiB is 0 for default vsan-esa domain', () => {
+    const calc = useCalculationStore()
+    const result = buildStorageResultsData(calc.domainResults[0].storage)
+    expect(result.workloadStorageRequiredTiB).toBe(0)
+  })
+
+  it('workloadStorageRequiredTiB is computed for FC domain', () => {
+    const store = useInputStore()
+    store.updateDomain(store.workloadDomains[0].id, {
+      storageType: 'fc',
+      vmCount: 1000,
+      avgStorageGbPerVm: 970,
+      externalStorageUsableTiB: 100,
+    })
+    const calc = useCalculationStore()
+    const result = buildStorageResultsData(calc.domainResults[0].storage)
+    expect(result.workloadStorageRequiredTiB).toBeCloseTo(947.265625, 2)
   })
 })
 
@@ -640,5 +697,31 @@ describe('multi-domain PPTX helpers (EXP-03, EXP-04)', () => {
     const hostsRow = result.find((r) => r.label.toLowerCase().includes('recommended'))
     expect(hostsRow).toBeDefined()
     expect(hostsRow!.value).toContain(String(totals.totalRecommendedHosts))
+  })
+
+  it('buildAggregateSlideData includes workload storage row when FC domain present', () => {
+    const store = useInputStore()
+    store.updateDomain(store.workloadDomains[0].id, {
+      storageType: 'fc',
+      vmCount: 1000,
+      avgStorageGbPerVm: 970,
+    })
+    const calc = useCalculationStore()
+    const totals = calc.aggregateTotals
+    expect(totals.totalWorkloadStorageRequiredTiB).toBeGreaterThan(0)
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
+    const wkldRow = result.find((r) => r.label.toLowerCase().includes('workload'))
+    expect(wkldRow).toBeDefined()
+    expect(wkldRow!.value).toContain('TiB')
+  })
+
+  it('buildAggregateSlideData omits workload storage row when all vsan-esa', () => {
+    const store = useInputStore()
+    const calc = useCalculationStore()
+    const totals = calc.aggregateTotals
+    expect(totals.totalWorkloadStorageRequiredTiB).toBe(0)
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
+    const wkldRow = result.find((r) => r.label.toLowerCase().includes('workload'))
+    expect(wkldRow).toBeUndefined()
   })
 })
