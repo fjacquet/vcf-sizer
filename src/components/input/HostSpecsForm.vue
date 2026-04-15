@@ -89,9 +89,10 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
         :step="64"
       />
       <NumberSliderInput
+        v-if="storageType !== 'fc' && storageType !== 'nfs'"
         v-model="hostStorageTiB"
         :label="t('host.storageTB')"
-        unit="TB"
+        unit="TiB"
         :min="0.96"
         :max="30.72"
         :step="0.96"

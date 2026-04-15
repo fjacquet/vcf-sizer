@@ -137,7 +137,7 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
           v-if="storageType === 'vsan-esa'"
           v-model="hostStorageTiB"
           :label="t('host.storageTB')"
-          unit="TB"
+          unit="TiB"
           :min="0.96"
           :max="30.72"
           :step="0.96"
