@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.3] - 2026-04-15 -- FC/NFS Storage Accuracy
+
+### Fixed
+
+- FC/NFS exports no longer show "Storage per host" (irrelevant for external SAN/NAS)
+- FC/NFS exports now show "Workload Storage Required" computed from vmCount x avgStorageGbPerVm
+- Aggregate totals include total workload storage required (shown only when > 0)
+
+### Added
+
+- `workloadStorageRequiredTiB` field in storage engine for FC/NFS domains
+- `totalWorkloadStorageRequiredTiB` in aggregate totals
+- ADR-009: Workload Storage Required for FC/NFS Domains
+- i18n keys for workload storage labels (EN, FR, DE, IT)
+
 ## [3.3.0] - 2026-04-11 -- UX Polish & Export Quality
 
 ### Added

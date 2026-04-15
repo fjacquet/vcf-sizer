@@ -70,7 +70,7 @@ The application runs entirely client-side as a Vue 3 single-page application dep
 | ID | Requirement | Acceptance Criteria |
 |----|------------|-------------------|
 | FR-3.1 | vSAN Max: disaggregated storage with profile-based capacity (xs/sm/med/lrg/xl) and separate storage + compute node counts | `VsanMaxResult` includes `rawCapacityTiB`, `usableCapacityTiB`, node counts |
-| FR-3.2 | FC/NFS: user provides total usable storage pool in TiB; per-host raw storage field is hidden | `externalStorageUsableTiB` is used directly as effective capacity |
+| FR-3.2 | FC/NFS: user provides total usable storage pool in TiB; per-host raw storage field is hidden; workload storage required is computed from `vmCount x avgStorageGbPerVm / 1024` | `externalStorageUsableTiB` is used as pool capacity; `workloadStorageRequiredTiB` shows actual VM demand; exports display both values |
 | FR-3.3 | Stretch Cluster: effective per-site storage is halved (PFTT=1 mirror) | `effectivePerSiteStorageTiB` reflects the halving; bandwidth formula applies |
 
 ### FR-4: Management Overhead
@@ -126,7 +126,7 @@ The application runs entirely client-side as a Vue 3 single-page application dep
 | NFR-3 | URL state under 8 KB | Compressed configuration must stay within browser URL length limits. Zod schema strips unknown keys on hydration. |
 | NFR-4 | XSS protection | All user-generated content in Markdown preview is sanitized via DOMPurify before DOM insertion. |
 | NFR-5 | Lazy-loaded heavy dependencies | `pptxgenjs`, `marked`, and `dompurify` are loaded on first use, not at startup. |
-| NFR-6 | Automated test coverage | 297 Vitest tests covering engine calculations, composables, and store logic. All tests run in Node (no DOM). |
+| NFR-6 | Automated test coverage | 313 Vitest tests covering engine calculations, composables, and store logic. All tests run in Node (no DOM). |
 | NFR-7 | Type safety | Full TypeScript coverage. `vue-tsc` type-check runs before every production build. |
 | NFR-8 | Engine purity | Engine layer (`src/engine/`) has zero Vue/Pinia imports. Pure functions with typed inputs and outputs. |
 | NFR-9 | Decimal precision | `decimal.js` used for storage arithmetic to avoid floating-point rounding errors. |
@@ -198,3 +198,4 @@ Key constraints enforced by convention:
 | v3.0 | 2026-03-30 | Multi-domain support (workload + management domains) |
 | v3.1 | 2026-04-04 | Sizing correctness, 3-step guided wizard |
 | v3.3 | 2026-04-11 | UX polish (domain copy, topology guard, per-domain charts, localized exports, Markdown preview, TiB units) |
+| v3.3.3 | 2026-04-15 | FC/NFS storage accuracy: workload storage computation, hide per-host storage, aggregate workload totals |

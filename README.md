@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-297%20passing-brightgreen)](src/engine)
+[![Tests](https://img.shields.io/badge/tests-313%20passing-brightgreen)](src/engine)
 
 Interactive sizing calculator for VMware Cloud Foundation 9.x deployments. Runs entirely in the browser — no backend required.
 
@@ -16,7 +16,7 @@ Compute, memory, and storage requirements across all VCF 9 deployment topologies
 - **Simple / HA / Stretch Cluster** — management overhead, workload sizing, host count recommendations
 - **vSAN ESA** — FTT/RAID selection, global deduplication, adaptive RAID-5 gate (4-5 nodes = 2+1, 6+ nodes = 4+1)
 - **vSAN Max** — disaggregated storage clusters, 5 ReadyNode profiles (XS/SM/MED/LRG/XL), independent compute sizing
-- **FC / NFS** — pass-through storage with host count validation
+- **FC / NFS** — external SAN/NAS with workload storage computation and pool capacity display
 - **AI/GPU workloads** — vGPU memory overhead modeling
 - **NVMe Memory Tiering** — ESXi 9.x 1:1 DRAM:NVMe at ≤50% active memory
 - **Stretch cluster validation** — 10 Gbps bandwidth floor, MTU/RTT/witness network checklist
@@ -43,7 +43,7 @@ Compute, memory, and storage requirements across all VCF 9 deployment topologies
 | Charts | Chart.js via vue-chartjs |
 | Build | Vite 8 |
 | Export | pptxgenjs (PPTX), marked + DOMPurify (Markdown preview) |
-| Tests | Vitest (297 tests) |
+| Tests | Vitest (313 tests) |
 
 ## Development
 
