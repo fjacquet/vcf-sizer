@@ -46,8 +46,8 @@ export const useInputStore = defineStore('input', () => {
     const nextStorage = normalized.storageType ?? domain.storageType
     const nextFtt = normalized.fttLevel ?? domain.fttLevel
     const nextRaid = normalized.raidType ?? domain.raidType
+    const nextDedup = normalized.dedupEnabled ?? domain.dedupEnabled
     let nextMode = normalized.deploymentMode ?? domain.deploymentMode
-    let nextDedup = normalized.dedupEnabled ?? domain.dedupEnabled
 
     // Rule: vSAN Max + Stretch is invalid → force HA.
     // Must run BEFORE the Stretch/Dedup rule so the dedup rule does not
@@ -61,7 +61,6 @@ export const useInputStore = defineStore('input', () => {
     // Rule: Stretch + Dedup is invalid → force dedup off
     if (nextMode === 'stretch' && nextDedup) {
       normalized.dedupEnabled = false
-      nextDedup = false
       ui.flashAutoCorrection('warnings.autoCorrectDedupStretch')
     }
 
