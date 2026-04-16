@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-04-16 -- Step 3 Workload Wizard UX + Dep Refresh
+
+### Added
+
+- External pool capacity slider for FC/NFS storage (10-2000 TiB, default 100) -- users can now configure external array size from the form
+- i18n keys `storage.workloadRequired`, `storage.externalPool`, `storage.externalPoolInput` (EN/FR/DE/IT)
+- Multi-key auto-correction banner -- all cascading fixes surface as individual bullet items, deduplicated
+- Store-level tests (`src/stores/inputStore.test.ts`) covering the full auto-correction cascade
+- aria-label on disabled Stretch / vSAN Max buttons combining label + exclusion reason for screen readers
+
+### Changed
+
+- Step 3 form order: Deployment -> Storage -> Host Specs -> Workloads (storageType-driven branches render final shape on first paint)
+- `normalizeDomainPatch()` runs the vSAN Max + Stretch rule before the Stretch + Dedup rule so dedup is preserved on the HA-corrected path
+- Component prop naming converted to kebab-case (`:domain-id`) matching Vue convention
+
+### Fixed
+
+- DOMPurify moderate severity advisory (GHSA-39q2-94rc-95cp) via `npm audit fix`
+- Auto-correction banner no longer overwrites prior messages on multi-field patches
+
+### Dependencies
+
+- marked 15.0.12 -> 18.0.0 (trims trailing blank lines from block tokens, TS 6)
+- vite 8.0.3 -> 8.0.8, @vitejs/plugin-vue 6.0.5 -> 6.0.6
+- vue-i18n 11.3.0 -> 11.3.2
+- @vitest/ui 4.1.2 -> 4.1.4, @types/node 25.5.2 -> 25.6.0, globals 17.4.0 -> 17.5.0, dev-tools group (3)
+- actions/upload-pages-artifact 4 -> 5 (deploy workflow)
+
 ## [3.3.3] - 2026-04-15 -- FC/NFS Storage Accuracy
 
 ### Fixed
