@@ -15,7 +15,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.2",
     "@types/dompurify": "^3.2.0",
-    "@vitejs/plugin-vue": "^6.0.5",
+    "@vitejs/plugin-vue": "^6.0.6",
     "@vueuse/core": "^14.2.1",
     "chart.js": "^4.5.1",
     "decimal.js": "^10.6.0",
