@@ -7,9 +7,11 @@ import VsanMaxClusterCard from './VsanMaxClusterCard.vue'
 import CoresChart from './charts/CoresChart.vue'
 import RamChart from './charts/RamChart.vue'
 import StorageChart from './charts/StorageChart.vue'
+import { useStorageFormat } from '@/composables/useStorageFormat'
 
 const props = defineProps<{ result: DomainResult }>()
 const { t } = useI18n()
+const { fmt } = useStorageFormat()
 
 const isSufficient = computed(() => {
   const c = props.result.compute
@@ -44,6 +46,10 @@ const isSufficient = computed(() => {
           <span class="w-28 text-right font-medium">{{ t('results.hostCount.minForRam') }}:</span>
           <span class="font-bold">{{ result.compute.minHostsForRam }}</span>
         </div>
+        <div v-if="result.compute.minHostsForStorage > 0" class="flex items-center gap-2">
+          <span class="w-28 text-right font-medium">{{ t('results.hostCount.minForStorage') }}:</span>
+          <span class="font-bold">{{ result.compute.minHostsForStorage }}</span>
+        </div>
       </div>
     </div>
 
@@ -65,8 +71,12 @@ const isSufficient = computed(() => {
         {{ result.compute.ramUtilizationPct.toFixed(1) }}%
       </span>
 
-      <span>{{ t('results.domain.storageUsable') }}</span>
-      <span class="font-mono text-right">{{ result.storage.safeUsableCapacityTiB.toFixed(2) }} TB</span>
+      <span>{{ result.storage.workloadStorageRequiredTiB > 0
+        ? t('results.domain.workloadRequired')
+        : t('results.domain.storageUsable') }}</span>
+      <span class="font-mono text-right">{{ fmt(result.storage.workloadStorageRequiredTiB > 0
+        ? result.storage.workloadStorageRequiredTiB
+        : result.storage.safeUsableCapacityTiB) }}</span>
 
       <span>{{ t('results.domain.raidScheme') }}</span>
       <span class="font-mono text-right">{{ result.storage.raidScheme }}</span>

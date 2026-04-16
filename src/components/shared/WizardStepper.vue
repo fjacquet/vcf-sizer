@@ -16,87 +16,58 @@ const steps = [
   { step: 3 as const, labelKey: 'wizard.step3.label' },
 ]
 
-const canGoBack = computed(() => ui.currentWizardStep > 1)
-
 // Step-specific forward gate (WIZARD-03, WIZARD-04)
-// Step 1: requires topology confirmation
-// Step 2: requires valid management config (dedicated -> mgmtHostCount != null; colocated -> always valid)
-// Step 3: no forward navigation
-const canGoForward = computed(() => {
+const canAdvance = computed(() => {
   if (ui.currentWizardStep === 1) return ui.topologyConfirmed
   if (ui.currentWizardStep === 2) {
     if (input.managementArchitecture === 'dedicated') {
       return calc.dedicatedMgmtHostCount !== null
     }
-    return true // colocated always valid
+    return true
   }
-  return false // step 3 has no forward
+  return false
 })
 
-function goBack() {
-  if (canGoBack.value) ui.setWizardStep((ui.currentWizardStep - 1) as 1 | 2 | 3)
+function isClickable(step: 1 | 2 | 3): boolean {
+  // Already on this step — not clickable
+  if (step === ui.currentWizardStep) return false
+  // Go back to completed step
+  if (step < ui.currentWizardStep) return true
+  // Go forward to next step (only +1, not +2) when validation passes
+  if (step === ui.currentWizardStep + 1 && canAdvance.value) return true
+  return false
 }
 
-function goForward() {
-  if (canGoForward.value) ui.setWizardStep((ui.currentWizardStep + 1) as 1 | 2 | 3)
+function onStepClick(step: 1 | 2 | 3) {
+  if (isClickable(step)) ui.setWizardStep(step)
 }
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-4 mb-4">
-    <!-- Previous button -->
-    <button
-      :disabled="!canGoBack"
-      :class="['px-3 py-1.5 text-sm rounded border font-medium transition-colors',
-        canGoBack
-          ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
-          : 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200']"
-      @click="goBack"
-    >
-      {{ t('wizard.nav.previous') }}
-    </button>
-
-    <!-- Step indicator row -->
-    <div class="flex items-center gap-2">
-      <template v-for="(s, index) in steps" :key="s.step">
-        <div
-          :class="['flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border font-medium',
-            ui.currentWizardStep === s.step
-              ? 'bg-blue-600 text-white border-blue-600'
-              : ui.currentWizardStep > s.step
-                ? 'bg-green-100 text-green-700 border-green-400 dark:bg-green-900 dark:text-green-300 dark:border-green-700 cursor-pointer hover:ring-2 hover:ring-green-400 transition-colors'
+  <div class="flex items-center justify-center gap-2 mb-4">
+    <template v-for="(s, index) in steps" :key="s.step">
+      <div
+        :class="['flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border font-medium transition-colors',
+          ui.currentWizardStep === s.step
+            ? 'bg-blue-600 text-white border-blue-600'
+            : ui.currentWizardStep > s.step
+              ? 'bg-green-100 text-green-700 border-green-400 dark:bg-green-900 dark:text-green-300 dark:border-green-700 cursor-pointer hover:ring-2 hover:ring-green-400'
+              : isClickable(s.step)
+                ? 'bg-blue-50 text-blue-600 border-blue-400 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600 cursor-pointer hover:ring-2 hover:ring-blue-400'
                 : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700']"
-          :role="ui.currentWizardStep > s.step ? 'button' : undefined"
-          :tabindex="ui.currentWizardStep > s.step ? 0 : undefined"
-          @click="ui.currentWizardStep > s.step && ui.setWizardStep(s.step)"
-          @keydown.enter.space.prevent="ui.currentWizardStep > s.step && ui.setWizardStep(s.step)"
-        >
-          <span class="font-bold">{{ s.step }}</span>
-          <span>{{ t(s.labelKey) }}</span>
-        </div>
-        <!-- Connector line between steps (not after last) -->
-        <div
-          v-if="index < steps.length - 1"
-          class="w-6 h-px bg-gray-300 dark:bg-gray-600"
-        ></div>
-      </template>
-    </div>
-
-    <!-- Next button + validation hint -->
-    <div class="flex flex-col items-end">
-      <button
-        :disabled="!canGoForward"
-        :class="['px-3 py-1.5 text-sm rounded border font-medium transition-colors',
-          canGoForward
-            ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-            : 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200']"
-        @click="goForward"
+        :role="isClickable(s.step) ? 'button' : undefined"
+        :tabindex="isClickable(s.step) ? 0 : undefined"
+        @click="onStepClick(s.step)"
+        @keydown.enter.space.prevent="onStepClick(s.step)"
       >
-        {{ t('wizard.nav.next') }}
-      </button>
-      <p v-if="!canGoForward && ui.currentWizardStep < 3" class="text-xs text-amber-600 dark:text-amber-400 mt-1 text-right">
-        {{ ui.currentWizardStep === 1 ? t('wizard.step1.topologyRequired') : t('wizard.step2.mgmtInvalid') }}
-      </p>
-    </div>
+        <span class="font-bold">{{ s.step }}</span>
+        <span>{{ t(s.labelKey) }}</span>
+      </div>
+      <!-- Connector line between steps (not after last) -->
+      <div
+        v-if="index < steps.length - 1"
+        class="w-6 h-px bg-gray-300 dark:bg-gray-600"
+      ></div>
+    </template>
   </div>
 </template>

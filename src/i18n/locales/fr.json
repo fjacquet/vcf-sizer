@@ -51,6 +51,10 @@
     "ramGB": "RAM par hôte",
     "storageTB": "Stockage brut par hôte",
     "hostCount": "Nombre d'hôtes",
+    "hostCountComputeNodes": "Nombre de nœuds de calcul",
+    "hostCountHintVsanMax": "Taille du cluster de calcul. La capacité de stockage provient du cluster vSAN Max dédié configuré ci-dessous.",
+    "hostCountHintExternal": "Taille du cluster. La capacité de stockage provient de la baie externe configurée ci-dessous.",
+    "hostCountHintVsan": "Taille du cluster et contributeurs au stockage (chaque hôte ajoute ses disques locaux au datastore vSAN).",
     "networkSpeed": "Vitesse reseau",
     "vsanMaxComputeNote": "Le nombre d'hotes = taille du cluster de calcul quand vSAN Max est selectionne",
     "nvme": {
@@ -93,7 +97,10 @@
     "raidOverhead": "Surcoût RAID",
     "netUsable": "Utilisable net (sécurité 70%)",
     "netUsablePassthrough": "Utilisable net (pass-through)",
-    "minHosts": "min {count} hôtes"
+    "minHosts": "min {count} hôtes",
+    "workloadRequired": "Stockage requis par les VMs",
+    "externalPool": "Pool externe utilisable",
+    "externalPoolInput": "Capacité du pool externe"
   },
   "topology": {
     "confirmTitle": "Changer la topologie\u00a0?",
@@ -104,7 +111,13 @@
   "warnings": {
     "vcfaMinCores": "AVERTISSEMENT : VCF Automation (VCFA) requiert un hôte avec au moins 12 cœurs physiques (24 threads). Le déploiement sera bloqué avec la spécification d'hôte actuelle.",
     "dedupStretchExclusion": "La déduplication globale ne peut pas être activée avec le cluster étendu.",
-    "stretchDedup": "La déduplication globale est désactivée en mode Cluster étendu."
+    "stretchDedup": "La déduplication globale est désactivée en mode Cluster étendu.",
+    "autoCorrectDedupStretch": "Déduplication globale désactivée automatiquement — non prise en charge avec le Cluster étendu.",
+    "autoCorrectDeploymentVsanMax": "Modèle de déploiement défini sur HA — le Cluster étendu n'est pas pris en charge avec vSAN Max.",
+    "autoCorrectRaidFtt2": "Politique RAID définie sur RAID-6 — RAID-5 nécessite FTT = 1.",
+    "autoCorrectRaidFtt1": "Politique RAID définie sur RAID-5 — RAID-6 nécessite FTT = 2.",
+    "stretchDisabledReason": "Le Cluster étendu n'est pas pris en charge avec vSAN Max",
+    "vsanMaxStretchExclusion": "vSAN Max ne peut pas être déployé en mode Cluster étendu."
   },
   "validation": {
     "stretchMinHosts": "Le Cluster étendu nécessite au minimum 3 hôtes par site.",
@@ -112,7 +125,9 @@
     "dedicatedMgmtMinHostsExternal": "Le cluster de gestion dédié nécessite au moins 2 hôtes (FC/NFS — Broadcom KB 416270).",
     "colocatedMinHosts": "Mode co-localise : minimum {min} hotes requis pour ce type de stockage.",
     "vsanMaxMinNodes": "Minimum 4 noeuds de stockage requis pour un cluster vSAN Max.",
-    "dedupNetworkSpeed": "La deduplication globale necessite un reseau 25 GbE ou plus rapide (STOR-05)."
+    "dedupNetworkSpeed": "La deduplication globale necessite un reseau 25 GbE ou plus rapide (STOR-05).",
+    "dedupNotApplicable": "La déduplication globale ne s'applique qu'à vSAN ESA — ignorée pour FC/NFS.",
+    "vsanMaxStretchExclusion": "vSAN Max ne peut pas être déployé en mode Cluster étendu."
   },
   "results": {
     "toolbar": {
@@ -129,7 +144,8 @@
       "title": "Nombre d'hôtes recommandé",
       "recommended": "Hôtes recommandés",
       "minForCpu": "Min pour CPU",
-      "minForRam": "Min pour RAM"
+      "minForRam": "Min pour RAM",
+      "minForStorage": "Min pour stockage"
     },
     "vsanMaxTitle": "Cluster de stockage vSAN Max",
     "vsanMaxStorageNodes": "Noeuds de stockage",
@@ -152,7 +168,8 @@
       "cpuUtilization": "Utilisation CPU",
       "ramUtilization": "Utilisation RAM",
       "storageUsable": "Stockage utilisable",
-      "raidScheme": "Schema RAID"
+      "raidScheme": "Schema RAID",
+      "workloadRequired": "Stockage requis par les VMs"
     },
     "aggregate": {
       "title": "Resume total des achats",
@@ -290,6 +307,7 @@
     "recommendedHostCount": "Nombre d'hotes recommande",
     "minHostsCpu": "Hotes min. pour CPU",
     "minHostsRam": "Hotes min. pour RAM",
+    "minHostsStorage": "Hotes min. pour stockage",
     "availableVcpu": "vCPU disponibles",
     "availableRamGb": "RAM disponible (Go)",
     "cpuUtilization": "Utilisation CPU",

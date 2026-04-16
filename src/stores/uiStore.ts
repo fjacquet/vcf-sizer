@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { i18n, loadLocale } from '../i18n'
+import type { StorageUnit } from '@/utils/formatStorage'
 
 type AppLocale = 'en' | 'fr' | 'de' | 'it'
 
@@ -59,6 +60,14 @@ export const useUiStore = defineStore('ui', () => {
     isLandingVisible.value = false
   }
 
+  // Storage display unit preference — TiB (binary) or TB (decimal)
+  // Ephemeral: NEVER in InputStateSchema (WIZARD-07 structural guarantee)
+  const storageUnit = ref<StorageUnit>('TiB')
+
+  function setStorageUnit(unit: StorageUnit): void {
+    storageUnit.value = unit
+  }
+
   // Chart image registry — consumed by Phase 21 (per-domain charts) and Phase 22 (PPTX export)
   // Ephemeral: NEVER in InputStateSchema (WIZARD-07 structural guarantee)
   const chartImages = ref<Record<string, Record<ChartType, string>>>({})
@@ -70,5 +79,28 @@ export const useUiStore = defineStore('ui', () => {
     chartImages.value[domainId][chartType] = dataUrl
   }
 
-  return { locale, setLocale, localeLoading, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, chartImages, registerChartImage }
+  // Transient auto-correction banner — surfaced by inputStore.updateDomain() when an
+  // incompatible field combination is auto-fixed (e.g., dedup disabled on switch to
+  // stretch). Holds an i18n message key; auto-dismisses after 5 seconds.
+  const autoCorrectionMessageKey = ref<string | null>(null)
+  let autoCorrectionTimer: ReturnType<typeof setTimeout> | null = null
+
+  function flashAutoCorrection(messageKey: string): void {
+    autoCorrectionMessageKey.value = messageKey
+    if (autoCorrectionTimer) clearTimeout(autoCorrectionTimer)
+    autoCorrectionTimer = setTimeout(() => {
+      autoCorrectionMessageKey.value = null
+      autoCorrectionTimer = null
+    }, 5000)
+  }
+
+  function dismissAutoCorrection(): void {
+    autoCorrectionMessageKey.value = null
+    if (autoCorrectionTimer) {
+      clearTimeout(autoCorrectionTimer)
+      autoCorrectionTimer = null
+    }
+  }
+
+  return { locale, setLocale, localeLoading, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, storageUnit, setStorageUnit, chartImages, registerChartImage, autoCorrectionMessageKey, flashAutoCorrection, dismissAutoCorrection }
 })

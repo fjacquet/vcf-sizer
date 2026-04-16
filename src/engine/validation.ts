@@ -153,5 +153,16 @@ export function validateInputs(inputs: ValidationInputs): ValidationWarning[] {
     })
   }
 
+  // Rule 8: VSAN_MAX_STRETCH_EXCLUSION — vSAN Max is a disaggregated storage topology
+  // with a separate storage cluster and cannot be deployed in Stretch Cluster mode.
+  // Belt-and-suspenders: UI disables the combo, but URL-state rehydration can bypass that.
+  if (storageType === 'vsan-max' && deploymentMode === 'stretch') {
+    errors.push({
+      code: 'VSAN_MAX_STRETCH_EXCLUSION',
+      severity: 'error',
+      messageKey: 'validation.vsanMaxStretchExclusion',
+    })
+  }
+
   return errors
 }

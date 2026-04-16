@@ -33,7 +33,6 @@ const coresPerSocket = domainField('coresPerSocket')
 const socketsPerHost = domainField('socketsPerHost')
 const hostRamGB = domainField('hostRamGB')
 const hostStorageTiB = domainField('hostStorageTiB')
-const hostCount = domainField('hostCount')
 const nvmeTieringEnabled = domainField('nvmeTieringEnabled')
 const activeMemoryPct = domainField('activeMemoryPct')
 const networkSpeedGbE = domainField('networkSpeedGbE')
@@ -117,19 +116,6 @@ const nvmeTieringActive = computed(() => nvmeTieringEnabled.value && activeMemor
             {{ speed }} GbE
           </button>
         </div>
-      </div>
-      <NumberSliderInput
-        v-model="hostCount"
-        :label="t('host.hostCount')"
-        :min="4"
-        :max="64"
-        :step="1"
-      />
-      <div
-        v-if="storageType === 'vsan-max'"
-        class="text-xs text-blue-700 dark:text-blue-400 italic sm:col-span-2"
-      >
-        {{ t('host.vsanMaxComputeNote') }}
       </div>
     </div>
 

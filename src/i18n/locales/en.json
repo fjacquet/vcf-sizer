@@ -51,6 +51,10 @@
     "ramGB": "RAM per Host",
     "storageTB": "Raw Storage per Host",
     "hostCount": "Number of Hosts",
+    "hostCountComputeNodes": "Number of Compute Nodes",
+    "hostCountHintVsanMax": "Compute cluster size. Storage capacity comes from the separate vSAN Max storage cluster configured below.",
+    "hostCountHintExternal": "Cluster size. Storage capacity comes from the external array pool configured below.",
+    "hostCountHintVsan": "Cluster size and storage contributors (each host adds its local drives to the vSAN datastore).",
     "networkSpeed": "Network Speed",
     "vsanMaxComputeNote": "Host count = compute cluster size when vSAN Max is selected",
     "nvme": {
@@ -93,7 +97,10 @@
     "raidOverhead": "RAID Overhead",
     "netUsable": "Net Usable (safe 70%)",
     "netUsablePassthrough": "Net Usable (pass-through)",
-    "minHosts": "min {count} hosts"
+    "minHosts": "min {count} hosts",
+    "workloadRequired": "Workload Storage Required",
+    "externalPool": "External Pool Usable",
+    "externalPoolInput": "External Pool Capacity"
   },
   "topology": {
     "confirmTitle": "Change topology?",
@@ -104,7 +111,13 @@
   "warnings": {
     "vcfaMinCores": "WARNING: VCF Automation (VCFA) requires a host with at least 12 physical cores (24 threads). Deployment will be blocked with the current host specification.",
     "dedupStretchExclusion": "Global Deduplication cannot be enabled with Stretch Cluster.",
-    "stretchDedup": "Global Deduplication is disabled in Stretch Cluster mode."
+    "stretchDedup": "Global Deduplication is disabled in Stretch Cluster mode.",
+    "autoCorrectDedupStretch": "Global Deduplication automatically disabled — not supported with Stretch Cluster.",
+    "autoCorrectDeploymentVsanMax": "Deployment model set to HA — Stretch Cluster is not supported with vSAN Max.",
+    "autoCorrectRaidFtt2": "RAID policy set to RAID-6 — RAID-5 requires FTT = 1.",
+    "autoCorrectRaidFtt1": "RAID policy set to RAID-5 — RAID-6 requires FTT = 2.",
+    "stretchDisabledReason": "Stretch Cluster is not supported with vSAN Max",
+    "vsanMaxStretchExclusion": "vSAN Max cannot be deployed in Stretch Cluster mode."
   },
   "validation": {
     "stretchMinHosts": "Stretch Cluster requires a minimum of 3 hosts per site.",
@@ -112,7 +125,9 @@
     "dedicatedMgmtMinHostsExternal": "Dedicated management cluster requires at least 2 hosts (FC/NFS — Broadcom KB 416270).",
     "colocatedMinHosts": "Co-located mode: minimum {min} hosts required for this storage type.",
     "vsanMaxMinNodes": "Minimum 4 storage nodes required for vSAN Max cluster.",
-    "dedupNetworkSpeed": "Global Deduplication requires 25 GbE or faster network speed (STOR-05)."
+    "dedupNetworkSpeed": "Global Deduplication requires 25 GbE or faster network speed (STOR-05).",
+    "dedupNotApplicable": "Global Deduplication is only applicable to vSAN ESA — ignored for FC/NFS.",
+    "vsanMaxStretchExclusion": "vSAN Max cannot be deployed in Stretch Cluster mode."
   },
   "results": {
     "toolbar": {
@@ -129,7 +144,8 @@
       "title": "Recommended Host Count",
       "recommended": "Recommended Hosts",
       "minForCpu": "Min for CPU",
-      "minForRam": "Min for RAM"
+      "minForRam": "Min for RAM",
+      "minForStorage": "Min for Storage"
     },
     "vsanMaxTitle": "vSAN Max Storage Cluster",
     "vsanMaxStorageNodes": "Storage Nodes",
@@ -152,7 +168,8 @@
       "cpuUtilization": "CPU Utilization",
       "ramUtilization": "RAM Utilization",
       "storageUsable": "Safe Usable Storage",
-      "raidScheme": "RAID Scheme"
+      "raidScheme": "RAID Scheme",
+      "workloadRequired": "Workload Storage Required"
     },
     "aggregate": {
       "title": "Total Procurement Summary",
@@ -290,6 +307,7 @@
     "recommendedHostCount": "Recommended Host Count",
     "minHostsCpu": "Min Hosts for CPU",
     "minHostsRam": "Min Hosts for RAM",
+    "minHostsStorage": "Min Hosts for Storage",
     "availableVcpu": "Available vCPU",
     "availableRamGb": "Available RAM (GB)",
     "cpuUtilization": "CPU Utilization",

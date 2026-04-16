@@ -2,9 +2,11 @@
 import { useI18n } from 'vue-i18n'
 import type { DomainResult } from '@/engine/types'
 import WarningBanner from '@/components/shared/WarningBanner.vue'
+import { useStorageFormat } from '@/composables/useStorageFormat'
 
 const props = defineProps<{ result: DomainResult }>()
 const { t } = useI18n()
+const { fmt } = useStorageFormat()
 </script>
 
 <template>
@@ -34,11 +36,11 @@ const { t } = useI18n()
     <!-- Data grid -->
     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
       <span>{{ t('results.vsanMaxRawCapacity') }}</span>
-      <span class="font-mono text-right">{{ props.result.vsanMax.rawCapacityTiB.toFixed(2) }} TB</span>
+      <span class="font-mono text-right">{{ fmt(props.result.vsanMax.rawCapacityTiB) }}</span>
 
       <span>{{ t('results.vsanMaxUsableCapacity') }}</span>
       <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-        {{ props.result.vsanMax.usableCapacityTiB.toFixed(2) }} TB
+        {{ fmt(props.result.vsanMax.usableCapacityTiB) }}
       </span>
 
       <span>{{ t('results.vsanMaxRaidScheme') }}</span>

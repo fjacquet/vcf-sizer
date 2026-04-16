@@ -8,6 +8,8 @@ import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
 import { useUiStore } from '@/stores/uiStore'
 import { i18n } from '@/i18n'
+import { formatStorage } from '@/utils/formatStorage'
+import type { StorageUnit } from '@/utils/formatStorage'
 import type {
   MgmtDomainResult,
   ComputeResult,
@@ -106,8 +108,10 @@ export function buildConfigSummaryData(
   domain: WorkloadDomainConfig,
   managementArchitecture: string,
   effectiveHostCount: number,
-  t: (key: string) => string = (k) => k
+  t: (key: string) => string = (k) => k,
+  unit: StorageUnit = 'TiB',
 ): Array<{ label: string; value: string }> {
+  const fmtS = (v: number, p = 2) => formatStorage(v, unit, p)
   return [
     { label: t('export.hosts'), value: String(effectiveHostCount) },
     ...(domain.deploymentMode === 'stretch' ? [
@@ -118,7 +122,7 @@ export function buildConfigSummaryData(
     { label: t('export.socketsPerHost'), value: String(domain.socketsPerHost) },
     { label: t('export.ramPerHost'), value: `${domain.hostRamGB} GB` },
     ...(domain.storageType !== 'fc' && domain.storageType !== 'nfs' ? [
-      { label: t('export.storagePerHost'), value: `${domain.hostStorageTiB} TiB` },
+      { label: t('export.storagePerHost'), value: fmtS(domain.hostStorageTiB) },
     ] : []),
     { label: t('export.storageType'), value: domain.storageType },
     { label: t('export.networkSpeed'), value: `${domain.networkSpeedGbE} GbE` },
@@ -172,6 +176,7 @@ export function buildComputeResultsData(compute: ComputeResult): {
   availableRamGB: number
   minHostsForCpu: number
   minHostsForRam: number
+  minHostsForStorage: number
 } {
   return {
     recommendedHostCount: compute.recommendedHostCount,
@@ -181,6 +186,7 @@ export function buildComputeResultsData(compute: ComputeResult): {
     availableRamGB: compute.availableRamGB,
     minHostsForCpu: compute.minHostsForCpu,
     minHostsForRam: compute.minHostsForRam,
+    minHostsForStorage: compute.minHostsForStorage,
   }
 }
 
@@ -217,8 +223,10 @@ export function buildAggregateSlideData(
   managementArchitecture: string,
   dedicatedMgmtHostCount: number | null,
   managementStorageType?: string,
-  t: (key: string) => string = (k) => k
+  t: (key: string) => string = (k) => k,
+  unit: StorageUnit = 'TiB',
 ): Array<{ label: string; value: string }> {
+  const fmtS = (v: number, p = 2) => formatStorage(v, unit, p)
   const mgmtLine = managementArchitecture === 'dedicated' && dedicatedMgmtHostCount !== null
     ? String(dedicatedMgmtHostCount)
     : t('export.colocatedWld1')
@@ -231,11 +239,11 @@ export function buildAggregateSlideData(
   }
   rows.push(
     { label: t('export.totalVmCount'), value: String(totals.totalVmCount) },
-    { label: t('export.totalRawStorage'), value: `${totals.totalRawStorageTiB.toFixed(2)} TiB` },
-    { label: t('export.totalEffectiveStorage'), value: `${totals.totalEffectiveStorageTiB.toFixed(2)} TiB` },
+    { label: t('export.totalRawStorage'), value: fmtS(totals.totalRawStorageTiB) },
+    { label: t('export.totalEffectiveStorage'), value: fmtS(totals.totalEffectiveStorageTiB) },
   )
   if (totals.totalWorkloadStorageRequiredTiB > 0) {
-    rows.push({ label: t('export.totalWorkloadStorageRequired'), value: `${totals.totalWorkloadStorageRequiredTiB.toFixed(2)} TiB` })
+    rows.push({ label: t('export.totalWorkloadStorageRequired'), value: fmtS(totals.totalWorkloadStorageRequiredTiB) })
   }
   return rows
 }
@@ -276,8 +284,10 @@ export function buildNvmeTieringSlideData(
 export function buildStretchTopologySlideData(
   domain: WorkloadDomainConfig,
   stretch: StretchResult,
-  t: (key: string) => string = (k) => k
+  t: (key: string) => string = (k) => k,
+  unit: StorageUnit = 'TiB',
 ): { topology: Array<{ label: string; value: string }>; checklist: string[] } {
+  const fmtS = (v: number, p = 2) => formatStorage(v, unit, p)
   const topology = [
     { label: t('export.preferredSiteHosts'), value: String(domain.preferredSiteHosts) },
     { label: t('export.secondarySiteHosts'), value: String(domain.secondarySiteHosts) },
@@ -285,7 +295,7 @@ export function buildStretchTopologySlideData(
     { label: t('export.minInterSiteBw'), value: `${stretch.minBandwidthGbps} Gbps` },
     { label: t('export.witnessVcpu'), value: String(stretch.witnessCores) },
     { label: t('export.witnessRam'), value: `${stretch.witnessRamGB} GB` },
-    { label: t('export.effectivePerSiteStorage'), value: `${stretch.effectivePerSiteStorageTiB.toFixed(2)} TiB` },
+    { label: t('export.effectivePerSiteStorage'), value: fmtS(stretch.effectivePerSiteStorageTiB) },
   ]
   const nc = stretch.networkChecklist
   const checklist = [
@@ -306,15 +316,17 @@ export function buildStretchTopologySlideData(
 export function buildVsanMaxSlideData(
   domain: WorkloadDomainConfig,
   vsanMax: VsanMaxResult,
-  t: (key: string) => string = (k) => k
+  t: (key: string) => string = (k) => k,
+  unit: StorageUnit = 'TiB',
 ): Array<{ label: string; value: string }> {
+  const fmtS = (v: number, p = 2) => formatStorage(v, unit, p)
   return [
     { label: t('export.readyNodeProfile'), value: domain.vsanMaxProfile.toUpperCase() },
     { label: t('export.storageNodeCount'), value: String(vsanMax.storageNodeCount) },
     { label: t('export.computeNodeCount'), value: String(vsanMax.computeNodeCount) },
     { label: t('export.raidScheme'), value: vsanMax.raidScheme },
-    { label: t('export.rawCapacity'), value: `${vsanMax.rawCapacityTiB.toFixed(2)} TiB` },
-    { label: t('export.usableCapacity'), value: `${vsanMax.usableCapacityTiB.toFixed(2)} TiB` },
+    { label: t('export.rawCapacity'), value: fmtS(vsanMax.rawCapacityTiB) },
+    { label: t('export.usableCapacity'), value: fmtS(vsanMax.usableCapacityTiB) },
   ]
 }
 
@@ -345,6 +357,8 @@ export async function generatePptxReport(): Promise<void> {
   const calc = useCalculationStore()
   const uiStore = useUiStore()
   const t = i18n.global.t
+  const unit = uiStore.storageUnit
+  const fmtS = (v: number, p = 2) => formatStorage(v, unit, p)
 
   // Dynamic import — Vite code-splits this automatically (PPTX-15)
   const PptxGenJS = (await import('pptxgenjs')).default
@@ -559,7 +573,7 @@ export async function generatePptxReport(): Promise<void> {
     pres.addSection({ title: domain.name })
 
     // Domain: Configuration Summary
-    const configData = buildConfigSummaryData(domain, store.managementArchitecture, result.compute.effectiveHostCount, t)
+    const configData = buildConfigSummaryData(domain, store.managementArchitecture, result.compute.effectiveHostCount, t, unit)
     const sCfg = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
     addSlideFrame(sCfg, `${t('export.domain')}: ${domain.name}`, t('export.hostConfig'))
     modernTable(
@@ -585,10 +599,17 @@ export async function generatePptxReport(): Promise<void> {
     const sComp = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
     addSlideFrame(sComp, `${domain.name} — ${t('export.computeSizing')}`)
 
-    // 3 hero KPI cards across the top
-    addHeroKpi(sComp, 0.4, 1.4, 3.9, 1.3, t('export.recommendedHostCount'), String(computeData.recommendedHostCount), 'hosts')
-    addHeroKpi(sComp, 4.7, 1.4, 3.9, 1.3, t('export.minHostsCpu'), String(computeData.minHostsForCpu))
-    addHeroKpi(sComp, 9.0, 1.4, 3.9, 1.3, t('export.minHostsRam'), String(computeData.minHostsForRam))
+    // Hero KPI cards across the top (3 or 4 depending on storage constraint)
+    if (computeData.minHostsForStorage > 0) {
+      addHeroKpi(sComp, 0.4, 1.4, 2.9, 1.3, t('export.recommendedHostCount'), String(computeData.recommendedHostCount), 'hosts')
+      addHeroKpi(sComp, 3.6, 1.4, 2.9, 1.3, t('export.minHostsCpu'), String(computeData.minHostsForCpu))
+      addHeroKpi(sComp, 6.8, 1.4, 2.9, 1.3, t('export.minHostsRam'), String(computeData.minHostsForRam))
+      addHeroKpi(sComp, 10.0, 1.4, 2.9, 1.3, t('export.minHostsStorage'), String(computeData.minHostsForStorage))
+    } else {
+      addHeroKpi(sComp, 0.4, 1.4, 3.9, 1.3, t('export.recommendedHostCount'), String(computeData.recommendedHostCount), 'hosts')
+      addHeroKpi(sComp, 4.7, 1.4, 3.9, 1.3, t('export.minHostsCpu'), String(computeData.minHostsForCpu))
+      addHeroKpi(sComp, 9.0, 1.4, 3.9, 1.3, t('export.minHostsRam'), String(computeData.minHostsForRam))
+    }
 
     // 2 native doughnut charts
     addDoughnutChart(sComp, 1.5, 3.1, 3.5, 3.2, computeData.coreUtilizationPct, t('export.cpuUtilization'))
@@ -614,17 +635,17 @@ export async function generatePptxReport(): Promise<void> {
     const storDataRows = isExternalStorage
       ? [
           ...(storageData.workloadStorageRequiredTiB > 0 ? [
-            [t('export.workloadStorageRequired'), `${storageData.workloadStorageRequiredTiB.toFixed(2)} TiB`],
+            [t('export.workloadStorageRequired'), fmtS(storageData.workloadStorageRequiredTiB)],
           ] : []),
-          [t('export.externalPoolCapacity'), `${storageData.rawCapacityTiB.toFixed(2)} TiB`],
+          [t('export.externalPoolCapacity'), fmtS(storageData.rawCapacityTiB)],
         ]
       : [
           [t('export.raidScheme'), storageData.raidScheme],
-          [t('export.rawCapacity'), `${storageData.rawCapacityTiB.toFixed(2)} TiB`],
-          [t('export.usableAfterRaid'), `${storageData.usableAfterRaidTiB.toFixed(2)} TiB`],
-          [t('export.lfsOverhead'), `${storageData.lfsOverheadTiB.toFixed(2)} TiB`],
-          [t('export.metadataOverhead'), `${storageData.metadataOverheadTiB.toFixed(2)} TiB`],
-          [t('export.safeUsableCapacity'), `${storageData.safeUsableCapacityTiB.toFixed(2)} TiB`],
+          [t('export.rawCapacity'), fmtS(storageData.rawCapacityTiB)],
+          [t('export.usableAfterRaid'), fmtS(storageData.usableAfterRaidTiB)],
+          [t('export.lfsOverhead'), fmtS(storageData.lfsOverheadTiB)],
+          [t('export.metadataOverhead'), fmtS(storageData.metadataOverheadTiB)],
+          [t('export.safeUsableCapacity'), fmtS(storageData.safeUsableCapacityTiB)],
         ]
     modernTable(sStor, [t('export.metric'), t('export.value')], storDataRows, [6.25, 6.25], {
       lastRowBold: !isExternalStorage,
@@ -658,7 +679,7 @@ export async function generatePptxReport(): Promise<void> {
 
     // Domain: Conditional — Stretch Cluster Topology (PPTX-12)
     if (domain.deploymentMode === 'stretch') {
-      const stretchData = buildStretchTopologySlideData(domain, result.stretch!, t)
+      const stretchData = buildStretchTopologySlideData(domain, result.stretch!, t, unit)
       const sStretch = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
       addSlideFrame(sStretch, `${domain.name} — ${t('export.stretchTopology')}`)
       modernTable(
@@ -685,7 +706,7 @@ export async function generatePptxReport(): Promise<void> {
 
     // Domain: Conditional — vSAN Max Cluster (PPTX-13)
     if (domain.storageType === 'vsan-max' && result.vsanMax !== null) {
-      const vmaxData = buildVsanMaxSlideData(domain, result.vsanMax, t)
+      const vmaxData = buildVsanMaxSlideData(domain, result.vsanMax, t, unit)
       const sVmax = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
       addSlideFrame(sVmax, `${domain.name} — ${t('export.vsanMaxCluster')}`)
       modernTable(
@@ -740,14 +761,14 @@ export async function generatePptxReport(): Promise<void> {
   pres.addSection({ title: 'Summary' })
 
   // ── Aggregate Totals slide — hero KPIs + detail table ───────────────────────
-  const aggData = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, store.managementDomain.storageType ?? 'vsan-esa', t)
+  const aggData = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, store.managementDomain.storageType ?? 'vsan-esa', t, unit)
   const sAgg = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
   addSlideFrame(sAgg, t('export.aggregateTotals'))
 
   // 3 hero KPI cards
   addHeroKpi(sAgg, 0.4, 1.4, 3.9, 1.3, t('export.totalRecommendedHosts'), String(calc.aggregateTotals.totalRecommendedHosts), 'hosts')
   addHeroKpi(sAgg, 4.7, 1.4, 3.9, 1.3, t('export.totalVmCount'), String(calc.aggregateTotals.totalVmCount), 'VMs')
-  addHeroKpi(sAgg, 9.0, 1.4, 3.9, 1.3, t('export.totalEffectiveStorage'), `${calc.aggregateTotals.totalEffectiveStorageTiB.toFixed(1)}`, 'TiB')
+  addHeroKpi(sAgg, 9.0, 1.4, 3.9, 1.3, t('export.totalEffectiveStorage'), fmtS(calc.aggregateTotals.totalEffectiveStorageTiB, 1))
 
   // Detail table below KPIs
   modernTable(

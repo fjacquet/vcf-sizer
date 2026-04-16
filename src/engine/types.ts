@@ -48,6 +48,7 @@ export interface ComputeInputs {
   activeMemoryPct?: number       // default 50
   gpuVmCount?: number            // default 0
   vgpuMemoryGB?: number          // default 16
+  minHostsForStorage?: number    // default 0 — vSAN ESA storage-driven host minimum
 }
 
 export interface StretchInputs {
@@ -86,6 +87,7 @@ export interface ComputeResult {
   ramUtilizationPct: number
   minHostsForCpu: number
   minHostsForRam: number
+  minHostsForStorage: number  // vSAN ESA storage-driven minimum (0 for FC/NFS/vSAN Max)
   recommendedHostCount: number
   effectiveHostCount: number  // actual hostCount used for capacity calculations
 }

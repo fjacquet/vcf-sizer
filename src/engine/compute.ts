@@ -21,7 +21,7 @@ import type { ComputeInputs, ComputeResult } from './types'
  *   availableRamGB = hostCount × hostRamGB
  *   minHostsForCpu = ceil(totalCoresRequired / coresPerSocket / socketsPerHost)
  *   minHostsForRam = ceil(totalRamRequiredGB / hostRamGB)
- *   recommendedHostCount = max(minHostsForCpu, minHostsForRam)
+ *   recommendedHostCount = max(minHostsForCpu, minHostsForRam, minHostsForStorage)
  */
 export function calcCompute(inputs: ComputeInputs): ComputeResult {
   const {
@@ -40,6 +40,7 @@ export function calcCompute(inputs: ComputeInputs): ComputeResult {
     activeMemoryPct = 50,
     gpuVmCount = 0,
     vgpuMemoryGB = 16,
+    minHostsForStorage = 0,
   } = inputs
 
   // NVMe Memory Tiering: when enabled and active memory <= 50%, halve effective DRAM
@@ -106,8 +107,8 @@ export function calcCompute(inputs: ComputeInputs): ComputeResult {
     new Decimal(totalRamRequiredGB).dividedBy(effectiveHostRamGB).toNumber()
   )
 
-  // Recommended host count = maximum of the two constraints
-  const recommendedHostCount = Math.max(minHostsForCpu, minHostsForRam)
+  // Recommended host count = maximum of compute and storage constraints
+  const recommendedHostCount = Math.max(minHostsForCpu, minHostsForRam, minHostsForStorage)
 
   return {
     totalCoresRequired,
@@ -118,6 +119,7 @@ export function calcCompute(inputs: ComputeInputs): ComputeResult {
     ramUtilizationPct,
     minHostsForCpu,
     minHostsForRam,
+    minHostsForStorage,
     recommendedHostCount,
     effectiveHostCount: hostCount,
   }

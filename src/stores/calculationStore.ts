@@ -7,7 +7,7 @@ import { computed } from 'vue'
 import { useInputStore } from './inputStore'
 import { calcManagement } from '../engine/management'
 import { calcCompute } from '../engine/compute'
-import { calcStorage } from '../engine/storage'
+import { calcStorage, calcMinHostsForVsanEsa } from '../engine/storage'
 import { calcVsanMax } from '../engine/vsanMax'
 import { calcStretch } from '../engine/stretch'
 import { validateInputs, DEDICATED_MGMT_MIN_HOSTS, STRETCH_DEDICATED_MGMT_MIN_HOSTS, DEDICATED_MGMT_MIN_HOSTS_EXTERNAL, STRETCH_DEDICATED_MGMT_MIN_HOSTS_EXTERNAL } from '../engine/validation'
@@ -55,6 +55,20 @@ export const useCalculationStore = defineStore('calculation', () => {
         ? management.value.totalRamGB
         : 0
 
+      // Storage-driven host minimum: only applies to vSAN ESA (local storage)
+      const workloadStorageTiB = domain.vmCount * domain.avgStorageGbPerVm / 1024
+      const minHostsForStorage = domain.storageType === 'vsan-esa'
+        ? calcMinHostsForVsanEsa(
+            domain.hostStorageTiB,
+            domain.fttLevel,
+            domain.raidType,
+            domain.dedupEnabled,
+            domain.dedupRatio,
+            domain.deploymentMode,
+            workloadStorageTiB,
+          )
+        : 0
+
       return {
         id: domain.id,
         name: domain.name,
@@ -75,6 +89,7 @@ export const useCalculationStore = defineStore('calculation', () => {
           activeMemoryPct: domain.activeMemoryPct,
           gpuVmCount: domain.gpuVmCount,
           vgpuMemoryGB: domain.vgpuMemoryGB,
+          minHostsForStorage,
         }),
         storage: calcStorage({
           storageType: domain.storageType,
