@@ -4,7 +4,7 @@
 // vSAN ESA Adaptive RAID-5 thresholds from CONTEXT.md / PITFALLS #2
 
 import Decimal from 'decimal.js'
-import type { StorageInputs, StorageResult, FttLevel, RaidType } from './types'
+import type { StorageInputs, StorageResult, FttLevel, RaidType, DeploymentMode } from './types'
 
 // ─── vSAN ESA Adaptive RAID-5 constants ────────────────────────────────────
 // Source: Duncan Epping Yellow Bricks Jan 2024 ESA post + Broadcom KB 405876
@@ -65,6 +65,69 @@ export function vsanEsaRaidOverhead(
 
   // Fallback (should not reach here with correct type)
   return { multiplier: 2.0, scheme: 'Unknown RAID', minHostsRequired: 3 }
+}
+
+// ─── calcMinHostsForVsanEsa ────────────────────────────────────────────────
+
+/**
+ * Compute the minimum number of ESXi hosts required so that vSAN ESA
+ * safeUsableCapacity >= workload storage demand.
+ *
+ * Formula per host (constant RAID multiplier M, dedup factor D, stretch S):
+ *   usablePerHost = H × (0.87×D / M − 0.10) × 0.70 × S
+ *   minHosts = ceil(workloadTiB / usablePerHost)
+ *
+ * For RAID-5 adaptive (multiplier changes at 6 hosts):
+ *   1. Compute with 4+1 (M=1.25). If result ≥ 6, use it.
+ *   2. Compute with 2+1 (M=1.5). If result ≤ 5, use it.
+ *   3. Otherwise, use 6 (boundary: switching to 4+1 at 6 hosts satisfies demand).
+ */
+export function calcMinHostsForVsanEsa(
+  hostStorageTiB: number,
+  fttLevel: FttLevel,
+  raidType: RaidType,
+  dedupEnabled: boolean,
+  dedupRatio: number,
+  deploymentMode: DeploymentMode,
+  workloadStorageTiB: number,
+): number {
+  if (workloadStorageTiB <= 0 || hostStorageTiB <= 0) return 0
+
+  const D = new Decimal(dedupEnabled ? dedupRatio : 1)
+  const S = new Decimal(deploymentMode === 'stretch' ? 0.5 : 1.0)
+  const H = new Decimal(hostStorageTiB)
+  const LFS = new Decimal(1).minus(VSAN_LFS_OVERHEAD) // 0.87
+  const META = new Decimal(VSAN_METADATA_PCT) // 0.10
+  const SLACK = new Decimal(VSAN_SAFE_SLACK) // 0.70
+  const workload = new Decimal(workloadStorageTiB)
+
+  function minHostsForMultiplier(mult: number): number {
+    const M = new Decimal(mult)
+    // usablePerHost = H × (LFS × D / M − META) × SLACK × S
+    const usablePerHost = H.times(LFS.times(D).dividedBy(M).minus(META)).times(SLACK).times(S)
+    if (usablePerHost.lte(0)) return 9999 // Can't satisfy with this config
+    return Math.ceil(workload.dividedBy(usablePerHost).toNumber())
+  }
+
+  if (raidType !== 'raid5') {
+    // Fixed multiplier — compute directly
+    const { multiplier, minHostsRequired } = vsanEsaRaidOverhead(4, fttLevel, raidType)
+    return Math.max(minHostsForMultiplier(multiplier), minHostsRequired)
+  }
+
+  // RAID-5 adaptive: multiplier changes at 6 hosts
+  const minHosts_41 = minHostsForMultiplier(1.25) // 4+1 scheme (≥6 hosts)
+  const minHosts_21 = minHostsForMultiplier(1.5)  // 2+1 scheme (<6 hosts)
+
+  let result: number
+  if (minHosts_41 >= 6) {
+    result = minHosts_41 // Need ≥6 hosts anyway → better 4+1 scheme applies
+  } else if (minHosts_21 <= 5) {
+    result = minHosts_21 // ≤5 hosts suffice with 2+1 scheme
+  } else {
+    result = 6 // Cross boundary: 6 hosts with 4+1 is enough
+  }
+  return Math.max(result, 4) // RAID-5 always needs ≥4 hosts
 }
 
 // ─── calcStorage ───────────────────────────────────────────────────────────
@@ -197,7 +260,7 @@ export function calcStorage(inputs: StorageInputs): StorageResult {
         safeUsableCapacityTiB,
         raidScheme,
         minHostsRequired,
-        workloadStorageRequiredTiB: 0,
+        workloadStorageRequiredTiB: 0, // vSAN ESA: physical capacity reported; demand tracked via minHostsForStorage
       }
     }
 

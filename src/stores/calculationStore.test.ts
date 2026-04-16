@@ -305,8 +305,9 @@ describe('calculationStore — aggregateTotals mgmt host integration (ENGINE-03)
     const input = useInputStore()
     input.managementArchitecture = 'dedicated'
     const calc = useCalculationStore()
+    // aggregateTotals uses effectiveHostCount (actual cluster size), not recommendedHostCount
     const workloadHosts = calc.domainResults.reduce(
-      (sum, d) => sum + d.compute.recommendedHostCount, 0
+      (sum, d) => sum + d.compute.effectiveHostCount, 0
     )
     const mgmtHosts = calc.dedicatedMgmtHostCount ?? 0
     expect(calc.aggregateTotals.totalRecommendedHosts).toBe(workloadHosts + mgmtHosts)

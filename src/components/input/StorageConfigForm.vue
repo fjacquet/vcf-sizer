@@ -7,8 +7,10 @@ import { createDefaultWorkloadDomain } from '@/engine/defaults'
 import type { WorkloadDomainConfig } from '@/engine/types'
 import WarningBanner from '@/components/shared/WarningBanner.vue'
 import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
+import { useStorageFormat } from '@/composables/useStorageFormat'
 
 const { t } = useI18n()
+const { fmt } = useStorageFormat()
 const props = defineProps<{ domainId: string }>()
 const input = useInputStore()
 const calc = useCalculationStore()
@@ -33,6 +35,7 @@ const dedupRatio = domainField('dedupRatio')
 const deploymentMode = domainField('deploymentMode')
 const vsanMaxProfile = domainField('vsanMaxProfile')
 const vsanMaxStorageNodes = domainField('vsanMaxStorageNodes')
+const externalStorageUsableTiB = domainField('externalStorageUsableTiB')
 
 const domainResult = computed(() =>
   calc.domainResults.find(r => r.id === props.domainId)
@@ -70,11 +73,19 @@ const storageTypes = [
       <button
         v-for="type in storageTypes"
         :key="type.value"
+        :disabled="type.value === 'vsan-max' && isStretch"
+        :title="type.value === 'vsan-max' && isStretch ? t('warnings.vsanMaxStretchExclusion') : ''"
+        :aria-label="type.value === 'vsan-max' && isStretch
+          ? `${t(type.labelKey)} — ${t('warnings.vsanMaxStretchExclusion')}`
+          : t(type.labelKey)"
         :class="[
           'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
           storageType === type.value
             ? 'bg-blue-600 text-white border-blue-600'
-            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400',
+          type.value === 'vsan-max' && isStretch
+            ? 'opacity-50 cursor-not-allowed hover:border-gray-300 dark:hover:border-gray-600'
+            : ''
         ]"
         @click="storageType = type.value"
       >
@@ -102,7 +113,7 @@ const storageTypes = [
             class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="raid1">{{ t('storage.raid1') }}</option>
-            <option value="raid5">{{ t('storage.raid5') }}</option>
+            <option value="raid5" :disabled="fttLevel === 2">{{ t('storage.raid5') }}</option>
             <option value="raid6" :disabled="fttLevel === 1">{{ t('storage.raid6') }}</option>
           </select>
         </div>
@@ -167,11 +178,11 @@ const storageTypes = [
             v-model="vsanMaxProfile"
             class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="xs">XS — 20 TB/node</option>
-            <option value="sm">SM — 50 TB/node</option>
-            <option value="med">MED — 100 TB/node</option>
-            <option value="lrg">LRG — 150 TB/node</option>
-            <option value="xl">XL — 200 TB/node</option>
+            <option value="xs">XS — {{ fmt(20, 0) }}/node</option>
+            <option value="sm">SM — {{ fmt(50, 0) }}/node</option>
+            <option value="med">MED — {{ fmt(100, 0) }}/node</option>
+            <option value="lrg">LRG — {{ fmt(150, 0) }}/node</option>
+            <option value="xl">XL — {{ fmt(200, 0) }}/node</option>
           </select>
         </div>
         <!-- Storage nodes slider -->
@@ -191,18 +202,33 @@ const storageTypes = [
       />
     </template>
 
+    <!-- FC/NFS external pool sizing — exposes the pass-through capacity input -->
+    <template v-if="storageType === 'fc' || storageType === 'nfs'">
+      <NumberSliderInput
+        v-model="externalStorageUsableTiB"
+        :label="t('storage.externalPoolInput')"
+        unit="TiB"
+        :min="10"
+        :max="2000"
+        :step="10"
+      />
+    </template>
+
     <!-- Storage capacity summary (STOR-08) -->
     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
-      <span>{{ t('storage.rawCapacity') }}</span>
-      <span class="font-mono text-right">
-        {{ storageType === 'vsan-max' && vsanMax ? vsanMax.rawCapacityTiB.toFixed(2) : (storage?.rawCapacityTiB ?? 0).toFixed(2) }} TB
-      </span>
+      <!-- Raw capacity (vSAN types only — FC/NFS show pool below) -->
+      <template v-if="storageType !== 'fc' && storageType !== 'nfs'">
+        <span>{{ t('storage.rawCapacity') }}</span>
+        <span class="font-mono text-right">
+          {{ storageType === 'vsan-max' && vsanMax ? fmt(vsanMax.rawCapacityTiB) : fmt(storage?.rawCapacityTiB ?? 0) }}
+        </span>
+      </template>
       <template v-if="storageType === 'vsan-esa'">
         <span>{{ t('storage.raidOverhead') }}</span>
         <span class="font-mono text-right">{{ storage?.raidMultiplier ?? 0 }}x</span>
         <span>{{ t('storage.netUsable') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ (storage?.safeUsableCapacityTiB ?? 0).toFixed(2) }} TB
+          {{ fmt(storage?.safeUsableCapacityTiB ?? 0) }}
         </span>
       </template>
       <template v-else-if="storageType === 'vsan-max' && vsanMax">
@@ -210,13 +236,20 @@ const storageTypes = [
         <span class="font-mono text-right">{{ vsanMax.raidScheme }}</span>
         <span>{{ t('storage.netUsable') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ vsanMax.usableCapacityTiB.toFixed(2) }} TB
+          {{ fmt(vsanMax.usableCapacityTiB) }}
         </span>
       </template>
       <template v-else>
-        <span>{{ t('storage.netUsablePassthrough') }}</span>
+        <!-- FC/NFS: workload demand + external pool capacity -->
+        <template v-if="(storage?.workloadStorageRequiredTiB ?? 0) > 0">
+          <span>{{ t('storage.workloadRequired') }}</span>
+          <span class="font-mono text-right text-blue-700 dark:text-blue-400 font-semibold">
+            {{ fmt(storage!.workloadStorageRequiredTiB) }}
+          </span>
+        </template>
+        <span>{{ t('storage.externalPool') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ (storage?.rawCapacityTiB ?? 0).toFixed(2) }} TB
+          {{ fmt(storage?.rawCapacityTiB ?? 0) }}
         </span>
       </template>
     </div>

@@ -5,7 +5,9 @@
 // Phase 22: All user-visible strings localized via i18n.global.t() (EXPORT-02)
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
+import { useUiStore } from '@/stores/uiStore'
 import { i18n } from '@/i18n'
+import { formatStorage } from '@/utils/formatStorage'
 
 /**
  * generateMarkdownReport — called on Markdown export click.
@@ -17,7 +19,9 @@ import { i18n } from '@/i18n'
 export function generateMarkdownReport(): string {
   const calc = useCalculationStore()
   const store = useInputStore()
+  const ui = useUiStore()
   const t = i18n.global.t
+  const fmtS = (v: number, p = 2) => formatStorage(v, ui.storageUnit, p)
   const now = new Date().toISOString().split('T')[0]
 
   const sections: string[] = [
@@ -78,7 +82,7 @@ export function generateMarkdownReport(): string {
       `| ${t('export.socketsPerHost')} | ${domain.socketsPerHost} |`,
       `| ${t('export.ramPerHost')} | ${domain.hostRamGB} GB |`,
       ...(domain.storageType !== 'fc' && domain.storageType !== 'nfs' ? [
-        `| ${t('export.storagePerHost')} | ${domain.hostStorageTiB} TiB |`,
+        `| ${t('export.storagePerHost')} | ${fmtS(domain.hostStorageTiB)} |`,
       ] : []),
     )
 
@@ -107,6 +111,9 @@ export function generateMarkdownReport(): string {
       `| **${t('export.recommendedHostCount')}** | **${result.compute.recommendedHostCount}** |`,
       `| ${t('export.minHostsCpu')} | ${result.compute.minHostsForCpu} |`,
       `| ${t('export.minHostsRam')} | ${result.compute.minHostsForRam} |`,
+      ...(result.compute.minHostsForStorage > 0 ? [
+        `| ${t('export.minHostsStorage')} | ${result.compute.minHostsForStorage} |`,
+      ] : []),
       `| ${t('export.totalVcpuRequired')} | ${result.compute.totalCoresRequired} |`,
       `| ${t('export.availableVcpu')} | ${result.compute.availableCores} |`,
       `| ${t('export.cpuUtilization')} | ${result.compute.coreUtilizationPct.toFixed(1)}% |`,
@@ -125,16 +132,16 @@ export function generateMarkdownReport(): string {
       `| ${t('export.storageType')} | ${domain.storageType} |`,
       ...(domain.storageType === 'fc' || domain.storageType === 'nfs' ? [
         ...(result.storage.workloadStorageRequiredTiB > 0 ? [
-          `| ${t('export.workloadStorageRequired')} | ${result.storage.workloadStorageRequiredTiB.toFixed(2)} TiB |`,
+          `| ${t('export.workloadStorageRequired')} | ${fmtS(result.storage.workloadStorageRequiredTiB)} |`,
         ] : []),
-        `| ${t('export.externalPoolCapacity')} | ${result.storage.rawCapacityTiB.toFixed(2)} TiB |`,
+        `| ${t('export.externalPoolCapacity')} | ${fmtS(result.storage.rawCapacityTiB)} |`,
       ] : [
         `| ${t('export.raidScheme')} | ${result.storage.raidScheme} |`,
-        `| ${t('export.rawCapacity')} | ${result.storage.rawCapacityTiB.toFixed(2)} TiB |`,
-        `| ${t('export.usableAfterRaid')} | ${result.storage.usableAfterRaidTiB.toFixed(2)} TiB |`,
-        `| ${t('export.lfsOverhead')} | ${result.storage.lfsOverheadTiB.toFixed(2)} TiB |`,
-        `| ${t('export.metadataOverhead')} | ${result.storage.metadataOverheadTiB.toFixed(2)} TiB |`,
-        `| **${t('export.safeUsableCapacity')}** | **${result.storage.safeUsableCapacityTiB.toFixed(2)} TiB** |`,
+        `| ${t('export.rawCapacity')} | ${fmtS(result.storage.rawCapacityTiB)} |`,
+        `| ${t('export.usableAfterRaid')} | ${fmtS(result.storage.usableAfterRaidTiB)} |`,
+        `| ${t('export.lfsOverhead')} | ${fmtS(result.storage.lfsOverheadTiB)} |`,
+        `| ${t('export.metadataOverhead')} | ${fmtS(result.storage.metadataOverheadTiB)} |`,
+        `| **${t('export.safeUsableCapacity')}** | **${fmtS(result.storage.safeUsableCapacityTiB)}** |`,
       ]),
     )
 
@@ -191,7 +198,7 @@ export function generateMarkdownReport(): string {
         `| ${t('export.minInterSiteBw')} | ${s!.minBandwidthGbps} Gbps |`,
         `| ${t('export.witnessVcpu')} | ${s!.witnessCores} |`,
         `| ${t('export.witnessRam')} | ${s!.witnessRamGB} GB |`,
-        `| ${t('export.effectivePerSiteStorage')} | ${s!.effectivePerSiteStorageTiB.toFixed(2)} TiB |`,
+        `| ${t('export.effectivePerSiteStorage')} | ${fmtS(s!.effectivePerSiteStorageTiB)} |`,
         ``,
         `**${t('export.networkChecklist')}:**`,
         ``,
@@ -218,8 +225,8 @@ export function generateMarkdownReport(): string {
         `| ${t('export.storageNodeCount')} | ${v.storageNodeCount} |`,
         `| ${t('export.computeNodeCount')} | ${v.computeNodeCount} |`,
         `| ${t('export.raidScheme')} | ${v.raidScheme} |`,
-        `| ${t('export.rawCapacity')} | ${v.rawCapacityTiB.toFixed(2)} TiB |`,
-        `| ${t('export.usableCapacity')} | ${v.usableCapacityTiB.toFixed(2)} TiB |`,
+        `| ${t('export.rawCapacity')} | ${fmtS(v.rawCapacityTiB)} |`,
+        `| ${t('export.usableCapacity')} | ${fmtS(v.usableCapacityTiB)} |`,
       )
     }
   }
@@ -235,10 +242,10 @@ export function generateMarkdownReport(): string {
     `| ${t('export.totalRecommendedHosts')} | ${totals.totalRecommendedHosts} |`,
     `| ${t('export.managementHosts')} | ${store.managementArchitecture === 'dedicated' && calc.dedicatedMgmtHostCount !== null ? String(calc.dedicatedMgmtHostCount) : t('export.colocatedWld1')} |`,
     `| ${t('export.totalVmCount')} | ${totals.totalVmCount} |`,
-    `| ${t('export.totalRawStorage')} | ${totals.totalRawStorageTiB.toFixed(2)} TiB |`,
-    `| ${t('export.totalEffectiveStorage')} | ${totals.totalEffectiveStorageTiB.toFixed(2)} TiB |`,
+    `| ${t('export.totalRawStorage')} | ${fmtS(totals.totalRawStorageTiB)} |`,
+    `| ${t('export.totalEffectiveStorage')} | ${fmtS(totals.totalEffectiveStorageTiB)} |`,
     ...(totals.totalWorkloadStorageRequiredTiB > 0 ? [
-      `| ${t('export.totalWorkloadStorageRequired')} | ${totals.totalWorkloadStorageRequiredTiB.toFixed(2)} TiB |`,
+      `| ${t('export.totalWorkloadStorageRequired')} | ${fmtS(totals.totalWorkloadStorageRequiredTiB)} |`,
     ] : []),
   )
 

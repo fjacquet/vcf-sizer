@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, toRaw } from 'vue'
 import { createDefaultWorkloadDomain, createDefaultManagementDomain } from '@/engine/defaults'
 import type { WorkloadDomainConfig, ManagementDomainConfig } from '@/engine/types'
+import { useUiStore } from '@/stores/uiStore'
 
 export const useInputStore = defineStore('input', () => {
   // GLOBAL (deployment-level, not per-domain)
@@ -30,9 +31,58 @@ export const useInputStore = defineStore('input', () => {
     activeDomainIndex.value = Math.min(activeDomainIndex.value, workloadDomains.value.length - 1)
   }
 
+  // Auto-correct incompatible field combinations as the user edits a domain.
+  // Surfaces a transient banner via uiStore.flashAutoCorrection() so the user knows
+  // which field was silently normalized. Runs on every patch (including URL-state
+  // rehydration) so rules are enforced regardless of entry point.
+  function normalizeDomainPatch(
+    domain: WorkloadDomainConfig,
+    patch: Partial<WorkloadDomainConfig>,
+  ): Partial<WorkloadDomainConfig> {
+    const ui = useUiStore()
+    const normalized: Partial<WorkloadDomainConfig> = { ...patch }
+
+    // Effective values after patch (for cross-field checks)
+    const nextStorage = normalized.storageType ?? domain.storageType
+    const nextFtt = normalized.fttLevel ?? domain.fttLevel
+    const nextRaid = normalized.raidType ?? domain.raidType
+    const nextDedup = normalized.dedupEnabled ?? domain.dedupEnabled
+    let nextMode = normalized.deploymentMode ?? domain.deploymentMode
+
+    // Rule: vSAN Max + Stretch is invalid → force HA.
+    // Must run BEFORE the Stretch/Dedup rule so the dedup rule does not
+    // silently disable dedup based on a mode that we are about to revert.
+    if (nextStorage === 'vsan-max' && nextMode === 'stretch') {
+      normalized.deploymentMode = 'ha'
+      nextMode = 'ha'
+      ui.flashAutoCorrection('warnings.autoCorrectDeploymentVsanMax')
+    }
+
+    // Rule: Stretch + Dedup is invalid → force dedup off
+    if (nextMode === 'stretch' && nextDedup) {
+      normalized.dedupEnabled = false
+      ui.flashAutoCorrection('warnings.autoCorrectDedupStretch')
+    }
+
+    // Rule: RAID-5 requires FTT=1 → promote to RAID-6 when FTT=2
+    if (nextFtt === 2 && nextRaid === 'raid5') {
+      normalized.raidType = 'raid6'
+      ui.flashAutoCorrection('warnings.autoCorrectRaidFtt2')
+    }
+
+    // Rule: RAID-6 requires FTT=2 → demote to RAID-5 when FTT=1
+    if (nextFtt === 1 && nextRaid === 'raid6') {
+      normalized.raidType = 'raid5'
+      ui.flashAutoCorrection('warnings.autoCorrectRaidFtt1')
+    }
+
+    return normalized
+  }
+
   function updateDomain(id: string, patch: Partial<WorkloadDomainConfig>) {
     const domain = workloadDomains.value.find(d => d.id === id)
-    if (domain) Object.assign(domain, patch)
+    if (!domain) return
+    Object.assign(domain, normalizeDomainPatch(domain, patch))
   }
 
   function renameDomain(id: string, name: string) {

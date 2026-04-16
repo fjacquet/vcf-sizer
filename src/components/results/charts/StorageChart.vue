@@ -15,6 +15,7 @@ import {
 import type { ChartData, ChartOptions } from 'chart.js'
 import type { StorageResult } from '@/engine/types'
 import { useUiStore } from '@/stores/uiStore'
+import { useStorageFormat } from '@/composables/useStorageFormat'
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
@@ -23,6 +24,7 @@ const props = defineProps<{ storage: StorageResult; domainId: string }>()
 const { t } = useI18n()
 const uiStore = useUiStore()
 const isDark = usePreferredDark()
+const { unit, fmt } = useStorageFormat()
 
 const canvasId = computed(() => 'storage-chart-' + props.domainId)
 
@@ -107,25 +109,25 @@ watch(() => props.storage, captureChartImage, { deep: true })
       <thead>
         <tr class="border-b border-gray-300">
           <th class="text-left py-1 font-medium">{{ t('results.charts.storage') }}</th>
-          <th class="text-right py-1 font-medium">TB</th>
+          <th class="text-right py-1 font-medium">{{ unit }}</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td class="py-1">{{ t('results.charts.storageUsable') }}</td>
-          <td class="text-right font-mono">{{ props.storage.safeUsableCapacityTiB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ fmt(props.storage.safeUsableCapacityTiB) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageLfs') }}</td>
-          <td class="text-right font-mono">{{ props.storage.lfsOverheadTiB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ fmt(props.storage.lfsOverheadTiB) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageMetadata') }}</td>
-          <td class="text-right font-mono">{{ props.storage.metadataOverheadTiB.toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ fmt(props.storage.metadataOverheadTiB) }}</td>
         </tr>
         <tr>
           <td class="py-1">{{ t('results.charts.storageRaid') }}</td>
-          <td class="text-right font-mono">{{ (props.storage.rawCapacityTiB - props.storage.usableAfterRaidTiB).toFixed(2) }}</td>
+          <td class="text-right font-mono">{{ fmt(props.storage.rawCapacityTiB - props.storage.usableAfterRaidTiB) }}</td>
         </tr>
       </tbody>
     </table>

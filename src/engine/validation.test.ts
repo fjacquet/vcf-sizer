@@ -422,3 +422,43 @@ describe('validateInputs -- Co-located min hosts (ARCH-02)', () => {
     expect(errors.filter(e => e.code === 'COLLOCATED_MIN_HOSTS').length).toBe(0)
   })
 })
+
+describe('validateInputs — vSAN Max + Stretch exclusion', () => {
+  it('vsan-max + stretch -> VSAN_MAX_STRETCH_EXCLUSION error', () => {
+    const errors = validateInputs({
+      deploymentMode: 'stretch',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 8,
+      dedupEnabled: false,
+      storageType: 'vsan-max',
+      vsanMaxStorageNodes: 4,
+    })
+    expect(errors.some(e => e.code === 'VSAN_MAX_STRETCH_EXCLUSION' && e.severity === 'error')).toBe(true)
+  })
+
+  it('vsan-max + ha -> no VSAN_MAX_STRETCH_EXCLUSION', () => {
+    const errors = validateInputs({
+      deploymentMode: 'ha',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 8,
+      dedupEnabled: false,
+      storageType: 'vsan-max',
+      vsanMaxStorageNodes: 4,
+    })
+    expect(errors.filter(e => e.code === 'VSAN_MAX_STRETCH_EXCLUSION').length).toBe(0)
+  })
+
+  it('vsan-esa + stretch -> no VSAN_MAX_STRETCH_EXCLUSION (only fires for vsan-max)', () => {
+    const errors = validateInputs({
+      deploymentMode: 'stretch',
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostCount: 6,
+      dedupEnabled: false,
+      storageType: 'vsan-esa',
+    })
+    expect(errors.filter(e => e.code === 'VSAN_MAX_STRETCH_EXCLUSION').length).toBe(0)
+  })
+})

@@ -2,9 +2,11 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AggregateTotals } from '@/engine/types'
+import { useStorageFormat } from '@/composables/useStorageFormat'
 
 const props = defineProps<{ totals: AggregateTotals; managementHostCount: number | null }>()
 const { t } = useI18n()
+const { fmt } = useStorageFormat()
 
 // totalRecommendedHosts already equals workloadHosts + mgmtHosts — do not add mgmt again
 const grandTotal = computed(() => props.totals.totalRecommendedHosts)
@@ -47,10 +49,10 @@ const workloadHostCount = computed(() =>
       <span class="font-mono text-right">{{ totals.totalVmCount }}</span>
 
       <span>{{ t('results.aggregate.totalRawStorage') }}</span>
-      <span class="font-mono text-right">{{ totals.totalRawStorageTiB.toFixed(2) }} TiB</span>
+      <span class="font-mono text-right">{{ fmt(totals.totalRawStorageTiB) }}</span>
 
       <span>{{ t('results.aggregate.totalEffectiveStorage') }}</span>
-      <span class="font-mono text-right">{{ totals.totalEffectiveStorageTiB.toFixed(2) }} TiB</span>
+      <span class="font-mono text-right">{{ fmt(totals.totalEffectiveStorageTiB) }}</span>
     </div>
 
     <!-- Aggregate validation warnings -->

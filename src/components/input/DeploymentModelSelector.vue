@@ -6,6 +6,7 @@ import { useCalculationStore } from '@/stores/calculationStore'
 import { createDefaultWorkloadDomain } from '@/engine/defaults'
 import type { WorkloadDomainConfig } from '@/engine/types'
 import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
+import WarningBanner from '@/components/shared/WarningBanner.vue'
 
 const { t } = useI18n()
 const props = defineProps<{ domainId: string }>()
@@ -29,12 +30,39 @@ const deploymentMode = domainField('deploymentMode')
 const preferredSiteHosts = domainField('preferredSiteHosts')
 const secondarySiteHosts = domainField('secondarySiteHosts')
 const networkSpeedGbE = domainField('networkSpeedGbE')
+const hostCount = domainField('hostCount')
+const storageType = domainField('storageType')
 
 // Per-domain calc results
 const domainResult = computed(() =>
   calc.domainResults.find(r => r.id === props.domainId)
 )
 const stretch = computed(() => domainResult.value?.stretch ?? null)
+const validationErrors = computed(() => domainResult.value?.validationErrors ?? [])
+
+// Cross-form validation: vSAN Max + Stretch is invalid (rehydrated URLs can bypass UI guard)
+const vsanMaxStretchError = computed(() =>
+  validationErrors.value.find(e => e.code === 'VSAN_MAX_STRETCH_EXCLUSION') ?? null
+)
+
+// vSAN Max disables Stretch mode — keep the radio visible but inactive, with reason tooltip
+const stretchDisabledByVsanMax = computed(() => storageType.value === 'vsan-max')
+
+// Contextual hostCount label + hint depending on storage type
+// vSAN ESA: hosts contribute local drives → "storage contributors"
+// FC/NFS: cluster size only — capacity comes from external array
+// vSAN Max: compute-node count, storage lives in separate cluster
+const hostCountLabel = computed(() =>
+  storageType.value === 'vsan-max' ? t('host.hostCountComputeNodes') : t('host.hostCount'),
+)
+const hostCountHint = computed(() => {
+  switch (storageType.value) {
+    case 'vsan-max': return t('host.hostCountHintVsanMax')
+    case 'fc':
+    case 'nfs': return t('host.hostCountHintExternal')
+    default: return t('host.hostCountHintVsan')
+  }
+})
 
 const modes = [
   { value: 'simple' as const, labelKey: 'deployment.simple' },
@@ -59,16 +87,45 @@ const bandwidthCappedByLineRate = computed(() => {
       <button
         v-for="mode in modes"
         :key="mode.value"
+        :disabled="mode.value === 'stretch' && stretchDisabledByVsanMax"
+        :title="mode.value === 'stretch' && stretchDisabledByVsanMax ? t('warnings.stretchDisabledReason') : ''"
+        :aria-label="mode.value === 'stretch' && stretchDisabledByVsanMax
+          ? `${t(mode.labelKey)} — ${t('warnings.stretchDisabledReason')}`
+          : t(mode.labelKey)"
         :class="[
           'px-4 py-2 text-sm rounded-md border font-medium transition-colors',
           deploymentMode === mode.value
             ? 'bg-blue-600 text-white border-blue-600'
-            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400',
+          mode.value === 'stretch' && stretchDisabledByVsanMax
+            ? 'opacity-50 cursor-not-allowed hover:border-gray-300 dark:hover:border-gray-600'
+            : ''
         ]"
         @click="deploymentMode = mode.value"
       >
         {{ t(mode.labelKey) }}
       </button>
+    </div>
+
+    <!-- Cross-form validation: vSAN Max + Stretch (defensive — URL rehydration may bypass button guard) -->
+    <WarningBanner
+      v-if="vsanMaxStretchError"
+      :message="t('warnings.vsanMaxStretchExclusion')"
+      severity="error"
+    />
+
+    <!-- Unified host count input — lives in the topology section so the
+         "how many hosts?" decision stays in one place.
+         Stretch mode uses per-site inputs instead (see template block below). -->
+    <div v-if="deploymentMode !== 'stretch'" class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+      <NumberSliderInput
+        v-model="hostCount"
+        :label="hostCountLabel"
+        :min="storageType === 'fc' || storageType === 'nfs' ? 2 : 3"
+        :max="64"
+        :step="1"
+      />
+      <p class="text-xs text-gray-500 dark:text-gray-400 italic">{{ hostCountHint }}</p>
     </div>
     <!-- Stretch cluster per-site inputs (STRCH-01/02/05) -->
     <template v-if="deploymentMode === 'stretch'">

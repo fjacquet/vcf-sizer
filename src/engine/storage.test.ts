@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { vsanEsaRaidOverhead, calcStorage } from './storage'
+import { vsanEsaRaidOverhead, calcStorage, calcMinHostsForVsanEsa } from './storage'
 
 describe('vsanEsaRaidOverhead — Adaptive RAID-5 thresholds (STOR-02)', () => {
   it('RAID-5 FTT=1 with 5 hosts → 2+1 scheme (multiplier=1.5)', () => {
@@ -237,5 +237,65 @@ describe('calcStorage — stretch PFTT=1 site mirroring (STRCH-03)', () => {
     const simple = calcStorage({ ...baseInputs, deploymentMode: 'simple' })
     const noMode = calcStorage(baseInputs)
     expect(noMode.safeUsableCapacityTiB).toBeCloseTo(simple.safeUsableCapacityTiB, 6)
+  })
+})
+
+describe('calcMinHostsForVsanEsa — storage-driven host minimum (STOR-08)', () => {
+  it('500 VMs × 250 GB with 3.84 TiB/host, RAID-5 FTT=1, no dedup → needs many hosts', () => {
+    const workloadTiB = 500 * 250 / 1024 // ~122.07 TiB
+    const result = calcMinHostsForVsanEsa(3.84, 1, 'raid5', false, 2, 'simple', workloadTiB)
+    // With 4+1 (1.25x): usablePerHost = 3.84 × (0.87/1.25 − 0.10) × 0.70 ≈ 1.603
+    // minHosts = ceil(122.07 / 1.603) ≈ 77
+    expect(result).toBeGreaterThanOrEqual(6) // Must use 4+1 scheme
+    expect(result).toBeGreaterThan(70) // Needs many hosts for 122 TiB
+  })
+
+  it('returns 0 when workload is zero', () => {
+    expect(calcMinHostsForVsanEsa(3.84, 1, 'raid5', false, 2, 'simple', 0)).toBe(0)
+  })
+
+  it('returns 0 when hostStorageTiB is zero', () => {
+    expect(calcMinHostsForVsanEsa(0, 1, 'raid5', false, 2, 'simple', 10)).toBe(0)
+  })
+
+  it('RAID-1 FTT=1 requires more hosts than RAID-5 for same workload', () => {
+    const workloadTiB = 50
+    const raid5 = calcMinHostsForVsanEsa(3.84, 1, 'raid5', false, 2, 'simple', workloadTiB)
+    const raid1 = calcMinHostsForVsanEsa(3.84, 1, 'raid1', false, 2, 'simple', workloadTiB)
+    expect(raid1).toBeGreaterThan(raid5)
+  })
+
+  it('dedup enabled reduces required host count', () => {
+    const workloadTiB = 50
+    const noDedup = calcMinHostsForVsanEsa(3.84, 1, 'raid5', false, 2, 'simple', workloadTiB)
+    const withDedup = calcMinHostsForVsanEsa(3.84, 1, 'raid5', true, 2, 'simple', workloadTiB)
+    expect(withDedup).toBeLessThan(noDedup)
+  })
+
+  it('stretch mode roughly doubles required hosts vs simple (PFTT=1 halves per-host usable)', () => {
+    const workloadTiB = 50
+    const simple = calcMinHostsForVsanEsa(3.84, 1, 'raid5', false, 2, 'simple', workloadTiB)
+    const stretch = calcMinHostsForVsanEsa(3.84, 1, 'raid5', false, 2, 'stretch', workloadTiB)
+    // ceil() rounding means stretch may be 2×simple or 2×simple−1
+    expect(stretch).toBeGreaterThanOrEqual(simple * 2 - 1)
+    expect(stretch).toBeLessThanOrEqual(simple * 2)
+  })
+
+  it('RAID-5 adaptive boundary: small workload fits within 5 hosts uses 2+1 scheme', () => {
+    // Small workload that fits in ≤5 hosts with 2+1 (1.5x)
+    const workloadTiB = 5
+    const result = calcMinHostsForVsanEsa(3.84, 1, 'raid5', false, 2, 'simple', workloadTiB)
+    expect(result).toBeLessThanOrEqual(5)
+    expect(result).toBeGreaterThanOrEqual(4) // RAID-5 minimum
+  })
+
+  it('RAID-5 minimum is 4 hosts even for tiny workload', () => {
+    const result = calcMinHostsForVsanEsa(3.84, 1, 'raid5', false, 2, 'simple', 0.1)
+    expect(result).toBeGreaterThanOrEqual(4)
+  })
+
+  it('RAID-1 FTT=1 minimum is 3 hosts', () => {
+    const result = calcMinHostsForVsanEsa(3.84, 1, 'raid1', false, 2, 'simple', 0.1)
+    expect(result).toBeGreaterThanOrEqual(3)
   })
 })
