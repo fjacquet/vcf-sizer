@@ -18,7 +18,7 @@ Run a single test file:
 npx vitest run src/engine/storage.test.ts
 ```
 
-Tests cover `src/engine/**/*.test.ts` and `src/composables/**/*.test.ts` only — no DOM environment needed.
+Tests cover `src/engine/**/*.test.ts`, `src/composables/**/*.test.ts`, and `src/stores/**/*.test.ts` — no DOM environment needed. Store tests wire real `inputStore` + `calculationStore` instances via Pinia and assert cross-store contracts (e.g., `aggregateTotals`, auto-correction cascade).
 
 ## Architecture
 

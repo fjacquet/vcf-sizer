@@ -67,23 +67,26 @@ const activeDomainId = computed(
           <ManagementCommittedSummary />
           <DomainTabStrip />
           <!-- Transient auto-correction banner — fires when inputStore.updateDomain()
-               normalizes an incompatible field combo (e.g., dedup off on switch to stretch). -->
+               normalizes an incompatible field combo (e.g., dedup off on switch to stretch).
+               Renders one line per active message key so multi-field patches surface all warnings. -->
           <div
-            v-if="ui.autoCorrectionMessageKey"
+            v-if="ui.autoCorrectionMessageKeys.length > 0"
             class="flex items-start gap-2 p-3 rounded-md border bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-sm"
             role="status"
           >
-            <span class="flex-1">{{ t(ui.autoCorrectionMessageKey) }}</span>
+            <ul class="flex-1 list-disc list-inside space-y-0.5">
+              <li v-for="key in ui.autoCorrectionMessageKeys" :key="key">{{ t(key) }}</li>
+            </ul>
             <button
               class="text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 font-bold px-1"
               aria-label="Dismiss"
               @click="ui.dismissAutoCorrection"
             >&times;</button>
           </div>
-          <DeploymentModelSelector :domainId="activeDomainId" />
-          <StorageConfigForm :domainId="activeDomainId" />
-          <HostSpecsForm :domainId="activeDomainId" />
-          <WorkloadProfileForm :domainId="activeDomainId" />
+          <DeploymentModelSelector :domain-id="activeDomainId" />
+          <StorageConfigForm :domain-id="activeDomainId" />
+          <HostSpecsForm :domain-id="activeDomainId" />
+          <WorkloadProfileForm :domain-id="activeDomainId" />
         </div>
       </div>
       <!-- RIGHT PANE: results — always visible regardless of wizard step -->

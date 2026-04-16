@@ -205,3 +205,98 @@ describe('inputStore -- duplicateDomain (DOMAIN-01)', () => {
     expect(store.workloadDomains[1].vmCount).toBe(999)
   })
 })
+
+// Auto-correction cascade — normalizeDomainPatch() in updateDomain()
+// Ensures incompatible field combos are silently normalized AND the user is
+// notified via uiStore.flashAutoCorrection() for every rule that fired.
+describe('inputStore — auto-correction cascade', () => {
+  it('Stretch + Dedup: forces dedupEnabled=false and flashes autoCorrectDedupStretch', async () => {
+    const { useUiStore } = await import('./uiStore')
+    const input = useInputStore()
+    const ui = useUiStore()
+    const id = input.workloadDomains[0].id
+    input.updateDomain(id, { deploymentMode: 'stretch', dedupEnabled: true })
+    expect(input.workloadDomains[0].deploymentMode).toBe('stretch')
+    expect(input.workloadDomains[0].dedupEnabled).toBe(false)
+    expect(ui.autoCorrectionMessageKeys).toContain('warnings.autoCorrectDedupStretch')
+  })
+
+  it('vSAN Max + Stretch: forces deploymentMode=ha and flashes autoCorrectDeploymentVsanMax', async () => {
+    const { useUiStore } = await import('./uiStore')
+    const input = useInputStore()
+    const ui = useUiStore()
+    const id = input.workloadDomains[0].id
+    input.updateDomain(id, { storageType: 'vsan-max', deploymentMode: 'stretch' })
+    expect(input.workloadDomains[0].storageType).toBe('vsan-max')
+    expect(input.workloadDomains[0].deploymentMode).toBe('ha')
+    expect(ui.autoCorrectionMessageKeys).toContain('warnings.autoCorrectDeploymentVsanMax')
+  })
+
+  it('FTT=2 + RAID-5: promotes to RAID-6 and flashes autoCorrectRaidFtt2', async () => {
+    const { useUiStore } = await import('./uiStore')
+    const input = useInputStore()
+    const ui = useUiStore()
+    const id = input.workloadDomains[0].id
+    input.updateDomain(id, { fttLevel: 2, raidType: 'raid5' })
+    expect(input.workloadDomains[0].raidType).toBe('raid6')
+    expect(ui.autoCorrectionMessageKeys).toContain('warnings.autoCorrectRaidFtt2')
+  })
+
+  it('FTT=1 + RAID-6: demotes to RAID-5 and flashes autoCorrectRaidFtt1', async () => {
+    const { useUiStore } = await import('./uiStore')
+    const input = useInputStore()
+    const ui = useUiStore()
+    const id = input.workloadDomains[0].id
+    // First force into FTT=2/RAID-6 so we can test the demotion
+    input.updateDomain(id, { fttLevel: 2, raidType: 'raid6' })
+    input.updateDomain(id, { fttLevel: 1 })
+    expect(input.workloadDomains[0].raidType).toBe('raid5')
+    expect(ui.autoCorrectionMessageKeys).toContain('warnings.autoCorrectRaidFtt1')
+  })
+
+  it('Multi-field patch (vSAN Max + Stretch + Dedup): HA rule runs first so dedup is preserved', async () => {
+    const { useUiStore } = await import('./uiStore')
+    const input = useInputStore()
+    const ui = useUiStore()
+    const id = input.workloadDomains[0].id
+    // Seed state with dedup enabled
+    input.updateDomain(id, { dedupEnabled: true })
+    // Attempt the invalid combo in a single patch
+    input.updateDomain(id, { storageType: 'vsan-max', deploymentMode: 'stretch' })
+    // HA fix runs first; because final mode is 'ha', the dedup rule does NOT fire
+    expect(input.workloadDomains[0].deploymentMode).toBe('ha')
+    expect(input.workloadDomains[0].dedupEnabled).toBe(true)
+    expect(ui.autoCorrectionMessageKeys).toContain('warnings.autoCorrectDeploymentVsanMax')
+    expect(ui.autoCorrectionMessageKeys).not.toContain('warnings.autoCorrectDedupStretch')
+  })
+
+  it('Multiple banners survive a single multi-field patch (no overwrite)', async () => {
+    const { useUiStore } = await import('./uiStore')
+    const input = useInputStore()
+    const ui = useUiStore()
+    const id = input.workloadDomains[0].id
+    // Seed dedup on; then a single patch that triggers both Stretch/Dedup AND FTT=2/RAID-5
+    input.updateDomain(id, { dedupEnabled: true })
+    input.updateDomain(id, { deploymentMode: 'stretch', fttLevel: 2, raidType: 'raid5' })
+    expect(ui.autoCorrectionMessageKeys).toContain('warnings.autoCorrectDedupStretch')
+    expect(ui.autoCorrectionMessageKeys).toContain('warnings.autoCorrectRaidFtt2')
+  })
+
+  it('flashAutoCorrection deduplicates — same key pushed twice appears once', async () => {
+    const { useUiStore } = await import('./uiStore')
+    const ui = useUiStore()
+    ui.flashAutoCorrection('warnings.autoCorrectDedupStretch')
+    ui.flashAutoCorrection('warnings.autoCorrectDedupStretch')
+    expect(ui.autoCorrectionMessageKeys.filter(k => k === 'warnings.autoCorrectDedupStretch')).toHaveLength(1)
+  })
+
+  it('dismissAutoCorrection clears all keys', async () => {
+    const { useUiStore } = await import('./uiStore')
+    const ui = useUiStore()
+    ui.flashAutoCorrection('warnings.autoCorrectDedupStretch')
+    ui.flashAutoCorrection('warnings.autoCorrectRaidFtt2')
+    expect(ui.autoCorrectionMessageKeys.length).toBe(2)
+    ui.dismissAutoCorrection()
+    expect(ui.autoCorrectionMessageKeys).toEqual([])
+  })
+})

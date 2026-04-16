@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, toRaw } from 'vue'
 import { createDefaultWorkloadDomain, createDefaultManagementDomain } from '@/engine/defaults'
 import type { WorkloadDomainConfig, ManagementDomainConfig } from '@/engine/types'
-import { useUiStore } from './uiStore'
+import { useUiStore } from '@/stores/uiStore'
 
 export const useInputStore = defineStore('input', () => {
   // GLOBAL (deployment-level, not per-domain)
@@ -43,22 +43,26 @@ export const useInputStore = defineStore('input', () => {
     const normalized: Partial<WorkloadDomainConfig> = { ...patch }
 
     // Effective values after patch (for cross-field checks)
-    const nextMode = normalized.deploymentMode ?? domain.deploymentMode
     const nextStorage = normalized.storageType ?? domain.storageType
-    const nextDedup = normalized.dedupEnabled ?? domain.dedupEnabled
     const nextFtt = normalized.fttLevel ?? domain.fttLevel
     const nextRaid = normalized.raidType ?? domain.raidType
+    let nextMode = normalized.deploymentMode ?? domain.deploymentMode
+    let nextDedup = normalized.dedupEnabled ?? domain.dedupEnabled
+
+    // Rule: vSAN Max + Stretch is invalid → force HA.
+    // Must run BEFORE the Stretch/Dedup rule so the dedup rule does not
+    // silently disable dedup based on a mode that we are about to revert.
+    if (nextStorage === 'vsan-max' && nextMode === 'stretch') {
+      normalized.deploymentMode = 'ha'
+      nextMode = 'ha'
+      ui.flashAutoCorrection('warnings.autoCorrectDeploymentVsanMax')
+    }
 
     // Rule: Stretch + Dedup is invalid → force dedup off
     if (nextMode === 'stretch' && nextDedup) {
       normalized.dedupEnabled = false
+      nextDedup = false
       ui.flashAutoCorrection('warnings.autoCorrectDedupStretch')
-    }
-
-    // Rule: vSAN Max + Stretch is invalid → force HA
-    if (nextStorage === 'vsan-max' && nextMode === 'stretch') {
-      normalized.deploymentMode = 'ha'
-      ui.flashAutoCorrection('warnings.autoCorrectDeploymentVsanMax')
     }
 
     // Rule: RAID-5 requires FTT=1 → promote to RAID-6 when FTT=2

@@ -75,6 +75,9 @@ const storageTypes = [
         :key="type.value"
         :disabled="type.value === 'vsan-max' && isStretch"
         :title="type.value === 'vsan-max' && isStretch ? t('warnings.vsanMaxStretchExclusion') : ''"
+        :aria-label="type.value === 'vsan-max' && isStretch
+          ? `${t(type.labelKey)} — ${t('warnings.vsanMaxStretchExclusion')}`
+          : t(type.labelKey)"
         :class="[
           'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
           storageType === type.value

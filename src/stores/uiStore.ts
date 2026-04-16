@@ -81,26 +81,30 @@ export const useUiStore = defineStore('ui', () => {
 
   // Transient auto-correction banner — surfaced by inputStore.updateDomain() when an
   // incompatible field combination is auto-fixed (e.g., dedup disabled on switch to
-  // stretch). Holds an i18n message key; auto-dismisses after 5 seconds.
-  const autoCorrectionMessageKey = ref<string | null>(null)
+  // stretch). Holds a deduplicated list of i18n message keys so that multi-field
+  // patches (e.g., URL rehydration) do not overwrite earlier warnings. The full
+  // list auto-dismisses after 5 seconds; each flash resets the timer.
+  const autoCorrectionMessageKeys = ref<string[]>([])
   let autoCorrectionTimer: ReturnType<typeof setTimeout> | null = null
 
   function flashAutoCorrection(messageKey: string): void {
-    autoCorrectionMessageKey.value = messageKey
+    if (!autoCorrectionMessageKeys.value.includes(messageKey)) {
+      autoCorrectionMessageKeys.value.push(messageKey)
+    }
     if (autoCorrectionTimer) clearTimeout(autoCorrectionTimer)
     autoCorrectionTimer = setTimeout(() => {
-      autoCorrectionMessageKey.value = null
+      autoCorrectionMessageKeys.value = []
       autoCorrectionTimer = null
     }, 5000)
   }
 
   function dismissAutoCorrection(): void {
-    autoCorrectionMessageKey.value = null
+    autoCorrectionMessageKeys.value = []
     if (autoCorrectionTimer) {
       clearTimeout(autoCorrectionTimer)
       autoCorrectionTimer = null
     }
   }
 
-  return { locale, setLocale, localeLoading, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, storageUnit, setStorageUnit, chartImages, registerChartImage, autoCorrectionMessageKey, flashAutoCorrection, dismissAutoCorrection }
+  return { locale, setLocale, localeLoading, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, storageUnit, setStorageUnit, chartImages, registerChartImage, autoCorrectionMessageKeys, flashAutoCorrection, dismissAutoCorrection }
 })

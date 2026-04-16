@@ -89,6 +89,9 @@ const bandwidthCappedByLineRate = computed(() => {
         :key="mode.value"
         :disabled="mode.value === 'stretch' && stretchDisabledByVsanMax"
         :title="mode.value === 'stretch' && stretchDisabledByVsanMax ? t('warnings.stretchDisabledReason') : ''"
+        :aria-label="mode.value === 'stretch' && stretchDisabledByVsanMax
+          ? `${t(mode.labelKey)} — ${t('warnings.stretchDisabledReason')}`
+          : t(mode.labelKey)"
         :class="[
           'px-4 py-2 text-sm rounded-md border font-medium transition-colors',
           deploymentMode === mode.value
