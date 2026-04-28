@@ -90,7 +90,11 @@ export function calcManagement(mode: DeploymentMode): MgmtDomainResult {
     automationRamGB,
     totalCores,
     totalRamGB,
-    // New fields — empty defaults until P2's full calc pipeline lands
+    // TODO(P2): the fields below are placeholder zeros / empty arrays.
+    // The legacy calcManagement(mode) shim doesn't compute them — that's
+    // the job of mgmt/index.ts in Phase 2. Callers consuming these
+    // before P2 lands will see semantically-incorrect data (e.g.,
+    // recommendedHostCount: 0). Spec: docs/superpowers/specs/2026-04-28-mgmt-domain-parity-design.md §11 P2.
     appliances: [],
     wldOverhead: [],
     totalDiskGB: 0,
