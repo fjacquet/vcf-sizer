@@ -130,7 +130,10 @@ export const useCalculationStore = defineStore('calculation', () => {
           preferredSiteHosts: domain.preferredSiteHosts,
           secondarySiteHosts: domain.secondarySiteHosts,
           managementArchitecture: input.managementArchitecture,
-          managementStorageType: input.managementDomain.storageType ?? 'vsan-esa',
+          managementStorageType:
+            input.managementDomain.storageType && input.managementDomain.storageType !== 'vsan-max'
+              ? input.managementDomain.storageType
+              : 'vsan-esa',
           networkSpeedGbE: domain.networkSpeedGbE,
           vsanMaxStorageNodes: domain.vsanMaxStorageNodes,
         }),

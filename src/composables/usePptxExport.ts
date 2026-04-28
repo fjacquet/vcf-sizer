@@ -155,12 +155,15 @@ export function buildMgmtOverheadData(
   mgmt: MgmtDomainResult,
   t: (key: string) => string = (k) => k
 ): Array<{ label: string; cores: number; ramGB: number }> {
+  // Legacy flat fields are now @deprecated optionals on MgmtDomainResult; fall
+  // back to 0 if absent. calcManagement() always populates them today, so this
+  // is a typing concession only — no behavior change.
   return [
-    { label: t('export.vcenter'), cores: mgmt.vcenterCores, ramGB: mgmt.vcenterRamGB },
-    { label: t('export.sddcManager'), cores: mgmt.sddcCores, ramGB: mgmt.sddcRamGB },
-    { label: t('export.nsx'), cores: mgmt.nsxCores, ramGB: mgmt.nsxRamGB },
-    { label: t('export.ariaOps'), cores: mgmt.opsCores, ramGB: mgmt.opsRamGB },
-    { label: t('export.automation'), cores: mgmt.automationCores, ramGB: mgmt.automationRamGB },
+    { label: t('export.vcenter'), cores: mgmt.vcenterCores ?? 0, ramGB: mgmt.vcenterRamGB ?? 0 },
+    { label: t('export.sddcManager'), cores: mgmt.sddcCores ?? 0, ramGB: mgmt.sddcRamGB ?? 0 },
+    { label: t('export.nsx'), cores: mgmt.nsxCores ?? 0, ramGB: mgmt.nsxRamGB ?? 0 },
+    { label: t('export.ariaOps'), cores: mgmt.opsCores ?? 0, ramGB: mgmt.opsRamGB ?? 0 },
+    { label: t('export.automation'), cores: mgmt.automationCores ?? 0, ramGB: mgmt.automationRamGB ?? 0 },
     { label: t('export.total'), cores: mgmt.totalCores, ramGB: mgmt.totalRamGB },
   ]
 }

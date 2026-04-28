@@ -1,6 +1,10 @@
 // VCF 9.x Calculation Engine — Type Definitions
 // Pure TypeScript — ZERO Vue imports allowed in this file (CALC-01)
 
+// Re-export canonical mgmt types from the mgmt subsystem so existing
+// import paths (e.g., `from '../types'`, `from '@/engine/types'`) keep working.
+export type { MgmtDomainResult, ManagementDomainConfig } from './mgmt/types'
+
 export type DeploymentMode = 'simple' | 'ha' | 'stretch'
 export type StorageType = 'vsan-esa' | 'fc' | 'nfs' | 'vsan-max'
 export type ManagementStorageType = Exclude<StorageType, 'vsan-max'>  // vsan-max not valid for management domain
@@ -13,21 +17,6 @@ export interface ValidationWarning {
   code: string
   severity: 'error' | 'warning'
   messageKey: string // i18n key, NOT an English string
-}
-
-export interface MgmtDomainResult {
-  vcenterCores: number
-  vcenterRamGB: number
-  sddcCores: number
-  sddcRamGB: number
-  nsxCores: number
-  nsxRamGB: number
-  opsCores: number
-  opsRamGB: number
-  automationCores: number
-  automationRamGB: number
-  totalCores: number
-  totalRamGB: number
 }
 
 export interface ComputeInputs {
@@ -180,15 +169,6 @@ export interface WorkloadDomainConfig {
   vsanMaxStorageNodes: number
   networkSpeedGbE: 10 | 25 | 100
   deploymentMode: DeploymentMode
-}
-
-export interface ManagementDomainConfig {
-  coresPerSocket: number
-  socketsPerHost: number
-  hostRamGB: number
-  hostStorageTiB: number
-  deploymentMode: DeploymentMode
-  storageType?: ManagementStorageType  // default 'vsan-esa' when absent (ARCH-01)
 }
 
 export interface DomainResult {

@@ -77,6 +77,7 @@ export function calcManagement(mode: DeploymentMode): MgmtDomainResult {
     .toNumber()
 
   return {
+    // Legacy flat fields (preserved for backward compat with usePptxExport)
     vcenterCores,
     vcenterRamGB,
     sddcCores,
@@ -89,5 +90,18 @@ export function calcManagement(mode: DeploymentMode): MgmtDomainResult {
     automationRamGB,
     totalCores,
     totalRamGB,
+    // New fields — empty defaults until P2's full calc pipeline lands
+    appliances: [],
+    wldOverhead: [],
+    totalDiskGB: 0,
+    totalSwapGB: totalRamGB,
+    perHostCores: 0,
+    perHostRamGB: 0,
+    perHostStorageGB: 0,
+    storageDemandTiB: 0,
+    minHostsForStorage: 0,
+    externalPoolRequiredTiB: 0,
+    recommendedHostCount: 0,
+    validationWarnings: [],
   }
 }

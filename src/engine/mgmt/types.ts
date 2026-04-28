@@ -47,6 +47,20 @@ export type MgmtApplianceCategory =
   | 'identityBroker'
   | 'ssp'
 
+// Categories that may appear in ApplianceLine but are NOT user-overridable.
+// Includes SDDC Manager (always-on) and the validated-solution outputs.
+export type AutoApplianceCategory =
+  | 'sddcManager'
+  | 'siteRecovery'        // from validatedSolutions.siteProtection
+  | 'ransomwareOnPrem'
+  | 'ransomwareCloud'
+  | 'crossCloudMobility'
+  | 'wldVcenter'          // auto-derived per workload domain
+  | 'wldNsxManager'       // auto-derived per workload domain
+
+// Full category set permitted on an ApplianceLine.
+export type ApplianceLineCategory = MgmtApplianceCategory | AutoApplianceCategory
+
 // ─── Per-spec resource shape ──────────────────────────────────────────────
 
 export interface ApplianceSpec {
@@ -75,23 +89,23 @@ export interface ApplianceOverride {
 // ─── Validated solutions ──────────────────────────────────────────────────
 
 export interface ValidatedSolutionsConfig {
-  siteProtection:    { included: boolean; mgmtSize?: SrmSize }
-  ransomwareOnPrem:  { included: boolean }
-  ransomwareCloud:   { included: boolean }
-  crossCloudMobility:{ included: boolean }
+  siteProtection: { included: boolean; mgmtSize?: SrmSize }
+  ransomwareOnPrem: { included: boolean }
+  ransomwareCloud: { included: boolean }
+  crossCloudMobility: { included: boolean }
 }
 
 // ─── Public config + result shapes (placeholders for P2 to fill in) ───────
 // Defined here so types.ts is the single source of truth.
 
 export interface ManagementDomainConfig {
-  // Hardware
+  // Hardware (required)
   coresPerSocket: number
   socketsPerHost: number
   hostRamGB: number
   hostStorageTiB: number
   deploymentMode: DeploymentMode
-  storageType: StorageType            // includes 'vsan-max'
+  storageType?: StorageType            // optional for backward compat with old callers
 
   // FC/NFS-only
   externalStorageUsableTiB?: number
@@ -100,22 +114,22 @@ export interface ManagementDomainConfig {
   vsanMaxStorageNodes?: number
   vsanMaxProfile?: VsanMaxProfile
 
-  // Capacity headroom
-  cpuOversubscription: number         // default 2
-  ramOversubscription: number         // default 1
-  reservePct: number                  // default 30
-  growthPct: number                   // default 10
+  // Capacity headroom — defaults applied by engine when absent
+  cpuOversubscription?: number         // default 2
+  ramOversubscription?: number         // default 1
+  reservePct?: number                  // default 30
+  growthPct?: number                   // default 10
 
   // Sizing UX
-  profile: MgmtProfile                // default 'standard'
+  profile?: MgmtProfile                // default 'standard'
 
-  overrides: Partial<Record<MgmtApplianceCategory, ApplianceOverride>>
+  overrides?: Partial<Record<MgmtApplianceCategory, ApplianceOverride>>
 
-  validatedSolutions: ValidatedSolutionsConfig
+  validatedSolutions?: ValidatedSolutionsConfig
 }
 
 export interface ApplianceLine {
-  category: MgmtApplianceCategory | 'sddcManager' | string
+  category: ApplianceLineCategory
   nodeCount: number
   cores: number
   ramGB: number
@@ -127,23 +141,50 @@ export interface ApplianceLine {
 }
 
 export interface MgmtDomainResult {
+  // ─── New (canonical) fields — populated by the P2 calc pipeline ────────
   appliances: ApplianceLine[]
   wldOverhead: ApplianceLine[]
 
-  totalCores: number
-  totalRamGB: number
-  totalDiskGB: number
-  totalSwapGB: number
+  totalCores: number          // sum of all appliance cores (canonical)
+  totalRamGB: number          // sum of all appliance RAM (canonical)
+  totalDiskGB: number         // sum of all appliance disk
+  totalSwapGB: number         // = totalRamGB; mgmt VM swap demand
 
-  perHostCores: number
+  perHostCores: number        // ROUNDUP(totalCores / (hosts−1) / cpuOversub)
   perHostRamGB: number
-  perHostStorageGB: number
+  perHostStorageGB: number    // 0 for FC/NFS (no local storage)
 
-  storageDemandTiB: number
-  minHostsForStorage: number
-  externalPoolRequiredTiB: number
+  storageDemandTiB: number             // demand after FTT × reserve × growth
+  minHostsForStorage: number           // ceil(demand / usable-per-host) for vSAN; 0 for FC/NFS
+  externalPoolRequiredTiB: number      // FC/NFS demand the array must provide; 0 for vSAN
 
   recommendedHostCount: number
 
   validationWarnings: ValidationWarning[]
+
+  // ─── Legacy flat fields (DEPRECATED) ───────────────────────────────────
+  // Retained for backward compatibility during the P2/P3 migration.
+  // Once usePptxExport.ts and other callers consume `appliances[]`,
+  // these can be removed.
+
+  /** @deprecated Use `appliances` filtered by category 'vcenter' */
+  vcenterCores?: number
+  /** @deprecated Use `appliances` filtered by category 'vcenter' */
+  vcenterRamGB?: number
+  /** @deprecated Use `appliances` filtered by category 'sddcManager' */
+  sddcCores?: number
+  /** @deprecated Use `appliances` filtered by category 'sddcManager' */
+  sddcRamGB?: number
+  /** @deprecated Use `appliances` filtered by category 'nsxManager' */
+  nsxCores?: number
+  /** @deprecated Use `appliances` filtered by category 'nsxManager' */
+  nsxRamGB?: number
+  /** @deprecated Use `appliances` filtered by categories vrops/vropsCollector/fleetManager */
+  opsCores?: number
+  /** @deprecated Use `appliances` filtered by categories vrops/vropsCollector/fleetManager */
+  opsRamGB?: number
+  /** @deprecated Use `appliances` filtered by category 'automation' */
+  automationCores?: number
+  /** @deprecated Use `appliances` filtered by category 'automation' */
+  automationRamGB?: number
 }
