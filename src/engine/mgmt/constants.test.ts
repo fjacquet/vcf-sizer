@@ -68,6 +68,9 @@ describe('getApplianceSpec — VCF Operations (vROps)', () => {
   it('Large → 16 / 48 / 274', () => {
     expect(getApplianceSpec('vrops', 'large')).toEqual({ cores: 16, ramGB: 48, diskGB: 274 })
   })
+  it('XLarge → 24 / 128 / 274', () => {
+    expect(getApplianceSpec('vrops', 'xlarge')).toEqual({ cores: 24, ramGB: 128, diskGB: 274 })
+  })
 })
 
 describe('getApplianceSpec — VCF Operations Collector', () => {
@@ -92,17 +95,29 @@ describe('getApplianceSpec — vRLI (Logs)', () => {
 })
 
 describe('getApplianceSpec — vRNI (Networks)', () => {
+  it('Small → 4 / 16 / 1024', () => {
+    expect(getApplianceSpec('vrni', 'small')).toEqual({ cores: 4, ramGB: 16, diskGB: 1024 })
+  })
   it('Medium → 8 / 32 / 1024', () => {
     expect(getApplianceSpec('vrni', 'medium')).toEqual({ cores: 8, ramGB: 32, diskGB: 1024 })
   })
   it('Large → 12 / 48 / 1024', () => {
     expect(getApplianceSpec('vrni', 'large')).toEqual({ cores: 12, ramGB: 48, diskGB: 1024 })
   })
+  it('XLarge → 16 / 64 / 1024', () => {
+    expect(getApplianceSpec('vrni', 'xlarge')).toEqual({ cores: 16, ramGB: 64, diskGB: 1024 })
+  })
 })
 
 describe('getApplianceSpec — vRNI Collector', () => {
+  it('Small → 2 / 4 / 250', () => {
+    expect(getApplianceSpec('vrniCollector', 'small')).toEqual({ cores: 2, ramGB: 4, diskGB: 250 })
+  })
   it('Medium → 4 / 12 / 250', () => {
     expect(getApplianceSpec('vrniCollector', 'medium')).toEqual({ cores: 4, ramGB: 12, diskGB: 250 })
+  })
+  it('Large → 8 / 16 / 250', () => {
+    expect(getApplianceSpec('vrniCollector', 'large')).toEqual({ cores: 8, ramGB: 16, diskGB: 250 })
   })
 })
 
@@ -119,8 +134,14 @@ describe('getApplianceSpec — VCF Automation', () => {
 })
 
 describe('getApplianceSpec — Identity Broker (WSA)', () => {
+  it('Small → 8 / 16 / 290', () => {
+    expect(getApplianceSpec('identityBroker', 'small')).toEqual({ cores: 8, ramGB: 16, diskGB: 290 })
+  })
   it('Medium → 8 / 16 / 220', () => {
     expect(getApplianceSpec('identityBroker', 'medium')).toEqual({ cores: 8, ramGB: 16, diskGB: 220 })
+  })
+  it('Large → 10 / 16 / 100', () => {
+    expect(getApplianceSpec('identityBroker', 'large')).toEqual({ cores: 10, ramGB: 16, diskGB: 100 })
   })
 })
 
@@ -171,5 +192,8 @@ describe('getApplianceSpec — invalid lookups', () => {
   it('throws on unknown size for known category', () => {
     // @ts-expect-error testing runtime safety
     expect(() => getApplianceSpec('vcenter', 'humongous')).toThrow(/unknown size/i)
+  })
+  it('throws with a helpful message when called with fleetManager', () => {
+    expect(() => getApplianceSpec('fleetManager', 'medium')).toThrow(/FLEET_MANAGER_SPEC/)
   })
 })

@@ -97,8 +97,10 @@ export const VALIDATED_SOLUTIONS_SPECS = {
     light:    { cores: 2, ramGB: 8,  diskGB: 20  } as ApplianceSpec,
     standard: { cores: 8, ramGB: 24, diskGB: 800 } as ApplianceSpec,
   },
-  // On-prem ransomware recovery is the HVM (Health/Validation Manager) appliance:
-  // workbook lists 24 RAM / 800 disk (R196-R198 Static Reference Tables).
+  // On-prem ransomware recovery is the HVM (Health/Validation Manager) appliance.
+  // Workbook rows R196–R198 (Static Reference Tables): 24 cores / 800 GB RAM /
+  // no fixed disk allocation (storage sized dynamically via the protected workload).
+  // diskGB is 0 by design — not a TODO.
   ransomwareOnPrem:   { cores: 24, ramGB: 800, diskGB: 0 } as ApplianceSpec,
   ransomwareCloud:    { cores: 8,  ramGB: 12,  diskGB: 100 } as ApplianceSpec,
   crossCloudMobility: { cores: 4,  ramGB: 12,  diskGB: 65 } as ApplianceSpec,
@@ -139,6 +141,9 @@ export function getApplianceSpec(
   category: MgmtApplianceCategory,
   size: string,
 ): ApplianceSpec {
+  if (category === 'fleetManager') {
+    throw new Error(`fleetManager has no size variants — import FLEET_MANAGER_SPEC directly`)
+  }
   const table = TABLES[category]
   if (!table) {
     throw new Error(`unknown mgmt appliance category: ${category}`)
