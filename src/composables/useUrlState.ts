@@ -52,7 +52,53 @@ export const ManagementDomainSchema = z
     hostRamGB: z.number().positive().default(512),
     hostStorageTiB: z.number().positive().default(3.84),
     deploymentMode: z.enum(['simple', 'ha', 'stretch']).default('ha'),
-    storageType: z.enum(['vsan-esa', 'fc', 'nfs']).default('vsan-esa'),
+    // Widened to include 'vsan-max' (per Q5 of design — vSAN Max for mgmt is supported).
+    storageType: z.enum(['vsan-esa', 'fc', 'nfs', 'vsan-max']).default('vsan-esa'),
+
+    // FC/NFS only — required pool size when those storage types are selected.
+    externalStorageUsableTiB: z.number().positive().optional(),
+    // vSAN Max for mgmt only.
+    vsanMaxStorageNodes: z.number().int().min(4).max(64).optional(),
+    vsanMaxProfile: z.enum(['xs', 'sm', 'med', 'lrg', 'xl']).optional(),
+
+    // Profile + capacity headroom (P3 additions).
+    profile: z.enum(['lab', 'standard', 'large']).default('standard'),
+    cpuOversubscription: z.number().positive().max(8).default(2),
+    ramOversubscription: z.number().positive().max(4).default(1),
+    reservePct: z.number().min(0).max(100).default(30),
+    growthPct: z.number().min(0).max(100).default(10),
+
+    // Sparse override map — empty by default.
+    overrides: z
+      .record(
+        z.string(),
+        z.object({
+          included: z.boolean().optional(),
+          size: z.string().optional(),
+          nodeCount: z.number().int().min(1).max(20).optional(),
+        }),
+      )
+      .default({}),
+
+    // Validated solutions toggles.
+    validatedSolutions: z
+      .object({
+        siteProtection: z
+          .object({
+            included: z.boolean(),
+            mgmtSize: z.enum(['light', 'standard']).optional(),
+          })
+          .default({ included: false }),
+        ransomwareOnPrem: z.object({ included: z.boolean() }).default({ included: false }),
+        ransomwareCloud: z.object({ included: z.boolean() }).default({ included: false }),
+        crossCloudMobility: z.object({ included: z.boolean() }).default({ included: false }),
+      })
+      .default({
+        siteProtection: { included: false },
+        ransomwareOnPrem: { included: false },
+        ransomwareCloud: { included: false },
+        crossCloudMobility: { included: false },
+      }),
   })
   .strip()
 

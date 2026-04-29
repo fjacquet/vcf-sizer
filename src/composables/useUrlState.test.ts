@@ -6,6 +6,7 @@
 import LZString from 'lz-string'
 import { z } from 'zod'
 import { createDefaultWorkloadDomain } from '@/engine/defaults'
+import { ManagementDomainSchema as RealManagementDomainSchema } from '@/composables/useUrlState'
 
 // ── Schema replicas (must stay in sync with useUrlState.ts) ──────────────────
 const WorkloadDomainSchema = z
@@ -331,5 +332,96 @@ describe('WIZARD-07: wizard step URL exclusion', () => {
     const roundTripped = JSON.parse(decompressed!)
 
     expect(Object.keys(roundTripped)).not.toContain('currentWizardStep')
+  })
+})
+
+describe('ManagementDomainSchema — Phase 3 fields', () => {
+  it('accepts the new full management config shape', () => {
+    const result = RealManagementDomainSchema.safeParse({
+      coresPerSocket: 32,
+      socketsPerHost: 2,
+      hostRamGB: 512,
+      hostStorageTiB: 8,
+      deploymentMode: 'ha',
+      storageType: 'vsan-esa',
+      profile: 'standard',
+      cpuOversubscription: 2,
+      ramOversubscription: 1,
+      reservePct: 30,
+      growthPct: 10,
+      overrides: {},
+      validatedSolutions: {
+        siteProtection: { included: false },
+        ransomwareOnPrem: { included: false },
+        ransomwareCloud: { included: false },
+        crossCloudMobility: { included: false },
+      },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('applies defaults for new fields when missing (backward compat for old URLs)', () => {
+    // Old shareable URL: only the 6 original fields
+    const result = RealManagementDomainSchema.safeParse({
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostRamGB: 512,
+      hostStorageTiB: 3.84,
+      deploymentMode: 'ha',
+      storageType: 'vsan-esa',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.profile).toBe('standard')
+      expect(result.data.cpuOversubscription).toBe(2)
+      expect(result.data.ramOversubscription).toBe(1)
+      expect(result.data.reservePct).toBe(30)
+      expect(result.data.growthPct).toBe(10)
+      expect(result.data.overrides).toEqual({})
+      expect(result.data.validatedSolutions).toEqual({
+        siteProtection: { included: false },
+        ransomwareOnPrem: { included: false },
+        ransomwareCloud: { included: false },
+        crossCloudMobility: { included: false },
+      })
+    }
+  })
+
+  it('storageType now accepts vsan-max for management', () => {
+    const result = RealManagementDomainSchema.safeParse({
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostRamGB: 512,
+      hostStorageTiB: 3.84,
+      deploymentMode: 'ha',
+      storageType: 'vsan-max',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects an invalid profile value', () => {
+    const result = RealManagementDomainSchema.safeParse({
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostRamGB: 512,
+      hostStorageTiB: 3.84,
+      deploymentMode: 'ha',
+      storageType: 'vsan-esa',
+      profile: 'enormous',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('reservePct rejects negative values', () => {
+    const result = RealManagementDomainSchema.safeParse({
+      coresPerSocket: 16,
+      socketsPerHost: 2,
+      hostRamGB: 512,
+      hostStorageTiB: 3.84,
+      deploymentMode: 'ha',
+      storageType: 'vsan-esa',
+      reservePct: -5,
+    })
+    expect(result.success).toBe(false)
   })
 })
