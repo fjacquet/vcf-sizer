@@ -1,5 +1,6 @@
 /// <reference types="vitest/globals" />
 import { resolveProfileEntry, PROFILES } from './profiles'
+import { getApplianceSpec } from './constants'
 
 describe('resolveProfileEntry — Standard profile (Q4 default)', () => {
   it('vcenter → Medium × 1, included', () => {
@@ -130,6 +131,25 @@ describe('PROFILES table integrity', () => {
         expect(typeof entry.included).toBe('boolean')
         expect(typeof entry.size).toBe('string')
         expect(typeof entry.nodeCount).toBe('number')
+      }
+    }
+  })
+
+  // Cross-validation: every profile/sized-category combination must resolve
+  // to a real entry in constants.ts. fleetManager is excluded because it has
+  // no size variants (always uses FLEET_MANAGER_SPEC directly).
+  it('every (profile, sized-category) combination resolves via getApplianceSpec', () => {
+    const sizedCategories = [
+      'vcenter','nsxManager','nsxEdge','aviLb','vrops','vropsCollector',
+      'vrli','vrni','vrniCollector','automation','identityBroker','ssp',
+    ] as const
+    for (const profile of ['lab','standard','large'] as const) {
+      for (const cat of sizedCategories) {
+        const { size } = PROFILES[profile][cat]
+        expect(
+          () => getApplianceSpec(cat, size),
+          `${profile}.${cat} with size '${size}' must exist in constants.ts`,
+        ).not.toThrow()
       }
     }
   })

@@ -16,7 +16,9 @@ type ProfileMap = Record<MgmtApplianceCategory, ProfileEntry>
 
 const LAB: ProfileMap = {
   vcenter:        { included: true,  size: 'small',  nodeCount: 1 },
-  nsxManager:     { included: true,  size: 'small',  nodeCount: 1 },
+  // NSX Manager has no 'small' size in the workbook (constants.ts only
+  // defines medium/large/xlarge); medium is the smallest valid choice.
+  nsxManager:     { included: true,  size: 'medium', nodeCount: 1 },
   nsxEdge:        { included: false, size: 'small',  nodeCount: 2 },
   aviLb:          { included: false, size: 'small',  nodeCount: 3 },
   vrops:          { included: true,  size: 'small',  nodeCount: 1 },
