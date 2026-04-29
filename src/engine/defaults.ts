@@ -45,5 +45,17 @@ export function createDefaultManagementDomain(): ManagementDomainConfig {
     hostStorageTiB: 3.84,
     deploymentMode: 'ha',
     storageType: 'vsan-esa',
+    profile: 'standard',
+    cpuOversubscription: 2,
+    ramOversubscription: 1,
+    reservePct: 30,
+    growthPct: 10,
+    overrides: {},
+    validatedSolutions: {
+      siteProtection: { included: false },
+      ransomwareOnPrem: { included: false },
+      ransomwareCloud: { included: false },
+      crossCloudMobility: { included: false },
+    },
   }
 }

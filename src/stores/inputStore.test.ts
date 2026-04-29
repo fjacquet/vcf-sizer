@@ -300,3 +300,49 @@ describe('inputStore — auto-correction cascade', () => {
     expect(ui.autoCorrectionMessageKeys).toEqual([])
   })
 })
+
+describe('managementDomain new defaults — Phase 3', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('profile defaults to "standard"', () => {
+    const store = useInputStore()
+    expect(store.managementDomain.profile).toBe('standard')
+  })
+
+  it('cpuOversubscription defaults to 2', () => {
+    const store = useInputStore()
+    expect(store.managementDomain.cpuOversubscription).toBe(2)
+  })
+
+  it('ramOversubscription defaults to 1', () => {
+    const store = useInputStore()
+    expect(store.managementDomain.ramOversubscription).toBe(1)
+  })
+
+  it('reservePct defaults to 30', () => {
+    const store = useInputStore()
+    expect(store.managementDomain.reservePct).toBe(30)
+  })
+
+  it('growthPct defaults to 10', () => {
+    const store = useInputStore()
+    expect(store.managementDomain.growthPct).toBe(10)
+  })
+
+  it('overrides defaults to empty object', () => {
+    const store = useInputStore()
+    expect(store.managementDomain.overrides).toEqual({})
+  })
+
+  it('validatedSolutions defaults to all-included-false', () => {
+    const store = useInputStore()
+    expect(store.managementDomain.validatedSolutions).toEqual({
+      siteProtection: { included: false },
+      ransomwareOnPrem: { included: false },
+      ransomwareCloud: { included: false },
+      crossCloudMobility: { included: false },
+    })
+  })
+})
