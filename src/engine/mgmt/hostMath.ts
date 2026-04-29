@@ -29,13 +29,12 @@ export interface PerHostResult {
   minHostsForRam: number        // 0 when ramPerHost not supplied
 }
 
-const VSAN_LOCAL_STORAGE: ReadonlySet<StorageType> = new Set<StorageType>(['vsan-esa'])
-// vsan-max compute hosts hold no local storage — demand is satisfied by the
-// disaggregated storage cluster, sized separately via calcVsanMax.
-
 export function perHostRequirements(inputs: PerHostInputs): PerHostResult {
-  if (inputs.cpuOversubscription <= 0 || inputs.ramOversubscription <= 0) {
-    throw new Error('oversubscription must be > 0')
+  if (inputs.cpuOversubscription <= 0) {
+    throw new Error(`cpuOversubscription must be > 0, got ${inputs.cpuOversubscription}`)
+  }
+  if (inputs.ramOversubscription <= 0) {
+    throw new Error(`ramOversubscription must be > 0, got ${inputs.ramOversubscription}`)
   }
 
   const n = Math.max(inputs.hosts - 1, 1)
@@ -53,17 +52,28 @@ export function perHostRequirements(inputs: PerHostInputs): PerHostResult {
 
   let perHostStorageGB = 0
   let externalPoolRequiredTiB = 0
-  if (VSAN_LOCAL_STORAGE.has(inputs.storageType)) {
-    perHostStorageGB = new Decimal(inputs.storageDemandGB).div(n).ceil().toNumber()
-  } else if (inputs.storageType === 'fc' || inputs.storageType === 'nfs') {
-    externalPoolRequiredTiB = inputs.storageDemandTiB
+  switch (inputs.storageType) {
+    case 'vsan-esa':
+      perHostStorageGB = new Decimal(inputs.storageDemandGB).div(n).ceil().toNumber()
+      break
+    case 'fc':
+    case 'nfs':
+      externalPoolRequiredTiB = inputs.storageDemandTiB
+      break
+    case 'vsan-max':
+      // Compute hosts hold no local storage; demand is satisfied by the
+      // disaggregated storage cluster, sized separately via calcVsanMax.
+      break
+    default: {
+      const _exhaustive: never = inputs.storageType
+      throw new Error(`Unhandled storageType: ${_exhaustive as string}`)
+    }
   }
-  // vsan-max: both stay 0 (storage cluster handles demand)
 
-  const minHostsForCpu = inputs.coresPerHost
+  const minHostsForCpu = inputs.coresPerHost !== undefined && inputs.coresPerHost > 0
     ? new Decimal(inputs.totalCores).div(inputs.coresPerHost).div(inputs.cpuOversubscription).ceil().toNumber()
     : 0
-  const minHostsForRam = inputs.ramPerHost
+  const minHostsForRam = inputs.ramPerHost !== undefined && inputs.ramPerHost > 0
     ? new Decimal(inputs.totalRamGB).div(inputs.ramPerHost).div(inputs.ramOversubscription).ceil().toNumber()
     : 0
 

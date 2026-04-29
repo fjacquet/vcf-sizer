@@ -107,6 +107,20 @@ describe('perHostRequirements — N-1 capacity model', () => {
       hosts: 4, cpuOversubscription: 2, ramOversubscription: -1, storageType: 'vsan-esa',
     })).toThrow(/oversubscription/i)
   })
+
+  it('error message identifies cpu oversubscription specifically', () => {
+    expect(() => perHostRequirements({
+      totalCores: 10, totalRamGB: 10, storageDemandGB: 0, storageDemandTiB: 0,
+      hosts: 4, cpuOversubscription: 0, ramOversubscription: 1, storageType: 'vsan-esa',
+    })).toThrow(/cpuOversubscription/)
+  })
+
+  it('error message identifies ram oversubscription specifically', () => {
+    expect(() => perHostRequirements({
+      totalCores: 10, totalRamGB: 10, storageDemandGB: 0, storageDemandTiB: 0,
+      hosts: 4, cpuOversubscription: 2, ramOversubscription: -1, storageType: 'vsan-esa',
+    })).toThrow(/ramOversubscription/)
+  })
 })
 
 describe('perHostRequirements — minHostsForCpu/Ram helpers', () => {
