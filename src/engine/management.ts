@@ -1,111 +1,81 @@
-// VCF 9.x Management Domain Sizing Engine
+// VCF 9.x Management Domain — legacy shim
 // Pure TypeScript — ZERO Vue imports allowed in this file (CALC-01)
-// All arithmetic uses Decimal.js to avoid IEEE 754 float errors (PITFALLS #1)
+//
+// This file maintains the legacy `calcManagement(mode: DeploymentMode)` API
+// for callers that haven't migrated to `calcManagementFull(config, wlds)`.
+// It builds a synthetic ManagementDomainConfig that reproduces the historical
+// component set (vCenter Small, NSX Mgr Medium, vROps Small + Fleet + Collector,
+// Automation Small) and delegates to the orchestrator.
+//
+// Migration plan: as P3 wires stores onto calcManagementFull directly, this
+// shim becomes dead code and is deleted. The legacy flat fields on the result
+// (vcenterCores, sddcCores, etc.) are populated from the new `appliances`
+// array so usePptxExport.ts continues to compile during the transition.
 
-import Decimal from 'decimal.js'
+import { calcManagementFull } from './mgmt'
 import type { DeploymentMode, MgmtDomainResult } from './types'
+import type { ManagementDomainConfig, ApplianceLine } from './mgmt/types'
 
-// ─── Management Domain Constants (LOCKED from CONTEXT.md) ──────────────────
-// Source: Broadcom TechDocs VCF 9.x + williamlam.com lab data
-// DO NOT change these values without updating the spec and requirements.
+function buildLegacyConfig(mode: DeploymentMode): ManagementDomainConfig {
+  return {
+    coresPerSocket: 32,
+    socketsPerHost: 2,
+    hostRamGB: 512,
+    hostStorageTiB: 8,
+    deploymentMode: mode,
+    profile: 'lab',
+    overrides: {
+      // Lab default excludes vROps Collector; legacy MGMT-04 invariant
+      // requires it as a Small singleton (always nodeCount=1).
+      vropsCollector: { included: true, size: 'small', nodeCount: 1 },
+      // Lab profile uses NSX Mgr 'small', but constants.ts has no 'small'
+      // size for NSX Manager — only medium/large/xlarge. Force medium.
+      nsxManager: { size: 'medium' },
+    },
+    validatedSolutions: {
+      siteProtection: { included: false },
+      ransomwareOnPrem: { included: false },
+      ransomwareCloud: { included: false },
+      crossCloudMobility: { included: false },
+    },
+    cpuOversubscription: 2,
+    ramOversubscription: 1,
+    reservePct: 30,
+    growthPct: 10,
+    storageType: 'vsan-esa',
+  }
+}
 
-const HA_MULTIPLIER = 3
+function sumByCategory(lines: ApplianceLine[], categories: string[]): { cores: number; ramGB: number } {
+  const matching = lines.filter(l => categories.includes(l.category as string))
+  return {
+    cores: matching.reduce((s, l) => s + l.totalCores, 0),
+    ramGB: matching.reduce((s, l) => s + l.totalRamGB, 0),
+  }
+}
 
-const VCENTER = { cores: 4, ramGB: 21 } // ×1 always (MGMT-01)
-const SDDC = { cores: 4, ramGB: 16 } // ×1 always (MGMT-02)
-const NSX = { cores: 6, ramGB: 24 } // ×1 Simple, ×3 HA/Stretch (MGMT-03)
-const OPS = { cores: 4, ramGB: 16 } // ×1 Simple, ×3 HA/Stretch (MGMT-04)
-const FLEET = { cores: 4, ramGB: 12 } // ×1 ALWAYS — MGMT-04 singleton, NOT HA scaled
-const COLLECTOR = { cores: 4, ramGB: 16 } // ×1 ALWAYS — MGMT-04 singleton, NOT HA scaled
-const AUTOMATION = { cores: 24, ramGB: 96 } // ×1 Simple, ×3 HA/Stretch (MGMT-05)
-
-// ─── calcManagement ────────────────────────────────────────────────────────
-
-/**
- * Calculate VCF 9.x management domain resource requirements.
- *
- * MGMT-04 note: Fleet Manager (12 GB) and Collector (16 GB) are SINGLETONS.
- * They are NOT scaled with the HA multiplier. Only OPS (4 vCPU / 16 GB),
- * NSX, and AUTOMATION scale ×3 in HA/Stretch mode.
- *
- * Simple totals: 50 vCPU / 201 GB RAM
- * HA totals:    118 vCPU / 473 GB RAM
- */
 export function calcManagement(mode: DeploymentMode): MgmtDomainResult {
-  const isHA = mode === 'ha' || mode === 'stretch'
-  const multi = isHA ? HA_MULTIPLIER : 1
+  const result = calcManagementFull(buildLegacyConfig(mode), [])
 
-  // Components with fixed count (×1 always)
-  const vcenterCores = VCENTER.cores
-  const vcenterRamGB = VCENTER.ramGB
-  const sddcCores = SDDC.cores
-  const sddcRamGB = SDDC.ramGB
-
-  // NSX: scales with HA multiplier
-  const nsxCores = new Decimal(NSX.cores).times(multi).toNumber()
-  const nsxRamGB = new Decimal(NSX.ramGB).times(multi).toNumber()
-
-  // OPS group: OPS scales with HA; Fleet + Collector are ×1 ALWAYS (MGMT-04)
-  const opsCores = new Decimal(OPS.cores)
-    .times(multi)
-    .plus(FLEET.cores)
-    .plus(COLLECTOR.cores)
-    .toNumber()
-  const opsRamGB = new Decimal(OPS.ramGB)
-    .times(multi)
-    .plus(FLEET.ramGB)
-    .plus(COLLECTOR.ramGB)
-    .toNumber()
-
-  // VCF Automation: scales with HA multiplier
-  const automationCores = new Decimal(AUTOMATION.cores).times(multi).toNumber()
-  const automationRamGB = new Decimal(AUTOMATION.ramGB).times(multi).toNumber()
-
-  // Totals
-  const totalCores = new Decimal(vcenterCores)
-    .plus(sddcCores)
-    .plus(nsxCores)
-    .plus(opsCores)
-    .plus(automationCores)
-    .toNumber()
-
-  const totalRamGB = new Decimal(vcenterRamGB)
-    .plus(sddcRamGB)
-    .plus(nsxRamGB)
-    .plus(opsRamGB)
-    .plus(automationRamGB)
-    .toNumber()
+  // Populate legacy flat fields from the new appliances array so existing
+  // consumers (usePptxExport.ts) keep working unchanged.
+  const vcenter = sumByCategory(result.appliances, ['vcenter'])
+  const sddc = sumByCategory(result.appliances, ['sddcManager'])
+  const nsx = sumByCategory(result.appliances, ['nsxManager'])
+  const ops = sumByCategory(result.appliances, ['vrops', 'vropsCollector', 'fleetManager'])
+  const automation = sumByCategory(result.appliances, ['automation'])
 
   return {
-    // Legacy flat fields (preserved for backward compat with usePptxExport)
-    vcenterCores,
-    vcenterRamGB,
-    sddcCores,
-    sddcRamGB,
-    nsxCores,
-    nsxRamGB,
-    opsCores,
-    opsRamGB,
-    automationCores,
-    automationRamGB,
-    totalCores,
-    totalRamGB,
-    // TODO(P2): the fields below are placeholder zeros / empty arrays.
-    // The legacy calcManagement(mode) shim doesn't compute them — that's
-    // the job of mgmt/index.ts in Phase 2. Callers consuming these
-    // before P2 lands will see semantically-incorrect data (e.g.,
-    // recommendedHostCount: 0). Spec: docs/superpowers/specs/2026-04-28-mgmt-domain-parity-design.md §11 P2.
-    appliances: [],
-    wldOverhead: [],
-    totalDiskGB: 0,
-    totalSwapGB: totalRamGB,
-    perHostCores: 0,
-    perHostRamGB: 0,
-    perHostStorageGB: 0,
-    storageDemandTiB: 0,
-    minHostsForStorage: 0,
-    externalPoolRequiredTiB: 0,
-    recommendedHostCount: 0,
-    validationWarnings: [],
+    ...result,
+    vcenterCores: vcenter.cores,
+    vcenterRamGB: vcenter.ramGB,
+    sddcCores: sddc.cores,
+    sddcRamGB: sddc.ramGB,
+    nsxCores: nsx.cores,
+    nsxRamGB: nsx.ramGB,
+    opsCores: ops.cores,
+    opsRamGB: ops.ramGB,
+    automationCores: automation.cores,
+    automationRamGB: automation.ramGB,
   }
 }
