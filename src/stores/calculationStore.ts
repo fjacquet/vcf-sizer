@@ -5,7 +5,7 @@
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
 import { useInputStore } from './inputStore'
-import { calcManagement } from '../engine/management'
+import { calcManagementFull } from '../engine/mgmt'
 import { calcCompute } from '../engine/compute'
 import { calcStorage, calcMinHostsForVsanEsa } from '../engine/storage'
 import { calcVsanMax } from '../engine/vsanMax'
@@ -17,9 +17,10 @@ export const useCalculationStore = defineStore('calculation', () => {
   // CRITICAL: call useInputStore() at TOP LEVEL — not inside computed() (Pinia pattern)
   const input = useInputStore()
 
-  // Management domain overhead — uses management domain's own deploymentMode (independent of workload domains)
+  // Management domain — full pipeline (P3): consumes the full ManagementDomainConfig
+  // and the workloadDomains array (for auto-derived per-WLD overhead).
   const management = computed(() =>
-    calcManagement(input.managementDomain.deploymentMode)
+    calcManagementFull(input.managementDomain, input.workloadDomains)
   )
 
   // Dedicated management host count — uses managementDomain host specs (NOT workloadDomains[0])

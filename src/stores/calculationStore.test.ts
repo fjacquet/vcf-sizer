@@ -339,3 +339,48 @@ describe('calculationStore — CALC-02 compliance', () => {
     expect(refCalls).toHaveLength(0)
   })
 })
+
+describe('calculationStore — calcManagementFull integration (Phase 3)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('management.appliances is populated (was empty under legacy shim)', () => {
+    const calc = useCalculationStore()
+    expect(calc.management.appliances.length).toBeGreaterThan(0)
+    expect(calc.management.appliances.find(l => l.category === 'sddcManager')).toBeDefined()
+  })
+
+  it('management.wldOverhead is auto-derived from inputStore.workloadDomains', () => {
+    const input = useInputStore()
+    const calc = useCalculationStore()
+    // Default has 1 workload domain → wldOverhead has 2 lines (vcenter + nsxManager)
+    expect(calc.management.wldOverhead.length).toBe(input.workloadDomains.length * 2)
+  })
+
+  it('management.recommendedHostCount is non-zero (was 0 under legacy shim)', () => {
+    const calc = useCalculationStore()
+    expect(calc.management.recommendedHostCount).toBeGreaterThan(0)
+  })
+
+  it('management.totalDiskGB is populated (was 0 under legacy shim)', () => {
+    const calc = useCalculationStore()
+    expect(calc.management.totalDiskGB).toBeGreaterThan(0)
+  })
+
+  it('legacy flat fields still populated for usePptxExport compatibility', () => {
+    const calc = useCalculationStore()
+    expect(calc.management.vcenterCores).toBeGreaterThan(0)
+    expect(calc.management.sddcCores).toBe(4)
+    expect(calc.management.nsxCores).toBeGreaterThan(0)
+  })
+
+  it('changing inputStore.managementDomain.profile recomputes totals', () => {
+    const input = useInputStore()
+    const calc = useCalculationStore()
+    const standardTotal = calc.management.totalCores
+    input.managementDomain.profile = 'lab'
+    const labTotal = calc.management.totalCores
+    expect(labTotal).toBeLessThan(standardTotal)
+  })
+})
