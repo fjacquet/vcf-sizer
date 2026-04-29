@@ -59,12 +59,10 @@ const DEFAULT_VALIDATED_SOLUTIONS: ValidatedSolutionsConfig = {
   crossCloudMobility: { included: false },
 }
 
-/**
- * File-local helper: sum totalCores + totalRamGB across all appliance lines
- * whose category matches one of the provided categories. Used to populate
- * the legacy @deprecated flat fields on MgmtDomainResult — the canonical
- * source remains the full `appliances` array.
- */
+// File-local helper: sum totalCores + totalRamGB across all appliance lines
+// whose category matches one of the provided categories. Used to populate
+// the legacy (deprecated) flat fields on MgmtDomainResult — the canonical
+// source remains the full `appliances` array.
 function sumByCategory(
   lines: readonly ApplianceLine[],
   categories: readonly string[],
