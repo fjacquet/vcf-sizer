@@ -139,3 +139,43 @@ describe('calcManagementFull — validated solutions', () => {
     expect(sr!.source).toBe('validated-solution')
   })
 })
+
+describe('calcManagementFull — legacy flat fields populated', () => {
+  it('vcenterCores/RamGB summed from vcenter category lines', () => {
+    const r = calcManagementFull(baseConfig(), [])
+    const vcenterLines = r.appliances.filter(l => l.category === 'vcenter')
+    const expectedCores = vcenterLines.reduce((s, l) => s + l.totalCores, 0)
+    const expectedRam = vcenterLines.reduce((s, l) => s + l.totalRamGB, 0)
+    expect(r.vcenterCores).toBe(expectedCores)
+    expect(r.vcenterRamGB).toBe(expectedRam)
+  })
+
+  it('sddcCores/RamGB summed from sddcManager category lines', () => {
+    const r = calcManagementFull(baseConfig(), [])
+    expect(r.sddcCores).toBe(4)    // SDDC Manager fixed spec
+    expect(r.sddcRamGB).toBe(16)
+  })
+
+  it('nsxCores/RamGB summed from nsxManager category lines', () => {
+    const r = calcManagementFull(baseConfig(), [])
+    const nsxLines = r.appliances.filter(l => l.category === 'nsxManager')
+    expect(r.nsxCores).toBe(nsxLines.reduce((s, l) => s + l.totalCores, 0))
+    expect(r.nsxRamGB).toBe(nsxLines.reduce((s, l) => s + l.totalRamGB, 0))
+  })
+
+  it('opsCores/RamGB summed from vrops + vropsCollector + fleetManager category lines', () => {
+    const r = calcManagementFull(baseConfig(), [])
+    const opsLines = r.appliances.filter(l =>
+      l.category === 'vrops' || l.category === 'vropsCollector' || l.category === 'fleetManager'
+    )
+    expect(r.opsCores).toBe(opsLines.reduce((s, l) => s + l.totalCores, 0))
+    expect(r.opsRamGB).toBe(opsLines.reduce((s, l) => s + l.totalRamGB, 0))
+  })
+
+  it('automationCores/RamGB summed from automation category lines', () => {
+    const r = calcManagementFull(baseConfig(), [])
+    const autoLines = r.appliances.filter(l => l.category === 'automation')
+    expect(r.automationCores).toBe(autoLines.reduce((s, l) => s + l.totalCores, 0))
+    expect(r.automationRamGB).toBe(autoLines.reduce((s, l) => s + l.totalRamGB, 0))
+  })
+})
