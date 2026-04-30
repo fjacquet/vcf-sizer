@@ -288,6 +288,17 @@
       "crossCloudMobility": "Cross-Cloud Mobility (HCX)",
       "wldVcenter": "vCenter (pro Workload-Domain)",
       "wldNsxManager": "NSX Manager (pro Workload-Domain)"
+    },
+    "advancedSizing": {
+      "title": "Erweiterte Dimensionierung",
+      "hint": "Überschreiben Sie die Größe oder Knotenanzahl einer beliebigen Management-Appliance. Zurücksetzen stellt die Standardwerte des aktuellen Profils wieder her.",
+      "category": "Komponente",
+      "size": "Größe",
+      "nodes": "Knoten",
+      "action": "Aktion",
+      "reset": "Zurücksetzen",
+      "resetTooltip": "Auf Profilstandard zurücksetzen",
+      "fixedSize": "Fest"
     }
   },
   "domain": {

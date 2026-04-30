@@ -288,6 +288,17 @@
       "crossCloudMobility": "Cross-Cloud Mobility (HCX)",
       "wldVcenter": "vCenter (par domaine de charge)",
       "wldNsxManager": "NSX Manager (par domaine de charge)"
+    },
+    "advancedSizing": {
+      "title": "Dimensionnement avancé",
+      "hint": "Surchargez la taille ou le nombre de nœuds de toute appliance de gestion. Réinitialiser ramène l'appliance aux valeurs par défaut du profil actuel.",
+      "category": "Composant",
+      "size": "Taille",
+      "nodes": "Nœuds",
+      "action": "Action",
+      "reset": "Réinitialiser",
+      "resetTooltip": "Réinitialiser au profil par défaut",
+      "fixedSize": "Fixe"
     }
   },
   "domain": {

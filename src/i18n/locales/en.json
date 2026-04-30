@@ -288,6 +288,17 @@
       "crossCloudMobility": "Cross-Cloud Mobility (HCX)",
       "wldVcenter": "vCenter (per workload domain)",
       "wldNsxManager": "NSX Manager (per workload domain)"
+    },
+    "advancedSizing": {
+      "title": "Advanced sizing override",
+      "hint": "Override the size or node count for any management appliance. Reset returns the appliance to the current profile's defaults.",
+      "category": "Component",
+      "size": "Size",
+      "nodes": "Nodes",
+      "action": "Action",
+      "reset": "Reset",
+      "resetTooltip": "Reset to profile default",
+      "fixedSize": "Fixed"
     }
   },
   "domain": {
