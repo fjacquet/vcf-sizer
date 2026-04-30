@@ -237,6 +237,34 @@
         "ssp": "Security Services Platform (SSP)"
       },
       "sspWarning": "SSP is large (≥112 vCPU / 414 GB RAM); typically deployed in sovereign / regulated environments only."
+    },
+    "sizingTable": {
+      "title": "Management appliances",
+      "wldOverheadTitle": "Workload-domain overhead (auto-derived)",
+      "category": "Component",
+      "nodes": "Nodes",
+      "perNodeCores": "Cores/node",
+      "perNodeRam": "RAM/node",
+      "perNodeDisk": "Disk/node",
+      "totalCores": "Total cores",
+      "totalRam": "Total RAM",
+      "totalDisk": "Total disk",
+      "totals": "Totals"
+    },
+    "categories": {
+      "vcenter": "vCenter Server",
+      "nsxManager": "NSX Manager",
+      "vrops": "VCF Operations",
+      "vropsCollector": "VCF Operations Collector",
+      "automation": "VCF Automation",
+      "fleetManager": "VCF Operations Fleet Manager",
+      "sddcManager": "SDDC Manager",
+      "siteRecovery": "Site Recovery (SRM)",
+      "ransomwareOnPrem": "Ransomware Recovery (on-prem)",
+      "ransomwareCloud": "Ransomware Recovery (cloud)",
+      "crossCloudMobility": "Cross-Cloud Mobility (HCX)",
+      "wldVcenter": "vCenter (per workload domain)",
+      "wldNsxManager": "NSX Manager (per workload domain)"
     }
   },
   "domain": {

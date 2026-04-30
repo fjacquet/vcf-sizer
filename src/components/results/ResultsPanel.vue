@@ -6,6 +6,7 @@ import { useCalculationStore } from '@/stores/calculationStore'
 import DomainResultCard from './DomainResultCard.vue'
 import AggregateTotalsCard from './AggregateTotalsCard.vue'
 import ExportToolbar from './ExportToolbar.vue'
+import MgmtSizingTable from './MgmtSizingTable.vue'
 
 const { t } = useI18n()
 const calc = useCalculationStore()
@@ -33,6 +34,9 @@ const reportDate = computed(() => new Date().toLocaleDateString())
       :key="result.id"
       :result="result"
     />
+
+    <!-- Management sizing table (P4) — itemized appliances + WLD overhead -->
+    <MgmtSizingTable />
 
     <!-- Aggregate totals card -->
     <AggregateTotalsCard
