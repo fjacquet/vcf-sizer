@@ -14,9 +14,9 @@ A pill is clickable when:
 - Step 3: N/A (terminal)
 
 ## Styling
-- Completed (past) steps: green with checkmark
+- Completed (past) steps: green pill (filled bg/text/border) — no checkmark icon, color signals completion
 - Next-available step: blue outline/ring (indicates gated forward nav)
-- Current step: active/highlighted
+- Current step: active/highlighted (solid blue)
 - Future locked steps: gray (not clickable)
 
 ## Why
