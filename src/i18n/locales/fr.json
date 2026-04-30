@@ -238,6 +238,29 @@
       },
       "sspWarning": "SSP est volumineux (≥112 vCPU / 414 Go RAM) ; généralement déployé uniquement dans les environnements souverains / réglementés."
     },
+    "validatedSolutions": {
+      "title": "Solutions validées",
+      "hint": "Solutions optionnelles validées par VMware. Chaque solution ajoute des VMs au cluster de gestion.",
+      "siteProtection": {
+        "label": "Protection de site / SRM",
+        "description": "Reprise après sinistre via Site Recovery Manager. Ajoute des appliances au cluster de gestion + à chaque domaine de charge protégé.",
+        "size": "Taille",
+        "light": "Light",
+        "standard": "Standard"
+      },
+      "ransomwareOnPrem": {
+        "label": "Ransomware Recovery (sur site)",
+        "description": "Reprise sur site contre les ransomwares via VMware Live Cyber Recovery. Ajoute l'appliance HVM."
+      },
+      "ransomwareCloud": {
+        "label": "Ransomware Recovery (cloud)",
+        "description": "Connecteur cloud de reprise contre les ransomwares. Ajoute l'appliance connecteur."
+      },
+      "crossCloudMobility": {
+        "label": "Cross-Cloud Mobility (HCX)",
+        "description": "Connecteur HCX pour la mobilité des charges entre VCF sur site et clouds."
+      }
+    },
     "sizingTable": {
       "title": "Appliances de gestion",
       "wldOverheadTitle": "Surcoût domaine de charge (auto-dérivé)",

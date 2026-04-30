@@ -9,6 +9,7 @@ import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 import MgmtCapacityHeadroom from './MgmtCapacityHeadroom.vue'
 import MgmtOptionalAppliances from './MgmtOptionalAppliances.vue'
+import MgmtValidatedSolutions from './MgmtValidatedSolutions.vue'
 
 const { t } = useI18n()
 const input = useInputStore()
@@ -256,6 +257,8 @@ function cancelProfileChange() {
     <MgmtCapacityHeadroom />
 
     <MgmtOptionalAppliances />
+
+    <MgmtValidatedSolutions />
 
     <!-- Management domain overhead summary -->
     <div class="text-xs text-gray-500 dark:text-gray-400 grid grid-cols-2 gap-x-4 gap-y-1 pt-2 border-t border-gray-100 dark:border-gray-700">

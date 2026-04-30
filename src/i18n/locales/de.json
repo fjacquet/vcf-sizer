@@ -238,6 +238,29 @@
       },
       "sspWarning": "SSP ist groß (≥112 vCPU / 414 GB RAM); wird typischerweise nur in souveränen / regulierten Umgebungen bereitgestellt."
     },
+    "validatedSolutions": {
+      "title": "Validierte Lösungen",
+      "hint": "Optionale von VMware validierte Lösungen. Jede Lösung fügt VMs zum Management-Cluster hinzu.",
+      "siteProtection": {
+        "label": "Standortschutz / SRM",
+        "description": "Disaster Recovery über Site Recovery Manager. Fügt Appliances zum Management-Cluster + zu jeder geschützten Workload-Domain hinzu.",
+        "size": "Größe",
+        "light": "Light",
+        "standard": "Standard"
+      },
+      "ransomwareOnPrem": {
+        "label": "Ransomware Recovery (on-premise)",
+        "description": "On-Premise-Ransomware-Wiederherstellung über VMware Live Cyber Recovery. Fügt die HVM-Appliance hinzu."
+      },
+      "ransomwareCloud": {
+        "label": "Ransomware Recovery (cloud)",
+        "description": "Cloud-basierter Ransomware-Wiederherstellungs-Konnektor. Fügt die Konnektor-Appliance hinzu."
+      },
+      "crossCloudMobility": {
+        "label": "Cross-Cloud Mobility (HCX)",
+        "description": "HCX-Konnektor für Workload-Mobilität zwischen On-Premise-VCF und Clouds."
+      }
+    },
     "sizingTable": {
       "title": "Management-Appliances",
       "wldOverheadTitle": "Workload-Domain-Overhead (auto-abgeleitet)",
