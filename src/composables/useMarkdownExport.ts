@@ -39,9 +39,25 @@ export function generateMarkdownReport(): string {
     `|-----------|-------|`,
     `| ${t('export.architecture')} | ${store.managementArchitecture} |`,
     `| ${t('export.storageType')} | ${store.managementDomain.storageType ?? 'vsan-esa'} |`,
+    // P5.5: deployment mode is now relevant for the mgmt section (auto-synced from WLDs)
+    `| ${t('export.deploymentMode')} | ${store.managementDomain.deploymentMode} |`,
   )
   if (calc.dedicatedMgmtHostCount !== null) {
-    sections.push(`| ${t('export.dedicatedHostCount')} | ${calc.dedicatedMgmtHostCount} |`)
+    // P5.5: in stretch mode, dedicatedMgmtHostCount is the procurement TOTAL across both
+    // sites; show per-site breakdown inline. preferredSiteHosts/secondarySiteHosts on
+    // calc.management equal recommendedHostCount each (per design Q answer).
+    const isStretch = store.managementDomain.deploymentMode === 'stretch'
+    const pref = calc.management.preferredSiteHosts
+    const sec = calc.management.secondarySiteHosts
+    if (isStretch && pref !== undefined && sec !== undefined) {
+      sections.push(
+        `| ${t('export.dedicatedHostCount')} | ${calc.dedicatedMgmtHostCount} |`,
+        `| ${t('export.mgmtPreferredSite')} | ${pref} |`,
+        `| ${t('export.mgmtSecondarySite')} | ${sec} |`,
+      )
+    } else {
+      sections.push(`| ${t('export.dedicatedHostCount')} | ${calc.dedicatedMgmtHostCount} |`)
+    }
   }
 
   // Global: Management Domain Overhead section (outside per-domain loop — appears exactly once)
@@ -109,6 +125,10 @@ export function generateMarkdownReport(): string {
       `| ${t('export.metric')} | ${t('export.value')} |`,
       `|--------|-------|`,
       `| **${t('export.recommendedHostCount')}** | **${result.compute.recommendedHostCount}** |`,
+      // P5.5: stretch — show per-site / total split next to the recommended host count
+      ...(domain.deploymentMode === 'stretch' ? [
+        `| ${t('export.recommendedPerSite')} | ${domain.preferredSiteHosts} + ${domain.secondarySiteHosts} = ${domain.preferredSiteHosts + domain.secondarySiteHosts} |`,
+      ] : []),
       `| ${t('export.minHostsCpu')} | ${result.compute.minHostsForCpu} |`,
       `| ${t('export.minHostsRam')} | ${result.compute.minHostsForRam} |`,
       ...(result.compute.minHostsForStorage > 0 ? [
