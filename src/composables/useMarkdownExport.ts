@@ -109,6 +109,13 @@ export function generateMarkdownReport(): string {
     `|----------|---------|`,
     `| ${t('export.totalVcpu')} | ${calc.management.totalCores} |`,
     `| ${t('export.totalRam')} | ${calc.management.totalRamGB} GB |`,
+    // P6.2: total disk + swap (always present)
+    `| ${t('export.totalDiskGB')} | ${calc.management.totalDiskGB} |`,
+    `| ${t('export.totalSwapGB')} | ${calc.management.totalSwapGB} |`,
+    // P6.2: external pool requirement (FC/NFS only — 0 for vSAN)
+    ...(calc.management.externalPoolRequiredTiB > 0 ? [
+      `| ${t('export.externalPoolRequiredTiB')} | ${calc.management.externalPoolRequiredTiB.toFixed(2)} |`,
+    ] : []),
   )
 
   // P6.1: Itemized management appliance table + WLD-overhead table.

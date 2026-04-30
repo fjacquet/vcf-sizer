@@ -504,6 +504,9 @@
     "applianceTotalCores": "Core totali",
     "applianceTotalRam": "RAM totale (GB)",
     "applianceTotalDisk": "Disco totale (GB)",
-    "applianceTotals": "Totali"
+    "applianceTotals": "Totali",
+    "totalDiskGB": "Disco totale (GB)",
+    "totalSwapGB": "Swap totale (GB)",
+    "externalPoolRequiredTiB": "Pool esterno richiesto (TiB)"
   }
 }

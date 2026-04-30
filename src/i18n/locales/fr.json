@@ -504,6 +504,9 @@
     "applianceTotalCores": "Coeurs totaux",
     "applianceTotalRam": "RAM totale (Go)",
     "applianceTotalDisk": "Disque total (Go)",
-    "applianceTotals": "Totaux"
+    "applianceTotals": "Totaux",
+    "totalDiskGB": "Disque total (Go)",
+    "totalSwapGB": "Swap total (Go)",
+    "externalPoolRequiredTiB": "Pool externe requis (Tio)"
   }
 }

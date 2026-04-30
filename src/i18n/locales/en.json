@@ -504,6 +504,9 @@
     "applianceTotalCores": "Total cores",
     "applianceTotalRam": "Total RAM (GB)",
     "applianceTotalDisk": "Total disk (GB)",
-    "applianceTotals": "Totals"
+    "applianceTotals": "Totals",
+    "totalDiskGB": "Total disk (GB)",
+    "totalSwapGB": "Total swap (GB)",
+    "externalPoolRequiredTiB": "External pool required (TiB)"
   }
 }
