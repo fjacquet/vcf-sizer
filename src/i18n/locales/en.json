@@ -493,6 +493,20 @@
     "totalVcpuRequired": "Total vCPU required",
     "totalRamRequired": "Total RAM required",
     "totalVcpu": "Total vCPU",
-    "totalRam": "Total RAM"
+    "totalRam": "Total RAM",
+    "mgmtAppliances": "Management Appliance Sizing",
+    "wldOverheadAuto": "Workload-Domain Overhead (Auto-derived)",
+    "applianceComponent": "Component",
+    "applianceNodes": "Nodes",
+    "appliancePerNodeCores": "Cores/node",
+    "appliancePerNodeRam": "RAM/node (GB)",
+    "appliancePerNodeDisk": "Disk/node (GB)",
+    "applianceTotalCores": "Total cores",
+    "applianceTotalRam": "Total RAM (GB)",
+    "applianceTotalDisk": "Total disk (GB)",
+    "applianceTotals": "Totals",
+    "totalDiskGB": "Total disk (GB)",
+    "totalSwapGB": "Total swap (GB)",
+    "externalPoolRequiredTiB": "External pool required"
   }
 }

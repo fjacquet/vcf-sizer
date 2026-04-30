@@ -201,3 +201,50 @@ describe('calcManagementFull — legacy flat fields populated', () => {
     expect(r.automationRamGB).toBe(autoLines.reduce((s, l) => s + l.totalRamGB, 0))
   })
 })
+
+describe('calcManagementFull — workbook-parity snapshots (P6.4)', () => {
+  // These tests lock the engine to VMware's reference workbook values
+  // for the Standard profile across all three deployment modes.
+  // Source values: spec Appendix A (sizing tables) + Appendix B (profile presets).
+  // If a defaults table changes, update these expected values DELIBERATELY
+  // and reference the spec change in the commit message.
+
+  it('Standard / Simple — totals match VMware workbook (no HA fanout)', () => {
+    const cfg = { ...baseConfig(), profile: 'standard' as const, deploymentMode: 'simple' as const }
+    const r = calcManagementFull(cfg, [])
+
+    // Appliances summed from Standard preset × per-line spec:
+    // SDDC 4/16/914 · vCenter-M 8/30/908 · NSX-Mgr-M ×1 6/24/300 ·
+    // NSX-Edge-L ×2 16/64/400 · AVI-S ×3 18/96/1536 · vROps-M ×1 8/32/274 ·
+    // vRLI-M ×1 8/16/530 · vRNI-M ×1 8/32/1024 · Auto-M ×1 24/96/334 ·
+    // Fleet ×1 4/12/194
+    expect(r.totalCores).toBe(104)
+    expect(r.totalRamGB).toBe(418)
+    expect(r.totalDiskGB).toBe(6414)
+    expect(r.recommendedHostCount).toBeGreaterThanOrEqual(4)  // simple/HA floor
+  })
+
+  it('Standard / HA — NSX Mgr / vROps / vRLI / Automation fan out ×3', () => {
+    const cfg = { ...baseConfig(), profile: 'standard' as const, deploymentMode: 'ha' as const }
+    const r = calcManagementFull(cfg, [])
+
+    // Same as Simple but NSX-Mgr ×3, vROps ×3, vRLI ×3, Auto ×3.
+    expect(r.totalCores).toBe(196)
+    expect(r.totalRamGB).toBe(754)
+    expect(r.totalDiskGB).toBe(9290)
+    expect(r.recommendedHostCount).toBeGreaterThanOrEqual(4)
+  })
+
+  it('Standard / Stretch — same totals as HA, recommended floor of 8', () => {
+    const cfg = { ...baseConfig(), profile: 'standard' as const, deploymentMode: 'stretch' as const }
+    const r = calcManagementFull(cfg, [])
+
+    // Stretch uses HA fanout (×3), then applies floor=8 to recommendedHostCount.
+    expect(r.totalCores).toBe(196)
+    expect(r.totalRamGB).toBe(754)
+    expect(r.totalDiskGB).toBe(9290)
+    expect(r.recommendedHostCount).toBeGreaterThanOrEqual(8)  // stretch floor
+    expect(r.preferredSiteHosts).toBe(r.recommendedHostCount)  // P5.5: per-site = total
+    expect(r.secondarySiteHosts).toBe(r.recommendedHostCount)
+  })
+})

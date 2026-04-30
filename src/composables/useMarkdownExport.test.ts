@@ -10,8 +10,9 @@ import { useInputStore } from '@/stores/inputStore'
 import { generateMarkdownReport } from './useMarkdownExport'
 
 // Mock i18n — t() returns the key so assertions check i18n key usage
+// te() returns false (key absent) so category label fallback chain returns the raw category key
 vi.mock('@/i18n', () => ({
-  i18n: { global: { t: (key: string) => key } },
+  i18n: { global: { t: (key: string) => key, te: (_key: string) => false } },
 }))
 
 describe('generateMarkdownReport — always-present sections', () => {
