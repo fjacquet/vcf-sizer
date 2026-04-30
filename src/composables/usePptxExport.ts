@@ -72,6 +72,14 @@ export const MASTER_NAME = 'VCF_MODERN'
 
 const FONT = 'Segoe UI'
 
+// P6.4 (CR-4): Maximum data rows that fit on a single appliance-table slide.
+// Conservative: with rowH=0.32 and the LAYOUT_WIDE working area (~5.4in vertical
+// after frame + footer), ~14 rows is the safe ceiling before the totals footer
+// would clip off-slide. When lines.length > MAX_ROWS_PER_SLIDE, the section is
+// paginated across multiple slides — header repeated each slide, totals footer
+// rendered ONLY on the final slide.
+const MAX_ROWS_PER_SLIDE = 14
+
 // ─── Internal helpers ──────────────────────────────────────────────────────────
 
 /** Create a header cell with teal background */
@@ -510,18 +518,35 @@ export async function generatePptxReport(): Promise<void> {
     })
   }
 
-  /** P6.3: Render an 8-column appliance sizing table with header + data + totals footer */
+  /**
+   * P6.3: Render an 8-column appliance sizing table with header + data rows
+   * and (optionally) a totals footer.
+   *
+   * P6.4 (CR-4): `opts.includeFooter` (default true) controls whether the
+   * trailing totals row is rendered — used by the paginating wrapper to
+   * suppress the footer on every chunk except the final one. `opts.totals`
+   * lets the wrapper pass overall totals (across all chunks) to the final
+   * footer; if omitted, the footer sums only the `lines` arg (current
+   * single-slide behavior).
+   */
   function addApplianceTable(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     slide: any,
     lines: readonly ApplianceLine[],
     categoryLabel: (line: ApplianceLine) => string,
-    opts?: { y?: number },
+    opts?: {
+      y?: number
+      includeFooter?: boolean
+      totals?: { cores: number; ramGB: number; diskGB: number }
+    },
   ) {
     const startY = opts?.y ?? 1.5
-    const totalCores = lines.reduce((s, l) => s + l.totalCores, 0)
-    const totalRam = lines.reduce((s, l) => s + l.totalRamGB, 0)
-    const totalDisk = lines.reduce((s, l) => s + l.totalDiskGB, 0)
+    const includeFooter = opts?.includeFooter ?? true
+    const totals = opts?.totals ?? {
+      cores: lines.reduce((s, l) => s + l.totalCores, 0),
+      ramGB: lines.reduce((s, l) => s + l.totalRamGB, 0),
+      diskGB: lines.reduce((s, l) => s + l.totalDiskGB, 0),
+    }
 
     const headers: string[] = [
       t('export.applianceComponent'),
@@ -554,23 +579,71 @@ export async function generatePptxReport(): Promise<void> {
           dataCell(String(line.totalDiskGB), bg),
         ]
       }),
-      [
+    ]
+
+    if (includeFooter) {
+      rows.push([
         dataCell(t('export.applianceTotals'), PALETTE.altRowBg, true),
         dataCell('', PALETTE.altRowBg, true),
         dataCell('', PALETTE.altRowBg, true),
         dataCell('', PALETTE.altRowBg, true),
         dataCell('', PALETTE.altRowBg, true),
-        dataCell(String(totalCores), PALETTE.altRowBg, true),
-        dataCell(String(totalRam), PALETTE.altRowBg, true),
-        dataCell(String(totalDisk), PALETTE.altRowBg, true),
-      ],
-    ]
+        dataCell(String(totals.cores), PALETTE.altRowBg, true),
+        dataCell(String(totals.ramGB), PALETTE.altRowBg, true),
+        dataCell(String(totals.diskGB), PALETTE.altRowBg, true),
+      ])
+    }
 
     slide.addTable(rows, {
       x: 0.4, y: startY, w: 12.5,
       colW: [3.0, 1.1, 1.3, 1.4, 1.4, 1.4, 1.45, 1.45],
       rowH: 0.32,
       border: { type: 'solid', pt: 0.5, color: PALETTE.border },
+    })
+  }
+
+  /**
+   * P6.4 (CR-4): Paginated appliance section.
+   *
+   * Replaces the previous "one slide always" pattern at call sites. If the
+   * appliance/wld-overhead list fits on one slide (lines.length <=
+   * MAX_ROWS_PER_SLIDE), behavior is identical to the old code path —
+   * exactly one slide with header + data + totals footer.
+   *
+   * If lines.length exceeds the limit, splits across N slides:
+   *   - Header row repeats on every slide (built into addApplianceTable).
+   *   - Continuation slide titles append " (cont.)".
+   *   - The totals footer appears ONLY on the final slide and reflects
+   *     the grand total across all chunks (not the per-chunk subtotal).
+   */
+  function addPaginatedApplianceSection(
+    title: string,
+    lines: readonly ApplianceLine[],
+    categoryLabel: (line: ApplianceLine) => string,
+  ) {
+    if (lines.length === 0) return
+
+    // Grand totals across all chunks — passed to the final slide's footer.
+    const grandTotals = {
+      cores: lines.reduce((s, l) => s + l.totalCores, 0),
+      ramGB: lines.reduce((s, l) => s + l.totalRamGB, 0),
+      diskGB: lines.reduce((s, l) => s + l.totalDiskGB, 0),
+    }
+
+    const chunks: ApplianceLine[][] = []
+    for (let i = 0; i < lines.length; i += MAX_ROWS_PER_SLIDE) {
+      chunks.push(lines.slice(i, i + MAX_ROWS_PER_SLIDE))
+    }
+
+    chunks.forEach((chunk, idx) => {
+      const isLast = idx === chunks.length - 1
+      const slide = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
+      const slideTitle = idx === 0 ? title : `${title} (cont.)`
+      addSlideFrame(slide, slideTitle)
+      addApplianceTable(slide, chunk, categoryLabel, {
+        includeFooter: isLast,
+        totals: isLast ? grandTotals : undefined,
+      })
     })
   }
 
@@ -868,17 +941,21 @@ export async function generatePptxReport(): Promise<void> {
   const te = (key: string): boolean => i18n.global.te(key)
   const categoryLabel = makeCategoryLabel(t, te)
 
-  if (calc.management.appliances.length > 0) {
-    const sAppl = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
-    addSlideFrame(sAppl, t('export.mgmtAppliances'))
-    addApplianceTable(sAppl, calc.management.appliances, categoryLabel)
-  }
-
-  if (calc.management.wldOverhead.length > 0) {
-    const sWld = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
-    addSlideFrame(sWld, t('export.wldOverheadAuto'))
-    addApplianceTable(sWld, calc.management.wldOverhead, categoryLabel)
-  }
+  // P6.4 (CR-4): Both sections use the paginated wrapper. With small
+  // appliance/wld-overhead lists, behavior is unchanged (single slide,
+  // header + data + totals footer). Large lists (Large profile + multiple
+  // validated solutions) are now split across multiple slides instead of
+  // overflowing the single-slide layout.
+  addPaginatedApplianceSection(
+    t('export.mgmtAppliances'),
+    calc.management.appliances,
+    categoryLabel,
+  )
+  addPaginatedApplianceSection(
+    t('export.wldOverheadAuto'),
+    calc.management.wldOverhead,
+    categoryLabel,
+  )
 
   // ── Conditional: Validation Warnings (PPTX-14) — always last ────────────────
   if (calc.aggregateTotals.allValidationErrors.length > 0) {
