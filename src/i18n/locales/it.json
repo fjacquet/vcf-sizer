@@ -493,6 +493,17 @@
     "totalVcpuRequired": "Totale vCPU richiesti",
     "totalRamRequired": "Totale RAM richiesta",
     "totalVcpu": "Totale vCPU",
-    "totalRam": "Totale RAM"
+    "totalRam": "Totale RAM",
+    "mgmtAppliances": "Dimensionamento appliance di gestione",
+    "wldOverheadAuto": "Overhead dominio di carico (auto-derivato)",
+    "applianceComponent": "Componente",
+    "applianceNodes": "Nodi",
+    "appliancePerNodeCores": "Core/nodo",
+    "appliancePerNodeRam": "RAM/nodo (GB)",
+    "appliancePerNodeDisk": "Disco/nodo (GB)",
+    "applianceTotalCores": "Core totali",
+    "applianceTotalRam": "RAM totale (GB)",
+    "applianceTotalDisk": "Disco totale (GB)",
+    "applianceTotals": "Totali"
   }
 }

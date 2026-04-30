@@ -8,6 +8,46 @@ import { useCalculationStore } from '@/stores/calculationStore'
 import { useUiStore } from '@/stores/uiStore'
 import { i18n } from '@/i18n'
 import { formatStorage } from '@/utils/formatStorage'
+import type { ApplianceLine } from '@/engine/mgmt/types'
+
+// P6.1: Render an ApplianceLine[] as an 8-column markdown table with a totals footer.
+// Mirrors the layout of MgmtSizingTable.vue (P4.5) for downloadable parity.
+function renderApplianceTable(
+  lines: readonly ApplianceLine[],
+  t: (key: string) => string,
+  categoryLabel: (line: ApplianceLine) => string,
+): string[] {
+  const rows: string[] = []
+  rows.push(
+    `| ${t('export.applianceComponent')} | ${t('export.applianceNodes')} | ${t('export.appliancePerNodeCores')} | ${t('export.appliancePerNodeRam')} | ${t('export.appliancePerNodeDisk')} | ${t('export.applianceTotalCores')} | ${t('export.applianceTotalRam')} | ${t('export.applianceTotalDisk')} |`,
+    `|-----------|-------|------------|----------|-----------|-------------|------------|------------|`,
+  )
+  for (const line of lines) {
+    rows.push(
+      `| ${categoryLabel(line)} | ${line.nodeCount} | ${line.cores} | ${line.ramGB} | ${line.diskGB} | ${line.totalCores} | ${line.totalRamGB} | ${line.totalDiskGB} |`,
+    )
+  }
+  // Footer: totals row
+  const totalCores = lines.reduce((s, l) => s + l.totalCores, 0)
+  const totalRam = lines.reduce((s, l) => s + l.totalRamGB, 0)
+  const totalDisk = lines.reduce((s, l) => s + l.totalDiskGB, 0)
+  rows.push(
+    `| **${t('export.applianceTotals')}** |  |  |  |  | **${totalCores}** | **${totalRam}** | **${totalDisk}** |`,
+  )
+  return rows
+}
+
+// P6.1: Resolve appliance category to a localized label using vue-i18n's te() fallback chain.
+// Same 3-namespace lookup as MgmtSizingTable.vue: dedicated → optionalAppliances → raw key.
+function makeCategoryLabel(t: (key: string) => string, te: (key: string) => boolean) {
+  return function categoryLabel(line: ApplianceLine): string {
+    const dedicated = `mgmt.categories.${line.category}`
+    if (te(dedicated)) return t(dedicated)
+    const optional = `mgmt.optionalAppliances.categories.${line.category}`
+    if (te(optional)) return t(optional)
+    return String(line.category)
+  }
+}
 
 /**
  * generateMarkdownReport — called on Markdown export click.
@@ -70,6 +110,32 @@ export function generateMarkdownReport(): string {
     `| ${t('export.totalVcpu')} | ${calc.management.totalCores} |`,
     `| ${t('export.totalRam')} | ${calc.management.totalRamGB} GB |`,
   )
+
+  // P6.1: Itemized management appliance table + WLD-overhead table.
+  // Reuses i18n.global.te (same direct-API pattern as i18n.global.t above) so we don't
+  // need to introduce a useI18n() call inside this plain TypeScript module.
+  // NOTE: te must be bound to i18n.global; pulling it off as a bare reference loses `this`.
+  const te = (key: string): boolean => i18n.global.te(key)
+  const categoryLabel = makeCategoryLabel(t, te)
+
+  if (calc.management.appliances.length > 0) {
+    sections.push(
+      ``,
+      `## ${t('export.mgmtAppliances')}`,
+      ``,
+      ...renderApplianceTable(calc.management.appliances, t, categoryLabel),
+    )
+  }
+
+  // P6.1: Workload-domain overhead table (auto-derived per-WLD vCenter + NSX Manager)
+  if (calc.management.wldOverhead.length > 0) {
+    sections.push(
+      ``,
+      `## ${t('export.wldOverheadAuto')}`,
+      ``,
+      ...renderApplianceTable(calc.management.wldOverhead, t, categoryLabel),
+    )
+  }
 
   // Per-domain loop — one ## Domain: {name} section per workload domain (EXP-01)
   for (const domain of store.workloadDomains) {
