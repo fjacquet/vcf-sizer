@@ -220,6 +220,9 @@
       "confirm": "Cambia profilo",
       "cancel": "Mantieni profilo attuale"
     },
+    "stretchAutoSync": {
+      "hint": "Bloccato su Stretch Cluster perché almeno un dominio di carico è esteso."
+    },
     "capacityHeadroom": {
       "title": "Margine di capacità",
       "cpuOversub": "Sovrasottoscrizione CPU",

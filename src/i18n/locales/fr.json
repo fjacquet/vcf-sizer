@@ -220,6 +220,9 @@
       "confirm": "Changer de profil",
       "cancel": "Conserver le profil actuel"
     },
+    "stretchAutoSync": {
+      "hint": "Verrouillé sur Cluster étendu car au moins un domaine de charge est étendu."
+    },
     "capacityHeadroom": {
       "title": "Marge de capacité",
       "cpuOversub": "Sursouscription CPU",

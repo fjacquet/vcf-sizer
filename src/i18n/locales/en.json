@@ -220,6 +220,9 @@
       "confirm": "Switch profile",
       "cancel": "Keep current profile"
     },
+    "stretchAutoSync": {
+      "hint": "Locked to Stretch Cluster because at least one workload domain is stretched."
+    },
     "capacityHeadroom": {
       "title": "Capacity headroom",
       "cpuOversub": "CPU oversubscription",

@@ -48,6 +48,13 @@ const dedicatedMgmtHostCount = computed(() => calc.dedicatedMgmtHostCount)
 
 const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.value)
 
+// P5.5: when any workload domain is in stretch mode, mgmt is auto-locked to
+// stretch (real VCF requirement). Surface a hint in the read-only deployment
+// mode display so the user knows why the value is what it is.
+const isLockedByWorkloadStretch = computed(() =>
+  input.workloadDomains.some(d => d.deploymentMode === 'stretch')
+)
+
 const profileChangeDialogOpen = ref(false)
 const pendingProfile = ref<MgmtProfile | null>(null)
 
@@ -210,6 +217,10 @@ function cancelProfileChange() {
           {{ t('deployment.' + deploymentMode) }}
         </span>
         <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('wizard.step2.topologyLockedHint') }}</span>
+      </p>
+      <!-- P5.5: stretch auto-sync hint — visible when any workload domain is stretch -->
+      <p v-if="isLockedByWorkloadStretch" class="text-xs text-amber-700 dark:text-amber-400 italic">
+        {{ t('mgmt.stretchAutoSync.hint') }}
       </p>
     </div>
 

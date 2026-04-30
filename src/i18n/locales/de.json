@@ -220,6 +220,9 @@
       "confirm": "Profil wechseln",
       "cancel": "Aktuelles Profil behalten"
     },
+    "stretchAutoSync": {
+      "hint": "Auf Stretch-Cluster gesperrt, da mindestens eine Workload-Domain gestreckt ist."
+    },
     "capacityHeadroom": {
       "title": "Kapazitätsreserve",
       "cpuOversub": "CPU-Übersubskription",
