@@ -260,6 +260,11 @@ export function generateMarkdownReport(): string {
     `| ${t('export.metric')} | ${t('export.value')} |`,
     `|--------|-------|`,
     `| ${t('export.totalRecommendedHosts')} | ${totals.totalRecommendedHosts} |`,
+    // P5.5: per-site split (only when at least one stretched domain exists)
+    ...(totals.preferredSiteHosts !== undefined && totals.secondarySiteHosts !== undefined ? [
+      `| ${t('export.aggPreferredSiteHosts')} | ${totals.preferredSiteHosts} |`,
+      `| ${t('export.aggSecondarySiteHosts')} | ${totals.secondarySiteHosts} |`,
+    ] : []),
     `| ${t('export.managementHosts')} | ${store.managementArchitecture === 'dedicated' && calc.dedicatedMgmtHostCount !== null ? String(calc.dedicatedMgmtHostCount) : t('export.colocatedWld1')} |`,
     `| ${t('export.totalVmCount')} | ${totals.totalVmCount} |`,
     `| ${t('export.totalRawStorage')} | ${fmtS(totals.totalRawStorageTiB)} |`,

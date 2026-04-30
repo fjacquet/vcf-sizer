@@ -154,6 +154,39 @@ export const useCalculationStore = defineStore('calculation', () => {
       (sum, d) => sum + d.compute.effectiveHostCount, 0
     )
     const mgmtHosts = dedicatedMgmtHostCount.value ?? 0
+
+    // P5.5: per-site procurement when any stretched domain exists. Defined only
+    // when at least one workload OR the mgmt domain is in stretch mode.
+    const anyStretch =
+      input.managementDomain.deploymentMode === 'stretch'
+      || input.workloadDomains.some(d => d.deploymentMode === 'stretch')
+
+    let workloadPreferred: number | undefined
+    let workloadSecondary: number | undefined
+    let mgmtPreferred: number | undefined
+    let mgmtSecondary: number | undefined
+
+    if (anyStretch) {
+      // Sum stretched WLDs only (non-stretch WLDs contribute 0 to per-site totals
+      // since they're single-site — their hosts go in totalRecommendedHosts).
+      workloadPreferred = input.workloadDomains.reduce(
+        (sum, d) => sum + (d.deploymentMode === 'stretch' ? d.preferredSiteHosts : 0), 0
+      )
+      workloadSecondary = input.workloadDomains.reduce(
+        (sum, d) => sum + (d.deploymentMode === 'stretch' ? d.secondarySiteHosts : 0), 0
+      )
+      // Mgmt: when stretch, dedicatedMgmtHostCount is the TOTAL (per-site × 2).
+      // Each site gets half (rounded; equal halves per locked design decision).
+      if (input.managementArchitecture === 'dedicated' && input.managementDomain.deploymentMode === 'stretch' && mgmtHosts > 0) {
+        const perSite = mgmtHosts / 2
+        mgmtPreferred = perSite
+        mgmtSecondary = perSite
+      } else {
+        mgmtPreferred = 0
+        mgmtSecondary = 0
+      }
+    }
+
     return {
       totalRecommendedHosts: workloadHosts + mgmtHosts,
       mgmtHostCount: mgmtHosts,
@@ -169,6 +202,17 @@ export const useCalculationStore = defineStore('calculation', () => {
         ...domainResults.value.flatMap(d => d.validationErrors),
         ...validateMgmtStretchParity(input.workloadDomains, input.managementDomain),
       ],
+      // P5.5: per-site split (undefined when no stretch domain exists)
+      workloadPreferredSiteHosts: workloadPreferred,
+      workloadSecondarySiteHosts: workloadSecondary,
+      mgmtPreferredSiteHosts: mgmtPreferred,
+      mgmtSecondarySiteHosts: mgmtSecondary,
+      preferredSiteHosts: workloadPreferred !== undefined && mgmtPreferred !== undefined
+        ? workloadPreferred + mgmtPreferred
+        : undefined,
+      secondarySiteHosts: workloadSecondary !== undefined && mgmtSecondary !== undefined
+        ? workloadSecondary + mgmtSecondary
+        : undefined,
     }
   })
 

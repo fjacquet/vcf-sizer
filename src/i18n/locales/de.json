@@ -183,7 +183,11 @@
       "grandTotal": "Gesamtsumme (Beschaffung)",
       "totalVms": "Gesamt-VMs",
       "totalRawStorage": "Kombinierter Rohspeicher",
-      "totalEffectiveStorage": "Kombinierter Nettokapazitaet"
+      "totalEffectiveStorage": "Kombinierter Nettokapazitaet",
+      "preferredSiteHosts": "Hosts bevorzugter Standort (alle gestreckten Domains)",
+      "secondarySiteHosts": "Hosts sekundaerer Standort (alle gestreckten Domains)",
+      "preferredSite": "bevorzugter Standort",
+      "secondarySite": "sekundaerer Standort"
     }
   },
   "management": {
@@ -424,6 +428,8 @@
     "deploymentMode": "Bereitstellungsmodell",
     "mgmtPreferredSite": "Management-Hosts (bevorzugter Standort)",
     "mgmtSecondarySite": "Management-Hosts (sekundaerer Standort)",
+    "aggPreferredSiteHosts": "Hosts bevorzugter Standort (aggregat)",
+    "aggSecondarySiteHosts": "Hosts sekundaerer Standort (aggregat)",
     "minHostsCpu": "Min. Hosts fuer CPU",
     "minHostsRam": "Min. Hosts fuer RAM",
     "minHostsStorage": "Min. Hosts fuer Speicher",

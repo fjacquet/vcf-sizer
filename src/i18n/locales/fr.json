@@ -183,7 +183,11 @@
       "grandTotal": "Total general (achats)",
       "totalVms": "Total VMs",
       "totalRawStorage": "Stockage brut combine",
-      "totalEffectiveStorage": "Stockage effectif combine"
+      "totalEffectiveStorage": "Stockage effectif combine",
+      "preferredSiteHosts": "Hotes site principal (tous domaines etendus)",
+      "secondarySiteHosts": "Hotes site secondaire (tous domaines etendus)",
+      "preferredSite": "site principal",
+      "secondarySite": "site secondaire"
     }
   },
   "management": {
@@ -424,6 +428,8 @@
     "deploymentMode": "Modele de deploiement",
     "mgmtPreferredSite": "Hotes de gestion (site principal)",
     "mgmtSecondarySite": "Hotes de gestion (site secondaire)",
+    "aggPreferredSiteHosts": "Hotes site principal (agrege)",
+    "aggSecondarySiteHosts": "Hotes site secondaire (agrege)",
     "minHostsCpu": "Hotes min. pour CPU",
     "minHostsRam": "Hotes min. pour RAM",
     "minHostsStorage": "Hotes min. pour stockage",

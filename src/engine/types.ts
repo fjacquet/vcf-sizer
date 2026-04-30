@@ -189,4 +189,12 @@ export interface AggregateTotals {
   totalEffectiveStorageTiB: number
   totalWorkloadStorageRequiredTiB: number  // sum of FC/NFS workload needs (0 when all vSAN)
   allValidationErrors: ValidationWarning[]
+  // P5.5: per-site procurement counts when any domain is in stretch mode.
+  // All four are undefined when no stretch domain exists.
+  preferredSiteHosts?: number      // sum of (workload preferred + mgmt preferred) per stretched domain
+  secondarySiteHosts?: number      // sum of (workload secondary + mgmt secondary) per stretched domain
+  workloadPreferredSiteHosts?: number  // workload-only preferred-site hosts
+  workloadSecondarySiteHosts?: number  // workload-only secondary-site hosts
+  mgmtPreferredSiteHosts?: number      // mgmt-only preferred-site hosts (= recommendedHostCount when stretch)
+  mgmtSecondarySiteHosts?: number      // mgmt-only secondary-site hosts (= recommendedHostCount when stretch)
 }

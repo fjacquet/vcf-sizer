@@ -15,6 +15,11 @@ const grandTotal = computed(() => props.totals.totalRecommendedHosts)
 const workloadHostCount = computed(() =>
   props.totals.totalRecommendedHosts - props.totals.mgmtHostCount
 )
+
+// P5.5: per-site split — defined only when at least one stretched domain exists
+const isStretchTotal = computed(() =>
+  props.totals.preferredSiteHosts !== undefined && props.totals.secondarySiteHosts !== undefined
+)
 </script>
 
 <template>
@@ -37,12 +42,32 @@ const workloadHostCount = computed(() =>
 
     <!-- Data grid -->
     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
+      <!-- P5.5: per-site split (visible only when at least one domain is stretch) -->
+      <template v-if="isStretchTotal">
+        <span class="text-amber-700 dark:text-amber-400 italic">{{ t('results.aggregate.preferredSiteHosts') }}</span>
+        <span class="font-mono text-right text-amber-700 dark:text-amber-400 italic">{{ totals.preferredSiteHosts }}</span>
+        <span class="text-amber-700 dark:text-amber-400 italic">{{ t('results.aggregate.secondarySiteHosts') }}</span>
+        <span class="font-mono text-right text-amber-700 dark:text-amber-400 italic">{{ totals.secondarySiteHosts }}</span>
+      </template>
+
       <span>{{ t('results.aggregate.totalHosts') }}</span>
       <span class="font-mono text-right font-semibold">{{ workloadHostCount }}</span>
+      <template v-if="isStretchTotal">
+        <span class="text-xs text-gray-400 dark:text-gray-500 italic pl-3">└ {{ t('results.aggregate.preferredSite') }}</span>
+        <span class="font-mono text-right text-xs text-gray-400 dark:text-gray-500">{{ totals.workloadPreferredSiteHosts }}</span>
+        <span class="text-xs text-gray-400 dark:text-gray-500 italic pl-3">└ {{ t('results.aggregate.secondarySite') }}</span>
+        <span class="font-mono text-right text-xs text-gray-400 dark:text-gray-500">{{ totals.workloadSecondarySiteHosts }}</span>
+      </template>
 
       <template v-if="managementHostCount !== null">
         <span>{{ t('results.aggregate.managementHosts') }}</span>
         <span class="font-mono text-right font-semibold">{{ managementHostCount }}</span>
+        <template v-if="isStretchTotal && (totals.mgmtPreferredSiteHosts ?? 0) > 0">
+          <span class="text-xs text-gray-400 dark:text-gray-500 italic pl-3">└ {{ t('results.aggregate.preferredSite') }}</span>
+          <span class="font-mono text-right text-xs text-gray-400 dark:text-gray-500">{{ totals.mgmtPreferredSiteHosts }}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500 italic pl-3">└ {{ t('results.aggregate.secondarySite') }}</span>
+          <span class="font-mono text-right text-xs text-gray-400 dark:text-gray-500">{{ totals.mgmtSecondarySiteHosts }}</span>
+        </template>
       </template>
 
       <span>{{ t('results.aggregate.totalVms') }}</span>
