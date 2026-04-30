@@ -19,6 +19,7 @@ import type {
   WorkloadDomainConfig,
   AggregateTotals,
 } from '@/engine/types'
+import type { ApplianceLine } from '@/engine/mgmt/types'
 // Local type definitions matching pptxgenjs TableCell/TableRow shapes.
 // We use local types rather than importing from pptxgenjs to avoid
 // namespace resolution issues with the dynamic-import-only pattern (PPTX-15).
@@ -82,6 +83,19 @@ function hdrCell(text: string): TableCell {
 }
 
 // Note: individual data cells are built inline by modernTable() and warning row builders
+
+// P6.3: Resolve appliance category to a localized label using vue-i18n's te() fallback chain.
+// Copied locally from useMarkdownExport.ts (same 3-namespace lookup as MgmtSizingTable.vue):
+// dedicated → optionalAppliances → raw key.
+function makeCategoryLabel(t: (key: string) => string, te: (key: string) => boolean) {
+  return function categoryLabel(line: ApplianceLine): string {
+    const dedicated = `mgmt.categories.${line.category}`
+    if (te(dedicated)) return t(dedicated)
+    const optional = `mgmt.optionalAppliances.categories.${line.category}`
+    if (te(optional)) return t(optional)
+    return String(line.category)
+  }
+}
 
 // ─── Data-mapping helpers (pure functions — testable without pptxgenjs) ────────
 // Phase 22: t parameter added as last arg for i18n localization (PITFALL-3/4)
@@ -496,6 +510,70 @@ export async function generatePptxReport(): Promise<void> {
     })
   }
 
+  /** P6.3: Render an 8-column appliance sizing table with header + data + totals footer */
+  function addApplianceTable(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    slide: any,
+    lines: readonly ApplianceLine[],
+    categoryLabel: (line: ApplianceLine) => string,
+    opts?: { y?: number },
+  ) {
+    const startY = opts?.y ?? 1.5
+    const totalCores = lines.reduce((s, l) => s + l.totalCores, 0)
+    const totalRam = lines.reduce((s, l) => s + l.totalRamGB, 0)
+    const totalDisk = lines.reduce((s, l) => s + l.totalDiskGB, 0)
+
+    const headers: string[] = [
+      t('export.applianceComponent'),
+      t('export.applianceNodes'),
+      t('export.appliancePerNodeCores'),
+      t('export.appliancePerNodeRam'),
+      t('export.appliancePerNodeDisk'),
+      t('export.applianceTotalCores'),
+      t('export.applianceTotalRam'),
+      t('export.applianceTotalDisk'),
+    ]
+
+    const dataCell = (text: string, bg: string, bold = false): TableCell => ({
+      text,
+      options: { fill: { color: bg }, color: PALETTE.textDark, bold, fontFace: FONT, fontSize: 10 },
+    })
+
+    const rows: TableRow[] = [
+      headers.map(h => hdrCell(h)),
+      ...lines.map((line, idx): TableRow => {
+        const bg = idx % 2 === 0 ? PALETTE.cardBg : PALETTE.altRowBg
+        return [
+          dataCell(categoryLabel(line), bg),
+          dataCell(String(line.nodeCount), bg),
+          dataCell(String(line.cores), bg),
+          dataCell(String(line.ramGB), bg),
+          dataCell(String(line.diskGB), bg),
+          dataCell(String(line.totalCores), bg),
+          dataCell(String(line.totalRamGB), bg),
+          dataCell(String(line.totalDiskGB), bg),
+        ]
+      }),
+      [
+        dataCell(t('export.applianceTotals'), PALETTE.altRowBg, true),
+        dataCell('', PALETTE.altRowBg, true),
+        dataCell('', PALETTE.altRowBg, true),
+        dataCell('', PALETTE.altRowBg, true),
+        dataCell('', PALETTE.altRowBg, true),
+        dataCell(String(totalCores), PALETTE.altRowBg, true),
+        dataCell(String(totalRam), PALETTE.altRowBg, true),
+        dataCell(String(totalDisk), PALETTE.altRowBg, true),
+      ],
+    ]
+
+    slide.addTable(rows, {
+      x: 0.4, y: startY, w: 12.5,
+      colW: [3.0, 1.1, 1.3, 1.4, 1.4, 1.4, 1.45, 1.45],
+      rowH: 0.32,
+      border: { type: 'solid', pt: 0.5, color: PALETTE.border },
+    })
+  }
+
   // ── Slide master: light background with teal accent bar + brand footer ──────
   pres.defineSlideMaster({
     title: MASTER_NAME,
@@ -781,6 +859,26 @@ export async function generatePptxReport(): Promise<void> {
     [6.25, 6.25],
     { y: 3.1 },
   )
+
+  // ── P6.3: Management appliance + WLD overhead slides ────────────────────────
+  // Mirrors the markdown export's itemized appliance tables (P6.1).
+  // Reuses i18n.global.te (same direct-API pattern as i18n.global.t above) so we don't
+  // need to introduce a useI18n() call inside this plain TypeScript module.
+  // NOTE: te must be bound to i18n.global; pulling it off as a bare reference loses `this`.
+  const te = (key: string): boolean => i18n.global.te(key)
+  const categoryLabel = makeCategoryLabel(t, te)
+
+  if (calc.management.appliances.length > 0) {
+    const sAppl = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
+    addSlideFrame(sAppl, t('export.mgmtAppliances'))
+    addApplianceTable(sAppl, calc.management.appliances, categoryLabel)
+  }
+
+  if (calc.management.wldOverhead.length > 0) {
+    const sWld = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
+    addSlideFrame(sWld, t('export.wldOverheadAuto'))
+    addApplianceTable(sWld, calc.management.wldOverhead, categoryLabel)
+  }
 
   // ── Conditional: Validation Warnings (PPTX-14) — always last ────────────────
   if (calc.aggregateTotals.allValidationErrors.length > 0) {
