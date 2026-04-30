@@ -222,6 +222,21 @@
       "reservePct": "Réserve %",
       "growthPct": "Croissance %",
       "hint": "Capacité réservée pour le basculement (Réserve %) plus la croissance attendue de la charge (Croissance %). Les ratios de sursouscription s'appliquent au calcul des exigences par hôte (modèle N-1)."
+    },
+    "optionalAppliances": {
+      "title": "Appliances optionnelles",
+      "hint": "Activez, redimensionnez ou faites évoluer les appliances de gestion optionnelles. Les préréglages de profil fournissent des valeurs par défaut sensées ; les modifications ici surchargent le profil.",
+      "size": "Taille",
+      "nodes": "Nœuds",
+      "categories": {
+        "nsxEdge": "NSX Edge",
+        "aviLb": "Équilibreur de charge AVI",
+        "vrli": "VCF Operations for Logs",
+        "vrni": "VCF Operations for Networks",
+        "identityBroker": "Identity Broker (WSA)",
+        "ssp": "Security Services Platform (SSP)"
+      },
+      "sspWarning": "SSP est volumineux (≥112 vCPU / 414 Go RAM) ; généralement déployé uniquement dans les environnements souverains / réglementés."
     }
   },
   "domain": {

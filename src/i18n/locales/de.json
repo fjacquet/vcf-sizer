@@ -222,6 +222,21 @@
       "reservePct": "Reserve %",
       "growthPct": "Wachstum %",
       "hint": "Reservierte Kapazität für Failover (Reserve %) plus erwartetes Workload-Wachstum (Wachstum %). Übersubskriptionsverhältnisse gelten bei der Berechnung der Anforderungen pro Host (N-1-Modell)."
+    },
+    "optionalAppliances": {
+      "title": "Optionale Appliances",
+      "hint": "Optionale Management-Appliances umschalten, ihre Größe ändern oder skalieren. Profilvoreinstellungen liefern sinnvolle Standardwerte; Änderungen hier überschreiben das Profil.",
+      "size": "Größe",
+      "nodes": "Knoten",
+      "categories": {
+        "nsxEdge": "NSX Edge",
+        "aviLb": "AVI Load Balancer",
+        "vrli": "VCF Operations for Logs",
+        "vrni": "VCF Operations for Networks",
+        "identityBroker": "Identity Broker (WSA)",
+        "ssp": "Security Services Platform (SSP)"
+      },
+      "sspWarning": "SSP ist groß (≥112 vCPU / 414 GB RAM); wird typischerweise nur in souveränen / regulierten Umgebungen bereitgestellt."
     }
   },
   "domain": {

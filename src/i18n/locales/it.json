@@ -222,6 +222,21 @@
       "reservePct": "Riserva %",
       "growthPct": "Crescita %",
       "hint": "Capacità riservata per il failover (Riserva %) più la crescita prevista del carico (Crescita %). I rapporti di sovrasottoscrizione si applicano al calcolo dei requisiti per host (modello N-1)."
+    },
+    "optionalAppliances": {
+      "title": "Appliance opzionali",
+      "hint": "Attiva, ridimensiona o scala le appliance di gestione opzionali. I preset di profilo forniscono valori predefiniti sensati; le modifiche qui sovrascrivono il profilo.",
+      "size": "Dimensione",
+      "nodes": "Nodi",
+      "categories": {
+        "nsxEdge": "NSX Edge",
+        "aviLb": "AVI Load Balancer",
+        "vrli": "VCF Operations for Logs",
+        "vrni": "VCF Operations for Networks",
+        "identityBroker": "Identity Broker (WSA)",
+        "ssp": "Security Services Platform (SSP)"
+      },
+      "sspWarning": "SSP è grande (≥112 vCPU / 414 GB RAM); generalmente distribuito solo in ambienti sovrani / regolamentati."
     }
   },
   "domain": {
