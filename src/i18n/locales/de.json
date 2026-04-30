@@ -195,6 +195,27 @@
     "totalRam": "Gesamter Management-RAM",
     "storageType": "Speichertyp"
   },
+  "mgmt": {
+    "profile": {
+      "label": "Profil",
+      "lab": "Lab",
+      "standard": "Standard",
+      "large": "Large",
+      "hint": "Profilvoreinstellungen decken gängige Bereitstellungsgrößen ab. Profis können einzelne Appliance-Größen über den Bereich Erweiterte Dimensionierung überschreiben."
+    },
+    "vsanMax": {
+      "label": "vSAN Max (disaggregiert)",
+      "storageNodes": "Speicherknoten",
+      "profile": "Speicherprofil",
+      "warning": "Über VMwares offizielle Empfehlung für Management-Domains hinaus — von diesem Tool unterstützt, nicht von Broadcom."
+    },
+    "confirmProfileChange": {
+      "title": "Profil wechseln?",
+      "message": "Beim Profilwechsel werden {count} angepasste Appliance-Überschreibungen zurückgesetzt. Fortfahren?",
+      "confirm": "Profil wechseln",
+      "cancel": "Aktuelles Profil behalten"
+    }
+  },
   "domain": {
     "addDomain": "Domäne hinzufügen",
     "deleteConfirm": "Domäne \"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",

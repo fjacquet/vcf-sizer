@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputStore } from '@/stores/inputStore'
 import { useCalculationStore } from '@/stores/calculationStore'
 import type { ManagementDomainConfig } from '@/engine/types'
+import type { MgmtProfile } from '@/engine/mgmt/types'
 import NumberSliderInput from '@/components/shared/NumberSliderInput.vue'
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
 const { t } = useI18n()
 const input = useInputStore()
@@ -23,6 +25,14 @@ const hostRamGB = mgmtField('hostRamGB')
 const hostStorageTiB = mgmtField('hostStorageTiB')
 const storageType = mgmtField('storageType')
 const deploymentMode = mgmtField('deploymentMode')
+const profile = mgmtField('profile')
+const vsanMaxProfile = mgmtField('vsanMaxProfile')
+
+// vSAN Max storage nodes — wrap with a numeric default for the slider (4 = min)
+const vsanMaxStorageNodes = computed<number>({
+  get: () => input.managementDomain.vsanMaxStorageNodes ?? 4,
+  set: (val: number) => input.updateManagementDomain({ vsanMaxStorageNodes: val }),
+})
 
 const managementArchitecture = computed({
   get: () => input.managementArchitecture,
@@ -33,6 +43,36 @@ const management = computed(() => calc.management)
 const dedicatedMgmtHostCount = computed(() => calc.dedicatedMgmtHostCount)
 
 const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.value)
+
+const profileChangeDialogOpen = ref(false)
+const pendingProfile = ref<MgmtProfile | null>(null)
+
+const overrideCount = computed(() => Object.keys(input.managementDomain.overrides ?? {}).length)
+
+function attemptProfileChange(next: MgmtProfile) {
+  if (overrideCount.value === 0 || profile.value === next) {
+    profile.value = next
+    return
+  }
+  pendingProfile.value = next
+  profileChangeDialogOpen.value = true
+}
+
+function confirmProfileChange() {
+  if (pendingProfile.value !== null) {
+    input.updateManagementDomain({
+      profile: pendingProfile.value,
+      overrides: {},
+    })
+  }
+  pendingProfile.value = null
+  profileChangeDialogOpen.value = false
+}
+
+function cancelProfileChange() {
+  pendingProfile.value = null
+  profileChangeDialogOpen.value = false
+}
 </script>
 
 <template>
@@ -75,6 +115,7 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
             { value: 'vsan-esa' as const, labelKey: 'storage.vsanEsa' },
             { value: 'fc'       as const, labelKey: 'storage.fc'      },
             { value: 'nfs'      as const, labelKey: 'storage.nfs'     },
+            { value: 'vsan-max' as const, labelKey: 'storage.vsanMax' },
           ]"
           :key="opt.value"
           :class="[
@@ -88,6 +129,71 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
           {{ t(opt.labelKey) }}
         </button>
       </div>
+    </div>
+
+    <!-- vSAN Max conditional inputs (P4) — only when storageType is vsan-max -->
+    <div v-if="storageType === 'vsan-max'" class="space-y-3 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded">
+      <p class="text-xs text-amber-800 dark:text-amber-200">{{ t('mgmt.vsanMax.warning') }}</p>
+      <NumberSliderInput
+        v-model="vsanMaxStorageNodes"
+        :label="t('mgmt.vsanMax.storageNodes')"
+        :min="4"
+        :max="64"
+        :step="1"
+      />
+      <div class="space-y-1">
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {{ t('mgmt.vsanMax.profile') }}
+        </label>
+        <div class="flex gap-2 flex-wrap">
+          <button
+            v-for="opt in [
+              { value: 'xs' as const,  label: 'XS' },
+              { value: 'sm' as const,  label: 'SM' },
+              { value: 'med' as const, label: 'MED' },
+              { value: 'lrg' as const, label: 'LRG' },
+              { value: 'xl' as const,  label: 'XL' },
+            ]"
+            :key="opt.value"
+            :class="[
+              'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
+              vsanMaxProfile === opt.value
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+            ]"
+            @click="vsanMaxProfile = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile selector (P4) — Lab / Standard / Large -->
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {{ t('mgmt.profile.label') }}
+      </label>
+      <div class="flex gap-2">
+        <button
+          v-for="opt in [
+            { value: 'lab' as const,      labelKey: 'mgmt.profile.lab' },
+            { value: 'standard' as const, labelKey: 'mgmt.profile.standard' },
+            { value: 'large' as const,    labelKey: 'mgmt.profile.large' },
+          ]"
+          :key="opt.value"
+          :class="[
+            'px-3 py-1.5 text-sm rounded border font-medium transition-colors',
+            profile === opt.value
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+          ]"
+          @click="attemptProfileChange(opt.value)"
+        >
+          {{ t(opt.labelKey) }}
+        </button>
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('mgmt.profile.hint') }}</p>
     </div>
 
     <!-- Management deployment mode — read-only, inherited from Step 1 topology -->
@@ -156,5 +262,15 @@ const totalCoresPerHost = computed(() => coresPerSocket.value * socketsPerHost.v
         <span class="font-mono text-right font-semibold">{{ dedicatedMgmtHostCount }}</span>
       </template>
     </div>
+
+    <ConfirmationDialog
+      :visible="profileChangeDialogOpen"
+      :title="t('mgmt.confirmProfileChange.title')"
+      :message="t('mgmt.confirmProfileChange.message', { count: overrideCount })"
+      :confirm-label="t('mgmt.confirmProfileChange.confirm')"
+      :cancel-label="t('mgmt.confirmProfileChange.cancel')"
+      @confirm="confirmProfileChange"
+      @cancel="cancelProfileChange"
+    />
   </section>
 </template>

@@ -195,6 +195,27 @@
     "totalRam": "Total de la RAM de gestion",
     "storageType": "Type de stockage"
   },
+  "mgmt": {
+    "profile": {
+      "label": "Profil",
+      "lab": "Lab",
+      "standard": "Standard",
+      "large": "Large",
+      "hint": "Les préréglages de profil couvrent les échelles de déploiement courantes. Les utilisateurs avancés peuvent surcharger les tailles d'appliance via la section Dimensionnement avancé."
+    },
+    "vsanMax": {
+      "label": "vSAN Max (désagrégé)",
+      "storageNodes": "Nœuds de stockage",
+      "profile": "Profil de stockage",
+      "warning": "Au-delà des recommandations officielles de VMware pour les domaines de gestion — pris en charge par cet outil, pas par Broadcom."
+    },
+    "confirmProfileChange": {
+      "title": "Changer de profil ?",
+      "message": "Changer de profil réinitialisera {count} surcharge(s) d'appliance personnalisée(s). Continuer ?",
+      "confirm": "Changer de profil",
+      "cancel": "Conserver le profil actuel"
+    }
+  },
   "domain": {
     "addDomain": "Ajouter un domaine",
     "deleteConfirm": "Supprimer le domaine \"{name}\" ? Cette action est irréversible.",

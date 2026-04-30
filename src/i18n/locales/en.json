@@ -195,6 +195,27 @@
     "totalRam": "Total Management RAM",
     "storageType": "Storage Type"
   },
+  "mgmt": {
+    "profile": {
+      "label": "Profile",
+      "lab": "Lab",
+      "standard": "Standard",
+      "large": "Large",
+      "hint": "Profile presets cover common deployment scales. Power users can override individual appliance sizes via the Advanced sizing section."
+    },
+    "vsanMax": {
+      "label": "vSAN Max (disaggregated)",
+      "storageNodes": "Storage nodes",
+      "profile": "Storage profile",
+      "warning": "Beyond VMware's official guidance for management domains — supported by this tool, not by Broadcom."
+    },
+    "confirmProfileChange": {
+      "title": "Switch profile?",
+      "message": "Switching profile will reset {count} custom appliance override(s). Continue?",
+      "confirm": "Switch profile",
+      "cancel": "Keep current profile"
+    }
+  },
   "domain": {
     "addDomain": "Add Domain",
     "deleteConfirm": "Delete domain \"{name}\"? This cannot be undone.",
