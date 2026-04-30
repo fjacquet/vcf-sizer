@@ -38,13 +38,13 @@
     "@types/node": "^25.6.0",
     "@vitest/ui": "^4.1.5",
     "@vue/eslint-config-typescript": "^14.7.0",
-    "eslint": "^10.2.0",
+    "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-vue": "^10.8.0",
+    "eslint-plugin-vue": "^10.9.0",
     "globals": "^17.5.0",
-    "prettier": "^3.8.2",
-    "typescript-eslint": "^8.58.1",
-    "vitest": "^4.1.4",
-    "vue-tsc": "^3.2.6"
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.59.0",
+    "vitest": "^4.1.5",
+    "vue-tsc": "^3.2.7"
   }
 }
