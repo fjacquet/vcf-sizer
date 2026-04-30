@@ -214,6 +214,14 @@
       "message": "Beim Profilwechsel werden {count} angepasste Appliance-Überschreibungen zurückgesetzt. Fortfahren?",
       "confirm": "Profil wechseln",
       "cancel": "Aktuelles Profil behalten"
+    },
+    "capacityHeadroom": {
+      "title": "Kapazitätsreserve",
+      "cpuOversub": "CPU-Übersubskription",
+      "ramOversub": "RAM-Übersubskription",
+      "reservePct": "Reserve %",
+      "growthPct": "Wachstum %",
+      "hint": "Reservierte Kapazität für Failover (Reserve %) plus erwartetes Workload-Wachstum (Wachstum %). Übersubskriptionsverhältnisse gelten bei der Berechnung der Anforderungen pro Host (N-1-Modell)."
     }
   },
   "domain": {

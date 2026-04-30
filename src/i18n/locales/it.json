@@ -214,6 +214,14 @@
       "message": "Il cambio di profilo ripristinerà {count} override appliance personalizzati. Continuare?",
       "confirm": "Cambia profilo",
       "cancel": "Mantieni profilo attuale"
+    },
+    "capacityHeadroom": {
+      "title": "Margine di capacità",
+      "cpuOversub": "Sovrasottoscrizione CPU",
+      "ramOversub": "Sovrasottoscrizione RAM",
+      "reservePct": "Riserva %",
+      "growthPct": "Crescita %",
+      "hint": "Capacità riservata per il failover (Riserva %) più la crescita prevista del carico (Crescita %). I rapporti di sovrasottoscrizione si applicano al calcolo dei requisiti per host (modello N-1)."
     }
   },
   "domain": {

@@ -214,6 +214,14 @@
       "message": "Switching profile will reset {count} custom appliance override(s). Continue?",
       "confirm": "Switch profile",
       "cancel": "Keep current profile"
+    },
+    "capacityHeadroom": {
+      "title": "Capacity headroom",
+      "cpuOversub": "CPU oversubscription",
+      "ramOversub": "RAM oversubscription",
+      "reservePct": "Reserve %",
+      "growthPct": "Growth %",
+      "hint": "Capacity reserved for failover (Reserve %) plus expected workload growth (Growth %). Oversubscription ratios apply when computing per-host requirements (N-1 model)."
     }
   },
   "domain": {

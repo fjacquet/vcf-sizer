@@ -214,6 +214,14 @@
       "message": "Changer de profil réinitialisera {count} surcharge(s) d'appliance personnalisée(s). Continuer ?",
       "confirm": "Changer de profil",
       "cancel": "Conserver le profil actuel"
+    },
+    "capacityHeadroom": {
+      "title": "Marge de capacité",
+      "cpuOversub": "Sursouscription CPU",
+      "ramOversub": "Sursouscription RAM",
+      "reservePct": "Réserve %",
+      "growthPct": "Croissance %",
+      "hint": "Capacité réservée pour le basculement (Réserve %) plus la croissance attendue de la charge (Croissance %). Les ratios de sursouscription s'appliquent au calcul des exigences par hôte (modèle N-1)."
     }
   },
   "domain": {
