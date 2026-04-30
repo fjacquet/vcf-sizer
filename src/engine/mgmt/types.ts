@@ -160,6 +160,12 @@ export interface MgmtDomainResult {
 
   recommendedHostCount: number
 
+  // P5.5: per-site host counts when deploymentMode === 'stretch'.
+  // Both equal `recommendedHostCount` (each site is procured as an
+  // independent N-host cluster). Undefined for simple/HA modes.
+  preferredSiteHosts?: number
+  secondarySiteHosts?: number
+
   validationWarnings: ValidationWarning[]
 
   // ─── Legacy flat fields (DEPRECATED) ───────────────────────────────────

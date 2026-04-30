@@ -165,6 +165,13 @@ export function calcManagementFull(
     storageType: config.storageType ?? 'vsan-esa',
   })
 
+  // P5.5: per-site host counts in stretch mode — each site is procured as
+  // an independent N-host cluster, so both halves equal recommendedHostCount.
+  // Undefined for simple/HA modes (single-site).
+  const isStretch = config.deploymentMode === 'stretch'
+  const preferredSiteHosts = isStretch ? recommendedHostCount : undefined
+  const secondarySiteHosts = isStretch ? recommendedHostCount : undefined
+
   // Build draft result, run validation
   const draft: MgmtDomainResult = {
     appliances,
@@ -180,6 +187,8 @@ export function calcManagementFull(
     minHostsForStorage,
     externalPoolRequiredTiB: perHostFinal.externalPoolRequiredTiB,
     recommendedHostCount,
+    preferredSiteHosts,
+    secondarySiteHosts,
     validationWarnings: [],
   }
 

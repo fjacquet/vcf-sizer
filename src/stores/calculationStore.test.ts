@@ -201,14 +201,16 @@ describe('calculationStore — dedicatedMgmtHostCount (DOM-03)', () => {
     expect(calc.dedicatedMgmtHostCount).toBeGreaterThanOrEqual(8)
   })
 
-  it('returns exactly 8 when stretch floor applies and compute-driven count would be < 8', () => {
+  it('returns exactly 16 (2 × 8) when stretch floor applies — P5.5: total across both sites', () => {
     const input = useInputStore()
     input.managementArchitecture = 'dedicated'
     input.managementDomain.deploymentMode = 'stretch'
-    input.managementDomain.coresPerSocket = 64  // 64×4=256 cores/host → ceil(118/256)=1
+    input.managementDomain.coresPerSocket = 64  // 64×4=256 cores/host → ceil(118/256)=1, but stretch floor=8
     input.managementDomain.socketsPerHost = 4
     const calc = useCalculationStore()
-    expect(calc.dedicatedMgmtHostCount).toBe(8)
+    // P5.5: dedicatedMgmtHostCount returns the procurement TOTAL across both sites.
+    // Per-site = max(stretch floor 8, compute-driven 1) = 8; total = 8 × 2 = 16.
+    expect(calc.dedicatedMgmtHostCount).toBe(16)
   })
 
   it('is >= 4 (not forced to 8) when dedicated and deploymentMode is "ha"', () => {
@@ -230,7 +232,7 @@ describe('calculationStore — dedicatedMgmtHostCount (DOM-03)', () => {
     expect(calc.dedicatedMgmtHostCount).toBe(2)
   })
 
-  it('floor = 4 when dedicated + FC + stretch (KB 416270)', () => {
+  it('total = 8 (2 × 4) when dedicated + FC + stretch (KB 416270) — P5.5: total across both sites', () => {
     const input = useInputStore()
     input.managementArchitecture = 'dedicated'
     input.managementDomain.deploymentMode = 'stretch'
@@ -238,7 +240,8 @@ describe('calculationStore — dedicatedMgmtHostCount (DOM-03)', () => {
     input.managementDomain.coresPerSocket = 64
     input.managementDomain.socketsPerHost = 4
     const calc = useCalculationStore()
-    expect(calc.dedicatedMgmtHostCount).toBe(4)
+    // P5.5: per-site = FC stretch floor 4; total across 2 sites = 8.
+    expect(calc.dedicatedMgmtHostCount).toBe(8)
   })
 
   it('floor = 4 when dedicated + vSAN + HA (KB 392993, unchanged)', () => {

@@ -26,15 +26,19 @@ export const useCalculationStore = defineStore('calculation', () => {
 
   // Dedicated management host count — uses managementDomain host specs (NOT workloadDomains[0])
   // (Pitfall 4: must be independent of workload domain specs)
+  // P5.5: in stretch mode, this is the TOTAL across BOTH sites — each site
+  // is procured as an independent N-host cluster, so the total is 2 × per-site.
   const dedicatedMgmtHostCount = computed<number | null>(() => {
     if (input.managementArchitecture !== 'dedicated') return null
     const coresPerHost = input.managementDomain.coresPerSocket * input.managementDomain.socketsPerHost
     const isExternal = input.managementDomain.storageType === 'fc'
       || input.managementDomain.storageType === 'nfs'
-    const minHosts = input.managementDomain.deploymentMode === 'stretch'
+    const isStretch = input.managementDomain.deploymentMode === 'stretch'
+    const minHosts = isStretch
       ? (isExternal ? STRETCH_DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : STRETCH_DEDICATED_MGMT_MIN_HOSTS)
       : (isExternal ? DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : DEDICATED_MGMT_MIN_HOSTS)
-    return Math.max(minHosts, Math.ceil(management.value.totalCores / coresPerHost))
+    const perSite = Math.max(minHosts, Math.ceil(management.value.totalCores / coresPerHost))
+    return isStretch ? perSite * 2 : perSite
   })
 
   // Per-domain results — maps over array, returns new array each recompute

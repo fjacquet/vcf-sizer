@@ -95,6 +95,28 @@ describe('calcManagementFull — Stretch deployment floor of 8', () => {
     const r = calcManagementFull(cfg, [])
     expect(r.recommendedHostCount).toBeGreaterThanOrEqual(8)
   })
+
+  // P5.5: per-site host counts on the result
+  it('stretch mode: preferredSiteHosts and secondarySiteHosts both equal recommendedHostCount', () => {
+    const cfg = { ...baseConfig(), deploymentMode: 'stretch' as const }
+    const r = calcManagementFull(cfg, [])
+    expect(r.preferredSiteHosts).toBe(r.recommendedHostCount)
+    expect(r.secondarySiteHosts).toBe(r.recommendedHostCount)
+  })
+
+  it('simple mode: preferredSiteHosts and secondarySiteHosts are undefined', () => {
+    const cfg = { ...baseConfig(), deploymentMode: 'simple' as const }
+    const r = calcManagementFull(cfg, [])
+    expect(r.preferredSiteHosts).toBeUndefined()
+    expect(r.secondarySiteHosts).toBeUndefined()
+  })
+
+  it('ha mode: preferredSiteHosts and secondarySiteHosts are undefined', () => {
+    const cfg = { ...baseConfig(), deploymentMode: 'ha' as const }
+    const r = calcManagementFull(cfg, [])
+    expect(r.preferredSiteHosts).toBeUndefined()
+    expect(r.secondarySiteHosts).toBeUndefined()
+  })
 })
 
 describe('calcManagementFull — WLD overhead routing', () => {
