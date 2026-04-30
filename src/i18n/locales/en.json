@@ -116,6 +116,8 @@
     "autoCorrectDeploymentVsanMax": "Deployment model set to HA — Stretch Cluster is not supported with vSAN Max.",
     "autoCorrectRaidFtt2": "RAID policy set to RAID-6 — RAID-5 requires FTT = 1.",
     "autoCorrectRaidFtt1": "RAID policy set to RAID-5 — RAID-6 requires FTT = 2.",
+    "autoCorrectMgmtStretch": "Management deployment mode set to Stretch Cluster — required when any workload domain is stretched.",
+    "autoCorrectMgmtStretchLocked": "Management deployment mode is locked to Stretch Cluster while a workload domain is stretched.",
     "stretchDisabledReason": "Stretch Cluster is not supported with vSAN Max",
     "vsanMaxStretchExclusion": "vSAN Max cannot be deployed in Stretch Cluster mode."
   },
@@ -127,7 +129,10 @@
     "vsanMaxMinNodes": "Minimum 4 storage nodes required for vSAN Max cluster.",
     "dedupNetworkSpeed": "Global Deduplication requires 25 GbE or faster network speed (STOR-05).",
     "dedupNotApplicable": "Global Deduplication is only applicable to vSAN ESA — ignored for FC/NFS.",
-    "vsanMaxStretchExclusion": "vSAN Max cannot be deployed in Stretch Cluster mode."
+    "vsanMaxStretchExclusion": "vSAN Max cannot be deployed in Stretch Cluster mode.",
+    "mgmt": {
+      "stretchParityRequired": "Management domain must be in Stretch Cluster mode when any workload domain is stretched."
+    }
   },
   "results": {
     "toolbar": {

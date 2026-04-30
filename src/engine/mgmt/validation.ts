@@ -5,7 +5,31 @@
 // Reference: docs/superpowers/specs/2026-04-28-mgmt-domain-parity-design.md §8
 
 import type { ManagementDomainConfig, MgmtDomainResult } from './types'
-import type { ValidationWarning } from '../types'
+import type { ValidationWarning, WorkloadDomainConfig } from '../types'
+
+/**
+ * Cross-domain validation: if any workload domain is in stretch mode, the
+ * management domain MUST also be in stretch mode (real VCF requirement).
+ *
+ * Returns one warning when the parity is violated, empty array otherwise.
+ * The inputStore's auto-sync should normally prevent this state, but this
+ * rule is a belt-and-braces safety net for code paths that bypass the store
+ * (e.g., URL hydration writing directly to refs).
+ */
+export function validateMgmtStretchParity(
+  workloadDomains: readonly WorkloadDomainConfig[],
+  managementDomain: ManagementDomainConfig,
+): ValidationWarning[] {
+  const anyWldStretch = workloadDomains.some(d => d.deploymentMode === 'stretch')
+  if (anyWldStretch && managementDomain.deploymentMode !== 'stretch') {
+    return [{
+      code: 'MGMT-STRETCH-PARITY',
+      severity: 'error',
+      messageKey: 'validation.mgmt.stretchParityRequired',
+    }]
+  }
+  return []
+}
 
 export function validateMgmt(
   config: ManagementDomainConfig,

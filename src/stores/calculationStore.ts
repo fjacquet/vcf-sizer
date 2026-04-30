@@ -6,6 +6,7 @@ import { defineStore } from 'pinia'
 import { computed } from 'vue'
 import { useInputStore } from './inputStore'
 import { calcManagementFull } from '../engine/mgmt'
+import { validateMgmtStretchParity } from '../engine/mgmt/validation'
 import { calcCompute } from '../engine/compute'
 import { calcStorage, calcMinHostsForVsanEsa } from '../engine/storage'
 import { calcVsanMax } from '../engine/vsanMax'
@@ -159,7 +160,11 @@ export const useCalculationStore = defineStore('calculation', () => {
       totalEffectiveStorageTiB: domainResults.value.reduce((sum, d) =>
         sum + (d.storage.workloadStorageRequiredTiB > 0 ? d.storage.workloadStorageRequiredTiB : d.storage.effectiveCapacityTiB), 0),
       totalWorkloadStorageRequiredTiB: domainResults.value.reduce((sum, d) => sum + d.storage.workloadStorageRequiredTiB, 0),
-      allValidationErrors: domainResults.value.flatMap(d => d.validationErrors),
+      // Per-domain validation errors + cross-domain MGMT-STRETCH-PARITY rule (P5.5)
+      allValidationErrors: [
+        ...domainResults.value.flatMap(d => d.validationErrors),
+        ...validateMgmtStretchParity(input.workloadDomains, input.managementDomain),
+      ],
     }
   })
 

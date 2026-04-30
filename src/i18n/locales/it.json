@@ -116,6 +116,8 @@
     "autoCorrectDeploymentVsanMax": "Modello di distribuzione impostato su HA — Stretch Cluster non è supportato con vSAN Max.",
     "autoCorrectRaidFtt2": "Politica RAID impostata su RAID-6 — RAID-5 richiede FTT = 1.",
     "autoCorrectRaidFtt1": "Politica RAID impostata su RAID-5 — RAID-6 richiede FTT = 2.",
+    "autoCorrectMgmtStretch": "Modalità di distribuzione della gestione impostata su Stretch Cluster — richiesta quando un dominio di carico è esteso.",
+    "autoCorrectMgmtStretchLocked": "La modalità di distribuzione della gestione è bloccata su Stretch Cluster mentre un dominio di carico è esteso.",
     "stretchDisabledReason": "Stretch Cluster non è supportato con vSAN Max",
     "vsanMaxStretchExclusion": "vSAN Max non può essere distribuito in modalità Stretch Cluster."
   },
@@ -127,7 +129,10 @@
     "vsanMaxMinNodes": "Minimo 4 nodi di archiviazione richiesti per un cluster vSAN Max.",
     "dedupNetworkSpeed": "La deduplica globale richiede una velocita di rete di 25 GbE o superiore (STOR-05).",
     "dedupNotApplicable": "La deduplicazione globale si applica solo a vSAN ESA — ignorata per FC/NFS.",
-    "vsanMaxStretchExclusion": "vSAN Max non può essere distribuito in modalità Stretch Cluster."
+    "vsanMaxStretchExclusion": "vSAN Max non può essere distribuito in modalità Stretch Cluster.",
+    "mgmt": {
+      "stretchParityRequired": "Il dominio di gestione deve essere in modalità Stretch Cluster quando un dominio di carico è esteso."
+    }
   },
   "results": {
     "toolbar": {

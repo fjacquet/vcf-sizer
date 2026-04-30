@@ -116,6 +116,8 @@
     "autoCorrectDeploymentVsanMax": "Modèle de déploiement défini sur HA — le Cluster étendu n'est pas pris en charge avec vSAN Max.",
     "autoCorrectRaidFtt2": "Politique RAID définie sur RAID-6 — RAID-5 nécessite FTT = 1.",
     "autoCorrectRaidFtt1": "Politique RAID définie sur RAID-5 — RAID-6 nécessite FTT = 2.",
+    "autoCorrectMgmtStretch": "Mode de déploiement de la gestion défini sur Cluster étendu — requis lorsqu'un domaine de charge est étendu.",
+    "autoCorrectMgmtStretchLocked": "Le mode de déploiement de la gestion est verrouillé sur Cluster étendu tant qu'un domaine de charge est étendu.",
     "stretchDisabledReason": "Le Cluster étendu n'est pas pris en charge avec vSAN Max",
     "vsanMaxStretchExclusion": "vSAN Max ne peut pas être déployé en mode Cluster étendu."
   },
@@ -127,7 +129,10 @@
     "vsanMaxMinNodes": "Minimum 4 noeuds de stockage requis pour un cluster vSAN Max.",
     "dedupNetworkSpeed": "La deduplication globale necessite un reseau 25 GbE ou plus rapide (STOR-05).",
     "dedupNotApplicable": "La déduplication globale ne s'applique qu'à vSAN ESA — ignorée pour FC/NFS.",
-    "vsanMaxStretchExclusion": "vSAN Max ne peut pas être déployé en mode Cluster étendu."
+    "vsanMaxStretchExclusion": "vSAN Max ne peut pas être déployé en mode Cluster étendu.",
+    "mgmt": {
+      "stretchParityRequired": "Le domaine de gestion doit être en mode Cluster étendu lorsqu'un domaine de charge est étendu."
+    }
   },
   "results": {
     "toolbar": {

@@ -116,6 +116,8 @@
     "autoCorrectDeploymentVsanMax": "Bereitstellungsmodell auf HA gesetzt — Stretch-Cluster wird mit vSAN Max nicht unterstuetzt.",
     "autoCorrectRaidFtt2": "RAID-Richtlinie auf RAID-6 gesetzt — RAID-5 erfordert FTT = 1.",
     "autoCorrectRaidFtt1": "RAID-Richtlinie auf RAID-5 gesetzt — RAID-6 erfordert FTT = 2.",
+    "autoCorrectMgmtStretch": "Management-Bereitstellungsmodus auf Stretch-Cluster gesetzt — erforderlich, wenn eine Workload-Domain gestreckt ist.",
+    "autoCorrectMgmtStretchLocked": "Der Management-Bereitstellungsmodus ist auf Stretch-Cluster gesperrt, solange eine Workload-Domain gestreckt ist.",
     "stretchDisabledReason": "Stretch-Cluster wird mit vSAN Max nicht unterstuetzt",
     "vsanMaxStretchExclusion": "vSAN Max kann nicht im Stretch-Cluster-Modus bereitgestellt werden."
   },
@@ -127,7 +129,10 @@
     "vsanMaxMinNodes": "Mindestens 4 Speicherknoten fuer vSAN Max-Cluster erforderlich.",
     "dedupNetworkSpeed": "Globale Deduplizierung erfordert 25 GbE oder schnellere Netzwerkgeschwindigkeit (STOR-05).",
     "dedupNotApplicable": "Globale Deduplizierung gilt nur fuer vSAN ESA — fuer FC/NFS ignoriert.",
-    "vsanMaxStretchExclusion": "vSAN Max kann nicht im Stretch-Cluster-Modus bereitgestellt werden."
+    "vsanMaxStretchExclusion": "vSAN Max kann nicht im Stretch-Cluster-Modus bereitgestellt werden.",
+    "mgmt": {
+      "stretchParityRequired": "Die Management-Domain muss im Stretch-Cluster-Modus sein, wenn eine Workload-Domain gestreckt ist."
+    }
   },
   "results": {
     "toolbar": {

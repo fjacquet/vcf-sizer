@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, toRaw } from 'vue'
+import { ref, toRaw, watch } from 'vue'
 import { createDefaultWorkloadDomain, createDefaultManagementDomain } from '@/engine/defaults'
 import type { WorkloadDomainConfig, ManagementDomainConfig } from '@/engine/types'
 import { useUiStore } from '@/stores/uiStore'
@@ -91,8 +91,48 @@ export const useInputStore = defineStore('input', () => {
   }
 
   function updateManagementDomain(patch: Partial<ManagementDomainConfig>) {
-    Object.assign(managementDomain.value, patch)
+    const ui = useUiStore()
+    const next = { ...patch }
+
+    // P5.5: stretch propagation — refuse to downgrade mgmt mode out of
+    // stretch while any workload domain still requires it. Silently drops
+    // the offending change and surfaces a transient banner so the user
+    // understands why their click had no effect.
+    const anyWldStretch = workloadDomains.value.some(d => d.deploymentMode === 'stretch')
+    if (
+      anyWldStretch &&
+      next.deploymentMode !== undefined &&
+      next.deploymentMode !== 'stretch'
+    ) {
+      delete next.deploymentMode
+      ui.flashAutoCorrection('warnings.autoCorrectMgmtStretchLocked')
+    }
+
+    Object.assign(managementDomain.value, next)
   }
+
+  /**
+   * P5.5: Stretch propagation — if any workload domain is in stretch mode,
+   * the management domain MUST also be in stretch mode (real VCF requirement).
+   * Force-flips mgmt to stretch when needed and surfaces a banner via
+   * uiStore.flashAutoCorrection so the user sees the change.
+   */
+  function syncMgmtStretch() {
+    const anyWldStretch = workloadDomains.value.some(d => d.deploymentMode === 'stretch')
+    if (anyWldStretch && managementDomain.value.deploymentMode !== 'stretch') {
+      managementDomain.value.deploymentMode = 'stretch'
+      useUiStore().flashAutoCorrection('warnings.autoCorrectMgmtStretch')
+    }
+  }
+
+  // Re-sync on any deep change to workloadDomains' deployment modes — handles
+  // updateDomain, addDomain (when default mode is stretch), URL hydration, etc.
+  // flush:'post' ensures the watch runs after the patch settles.
+  watch(
+    () => workloadDomains.value.map(d => d.deploymentMode),
+    () => syncMgmtStretch(),
+    { flush: 'post' },
+  )
 
   function duplicateDomain(id: string, newName: string): void {
     const idx = workloadDomains.value.findIndex(d => d.id === id)
