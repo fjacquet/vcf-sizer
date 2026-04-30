@@ -507,6 +507,6 @@
     "applianceTotals": "Summen",
     "totalDiskGB": "Gesamt-Festplatte (GB)",
     "totalSwapGB": "Gesamt-Swap (GB)",
-    "externalPoolRequiredTiB": "Externer Pool erforderlich (TiB)"
+    "externalPoolRequiredTiB": "Externer Pool erforderlich"
   }
 }

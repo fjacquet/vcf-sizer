@@ -113,8 +113,10 @@ export function generateMarkdownReport(): string {
     `| ${t('export.totalDiskGB')} | ${calc.management.totalDiskGB} |`,
     `| ${t('export.totalSwapGB')} | ${calc.management.totalSwapGB} |`,
     // P6.2: external pool requirement (FC/NFS only — 0 for vSAN)
+    // Routed through fmtS() so the row honors the user's storage-unit
+    // preference (TiB vs TB) instead of always emitting a bare TiB number.
     ...(calc.management.externalPoolRequiredTiB > 0 ? [
-      `| ${t('export.externalPoolRequiredTiB')} | ${calc.management.externalPoolRequiredTiB.toFixed(2)} |`,
+      `| ${t('export.externalPoolRequiredTiB')} | ${fmtS(calc.management.externalPoolRequiredTiB)} |`,
     ] : []),
   )
 

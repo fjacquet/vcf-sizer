@@ -507,6 +507,6 @@
     "applianceTotals": "Totals",
     "totalDiskGB": "Total disk (GB)",
     "totalSwapGB": "Total swap (GB)",
-    "externalPoolRequiredTiB": "External pool required (TiB)"
+    "externalPoolRequiredTiB": "External pool required"
   }
 }

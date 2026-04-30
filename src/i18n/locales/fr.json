@@ -507,6 +507,6 @@
     "applianceTotals": "Totaux",
     "totalDiskGB": "Disque total (Go)",
     "totalSwapGB": "Swap total (Go)",
-    "externalPoolRequiredTiB": "Pool externe requis (Tio)"
+    "externalPoolRequiredTiB": "Pool externe requis"
   }
 }
