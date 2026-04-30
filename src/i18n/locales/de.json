@@ -279,6 +279,7 @@
       "nsxManager": "NSX Manager",
       "vrops": "VCF Operations",
       "vropsCollector": "VCF Operations Collector",
+      "vrniCollector": "VCF Operations for Networks Collector",
       "automation": "VCF Automation",
       "fleetManager": "VCF Operations Fleet Manager",
       "sddcManager": "SDDC Manager",
