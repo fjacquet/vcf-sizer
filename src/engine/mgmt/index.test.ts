@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { calcManagementFull } from './index'
+import { calcManagementFull, rollupApplianceTotals } from './index'
 import type { ManagementDomainConfig } from './types'
 import type { WorkloadDomainConfig } from '../types'
 
@@ -162,43 +162,48 @@ describe('calcManagementFull — validated solutions', () => {
   })
 })
 
-describe('calcManagementFull — legacy flat fields populated', () => {
-  it('vcenterCores/RamGB summed from vcenter category lines', () => {
+describe('rollupApplianceTotals — appliance category rollups', () => {
+  it('vcenter rollup sums totalCores/RamGB across vcenter category lines', () => {
     const r = calcManagementFull(baseConfig(), [])
     const vcenterLines = r.appliances.filter(l => l.category === 'vcenter')
     const expectedCores = vcenterLines.reduce((s, l) => s + l.totalCores, 0)
     const expectedRam = vcenterLines.reduce((s, l) => s + l.totalRamGB, 0)
-    expect(r.vcenterCores).toBe(expectedCores)
-    expect(r.vcenterRamGB).toBe(expectedRam)
+    const rollup = rollupApplianceTotals(r.appliances, ['vcenter'])
+    expect(rollup.cores).toBe(expectedCores)
+    expect(rollup.ramGB).toBe(expectedRam)
   })
 
-  it('sddcCores/RamGB summed from sddcManager category lines', () => {
+  it('sddcManager rollup sums fixed SDDC Manager spec', () => {
     const r = calcManagementFull(baseConfig(), [])
-    expect(r.sddcCores).toBe(4)    // SDDC Manager fixed spec
-    expect(r.sddcRamGB).toBe(16)
+    const rollup = rollupApplianceTotals(r.appliances, ['sddcManager'])
+    expect(rollup.cores).toBe(4)    // SDDC Manager fixed spec
+    expect(rollup.ramGB).toBe(16)
   })
 
-  it('nsxCores/RamGB summed from nsxManager category lines', () => {
+  it('nsxManager rollup sums totalCores/RamGB across nsxManager category lines', () => {
     const r = calcManagementFull(baseConfig(), [])
     const nsxLines = r.appliances.filter(l => l.category === 'nsxManager')
-    expect(r.nsxCores).toBe(nsxLines.reduce((s, l) => s + l.totalCores, 0))
-    expect(r.nsxRamGB).toBe(nsxLines.reduce((s, l) => s + l.totalRamGB, 0))
+    const rollup = rollupApplianceTotals(r.appliances, ['nsxManager'])
+    expect(rollup.cores).toBe(nsxLines.reduce((s, l) => s + l.totalCores, 0))
+    expect(rollup.ramGB).toBe(nsxLines.reduce((s, l) => s + l.totalRamGB, 0))
   })
 
-  it('opsCores/RamGB summed from vrops + vropsCollector + fleetManager category lines', () => {
+  it('ops rollup sums vrops + vropsCollector + fleetManager category lines', () => {
     const r = calcManagementFull(baseConfig(), [])
     const opsLines = r.appliances.filter(l =>
       l.category === 'vrops' || l.category === 'vropsCollector' || l.category === 'fleetManager'
     )
-    expect(r.opsCores).toBe(opsLines.reduce((s, l) => s + l.totalCores, 0))
-    expect(r.opsRamGB).toBe(opsLines.reduce((s, l) => s + l.totalRamGB, 0))
+    const rollup = rollupApplianceTotals(r.appliances, ['vrops', 'vropsCollector', 'fleetManager'])
+    expect(rollup.cores).toBe(opsLines.reduce((s, l) => s + l.totalCores, 0))
+    expect(rollup.ramGB).toBe(opsLines.reduce((s, l) => s + l.totalRamGB, 0))
   })
 
-  it('automationCores/RamGB summed from automation category lines', () => {
+  it('automation rollup sums totalCores/RamGB across automation category lines', () => {
     const r = calcManagementFull(baseConfig(), [])
     const autoLines = r.appliances.filter(l => l.category === 'automation')
-    expect(r.automationCores).toBe(autoLines.reduce((s, l) => s + l.totalCores, 0))
-    expect(r.automationRamGB).toBe(autoLines.reduce((s, l) => s + l.totalRamGB, 0))
+    const rollup = rollupApplianceTotals(r.appliances, ['automation'])
+    expect(rollup.cores).toBe(autoLines.reduce((s, l) => s + l.totalCores, 0))
+    expect(rollup.ramGB).toBe(autoLines.reduce((s, l) => s + l.totalRamGB, 0))
   })
 })
 

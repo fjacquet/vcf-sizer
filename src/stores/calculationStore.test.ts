@@ -290,11 +290,17 @@ describe('calculationStore — calcManagementFull integration (Phase 3)', () => 
     expect(calc.management.totalDiskGB).toBeGreaterThan(0)
   })
 
-  it('legacy flat fields still populated for usePptxExport compatibility', () => {
+  it('appliance rollup exposes vcenter/sddcManager/nsxManager lines with positive totals', () => {
     const calc = useCalculationStore()
-    expect(calc.management.vcenterCores).toBeGreaterThan(0)
-    expect(calc.management.sddcCores).toBe(4)
-    expect(calc.management.nsxCores).toBeGreaterThan(0)
+    const appliances = calc.management.appliances
+    const vcenter = appliances.filter(l => l.category === 'vcenter')
+    const sddc = appliances.filter(l => l.category === 'sddcManager')
+    const nsx = appliances.filter(l => l.category === 'nsxManager')
+    expect(vcenter.length).toBeGreaterThan(0)
+    expect(vcenter.reduce((s, l) => s + l.totalCores, 0)).toBeGreaterThan(0)
+    expect(sddc.reduce((s, l) => s + l.totalCores, 0)).toBe(4)
+    expect(nsx.length).toBeGreaterThan(0)
+    expect(nsx.reduce((s, l) => s + l.totalCores, 0)).toBeGreaterThan(0)
   })
 
   it('changing inputStore.managementDomain.profile recomputes totals', () => {

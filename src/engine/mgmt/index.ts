@@ -67,11 +67,13 @@ const DEFAULT_VALIDATED_SOLUTIONS: ValidatedSolutionsConfig = {
   crossCloudMobility: { included: false },
 }
 
-// File-local helper: sum totalCores + totalRamGB across all appliance lines
-// whose category matches one of the provided categories. Used to populate
-// the legacy (deprecated) flat fields on MgmtDomainResult — the canonical
-// source remains the full `appliances` array.
-function sumByCategory(
+/**
+ * Sum `totalCores` + `totalRamGB` across all appliance lines whose category
+ * matches one of the provided categories. Shared by export/summary consumers
+ * (usePptxExport, ManagementSummary) to derive rollup rows directly from the
+ * canonical `appliances` array.
+ */
+export function rollupApplianceTotals(
   lines: readonly ApplianceLine[],
   categories: readonly string[],
 ): { cores: number; ramGB: number } {
@@ -209,27 +211,8 @@ export function calcManagementFull(
     validationWarnings: [],
   }
 
-  // Populate legacy flat fields (@deprecated; consumed by usePptxExport.ts
-  // during the P3+ migration window). The full `appliances` array is the
-  // canonical source — these are convenience aggregates summed from it.
-  const vcenter = sumByCategory(draft.appliances, ['vcenter'])
-  const sddc = sumByCategory(draft.appliances, ['sddcManager'])
-  const nsx = sumByCategory(draft.appliances, ['nsxManager'])
-  const ops = sumByCategory(draft.appliances, ['vrops', 'vropsCollector', 'fleetManager'])
-  const automation = sumByCategory(draft.appliances, ['automation'])
-
   return {
     ...draft,
-    vcenterCores: vcenter.cores,
-    vcenterRamGB: vcenter.ramGB,
-    sddcCores: sddc.cores,
-    sddcRamGB: sddc.ramGB,
-    nsxCores: nsx.cores,
-    nsxRamGB: nsx.ramGB,
-    opsCores: ops.cores,
-    opsRamGB: ops.ramGB,
-    automationCores: automation.cores,
-    automationRamGB: automation.ramGB,
     validationWarnings: validateMgmt(config, draft),
   }
 }
