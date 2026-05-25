@@ -23,6 +23,12 @@ export interface StorageDemandResult {
   storageDemandGB: number   // withReserveGB × (1 + growthPct/100)
   storageDemandTiB: number  // storageDemandGB / 1024
   fttMultiplier: number     // for diagnostics / explainers
+  // Logical demand WITHOUT the FTT multiplier (reserve + growth retained).
+  // vSAN ESA host sizing must consume this, not storageDemandTiB:
+  // calcMinHostsForVsanEsa() already applies RAID protection internally, so
+  // pre-multiplying by the FTT factor here would double-count it. For FC/NFS
+  // (fttMultiplier = 1) this equals storageDemandTiB.
+  demandBeforeFttTiB: number
 }
 
 function fttMultiplierFor(storageType: StorageType): number {
@@ -57,6 +63,13 @@ export function mgmtStorageDemand(inputs: StorageDemandInputs): StorageDemandRes
   const storageDemandGB = new Decimal(withReserveGB).times(1 + inputs.growthPct / 100).toNumber()
   const storageDemandTiB = new Decimal(storageDemandGB).div(1024).toNumber()
 
+  // Logical demand: same reserve + growth, but WITHOUT the FTT multiplier.
+  const demandBeforeFttTiB = new Decimal(diskAndSwapGB)
+    .times(1 + inputs.reservePct / 100)
+    .times(1 + inputs.growthPct / 100)
+    .div(1024)
+    .toNumber()
+
   return {
     diskAndSwapGB,
     swapGB,
@@ -65,5 +78,6 @@ export function mgmtStorageDemand(inputs: StorageDemandInputs): StorageDemandRes
     storageDemandGB,
     storageDemandTiB,
     fttMultiplier,
+    demandBeforeFttTiB,
   }
 }

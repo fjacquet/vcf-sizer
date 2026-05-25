@@ -143,14 +143,20 @@ export function calcManagementFull(
   // Step 7: recommendedHostCount
   let minHostsForStorage = 0
   if ((config.storageType ?? 'vsan-esa') === 'vsan-esa') {
+    // calcMinHostsForVsanEsa OWNS the RAID protection (÷ multiplier) and the 30%
+    // safety slack — so it must receive the *logical* demand (demandBeforeFttTiB),
+    // NOT storageDemandTiB (which pre-applies the 1.5× FTT factor and would double-
+    // count protection). Pass 'simple' to get a PER-SITE count; the ×2 for stretch
+    // happens exactly once at the topology layer below. This mirrors the workload
+    // engine (src/engine/workload/index.ts), the working reference.
     minHostsForStorage = calcMinHostsForVsanEsa(
       config.hostStorageTiB,
       1,             // FTT level — mgmt domain default
       'raid5',       // RAID type — mgmt domain default
       false,         // dedup — mgmt domain default
       1,             // dedupRatio — mgmt domain default
-      config.deploymentMode,
-      storage.storageDemandTiB,
+      'simple',      // per-site; topology ×2 for stretch applied once below
+      storage.demandBeforeFttTiB,
     )
   }
   // recommendedHostCount is PER SITE — a stretched cluster runs the full mgmt stack

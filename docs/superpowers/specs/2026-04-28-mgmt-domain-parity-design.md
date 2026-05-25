@@ -255,7 +255,7 @@ storageDemandTiB = storageDemandGB / 1024
 
 Routing:
 - FC / NFS → `externalPoolRequiredTiB = storageDemandTiB`; `minHostsForStorage = 0`.
-- vSAN ESA / OSA → feed `storageDemandTiB` into the existing `calcMinHostsForVsanEsa()` helper to compute `minHostsForStorage`.
+- vSAN ESA / OSA → feed the **pre-FTT logical** demand (`demandBeforeFttTiB` = `diskAndSwap × reserve × growth / 1024`, **without** the 1.5× FTT factor) into `calcMinHostsForVsanEsa()`, with `deploymentMode = 'simple'` (per-site). `calcMinHostsForVsanEsa()` already applies the RAID protection multiplier and the 30% slack internally — feeding it `storageDemandTiB` would double-count the FTT protection, and passing the stretch mode would double-count the topology ×2 (applied once at Step 8). **Correction (2026-05-25):** the original draft fed `storageDemandTiB` with `config.deploymentMode`, which over-sized stretched vSAN-ESA management (~28 hosts for Standard) — see the host-count regression tests in `mgmt/index.test.ts`.
 - vSAN Max → demand routes to the disaggregated storage cluster via `calcVsanMax()`. Mgmt compute hosts contribute zero local storage; the storage cluster sizes against demand independently.
 
 ### Step 6 — Per-host requirements (N-1 capacity model)
@@ -289,7 +289,7 @@ minHostsStorage = vSAN ? calcMinHostsForVsanEsa(...) : 0
 recommendedHostCount = max(minHostsCpu, minHostsRam, minHostsStorage, deploymentFloor)
 ```
 
-`deploymentFloor` is **4** for simple/HA, **8** for stretch (Broadcom KB 392993 — already enforced).
+`recommendedHostCount` is **per-site**; `minHostsStorage` uses `'simple'` (per-site) too. The per-site `deploymentFloor` is **4** for vSAN / **2** for FC-NFS (Broadcom KB 392993 / 416270). For stretch, the per-site count is doubled once at Step 8 (`totalHosts = recommendedHostCount × 2`), so the **total** stretch floor is **8** vSAN / **4** FC-NFS — never apply the ×2 inside `calcMinHostsForVsanEsa` as well.
 
 ### Adaptations beyond VMware's workbook
 
