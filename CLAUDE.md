@@ -55,12 +55,27 @@ Tests cover `src/engine/**/*.test.ts`, `src/composables/**/*.test.ts`, and `src/
 - Validation warnings must use i18n message keys (e.g. `'validation.hostCount.tooFew'`), not English strings.
 - `VueI18nPlugin` is configured with `include` omitted intentionally to avoid a rolldown/JSON conflict with Vite 8.
 
-## Storage & Aggregation Invariants
+## Sizing model: demand-driven (CALC)
 
-- `StorageResult.workloadStorageRequiredTiB` is **non-zero only for FC/NFS** (VM demand = `vmCount × avgStorageGbPerVm / 1024`). For vSAN ESA/Max it MUST be 0 — aggregation uses `workloadStorageRequiredTiB > 0 ? demand : rawCapacity` to differentiate storage types.
-- `minHostsForStorage` is computed in `calculationStore.ts` (not the engine) using a local `workloadStorageTiB`, then passed into `calcCompute()`. The storage engine does not expose it.
-- `aggregateTotals.totalRecommendedHosts` sums `effectiveHostCount` (user-set cluster size), NOT `recommendedHostCount` (demand-driven minimum). Tests comparing totals must use `effectiveHostCount`.
-- Default workload domain (100 VMs × 100 GB) produces ~9.77 TiB vSAN ESA demand — enough to trigger storage-driven `minHostsForStorage` on the 4-host default. Tests asserting default `recommendedHostCount` must account for this.
+The workload engine lives in `src/engine/workload/` (`calcWorkloadFull` orchestrates `demand` →
+`clusters` → `capacity` → `validation`). Host/cluster counts and capacity are **outputs**; the only
+host-side inputs are the building-block host spec, `deploymentMode`, and `hostFailuresToTolerate`.
+
+- `WorkloadCapacityResult.workloadStorageRequiredTiB` is **non-zero only for FC/NFS** (VM demand =
+  `vmCount × avgStorageGbPerVm / 1024`). For vSAN ESA/Max it is **0** — vSAN demand is satisfied via
+  `minHostsForStorage`, not a pool. FC/NFS additionally exposes `requiredPoolTiB` / `availablePoolTiB`
+  / `poolShortfallTiB` (→ `FC_POOL_SHORTFALL` when the external pool is undersized).
+- `minHostsForStorage` is computed **inside the engine** (`calcWorkloadFull` → `calcMinHostsForVsanEsa`,
+  per site). It is NOT computed in the store.
+- Host counts are per-site/total **outputs**: `demandHostsPerSite` (raw) → `hostsPerCluster` ×
+  `clusterCountPerSite` = `hostsPerSite`; `totalHosts` = `hostsPerSite × 2` for stretch. Multi-cluster
+  auto-split keeps `demandPerCluster + hostFailuresToTolerate ≤` the VMware per-cluster max.
+- `aggregateTotals.totalRecommendedHosts` sums each domain's `totalHosts` (all clusters, both sites)
+  plus the management `totalHosts`.
+- Management host count is owned solely by `calcManagementFull` (`MgmtDomainResult.totalHosts`); the
+  store reads it directly. Per-site floor is storage-type aware (vSAN 4 / FC-NFS 2; KB 392993 / 416270).
+- A vSAN witness (`StretchResult.requiresVsanWitness`) applies **only to vSAN ESA** stretch; FC/NFS
+  stretch is a vMSC (array-based quorum, no vSAN witness).
 
 ## Deployment
 
@@ -95,11 +110,16 @@ rtk prettier --check    # Files needing format only (70%)
 rtk next build          # Next.js build with route metrics (87%)
 ```
 
-### Test (90-99% savings)
+### Test (60-99% savings)
 ```bash
 rtk cargo test          # Cargo test failures only (90%)
-rtk vitest run          # Vitest failures only (99.5%)
+rtk go test             # Go test failures only (90%)
+rtk jest                # Jest failures only (99.5%)
+rtk vitest              # Vitest failures only (99.5%)
 rtk playwright test     # Playwright failures only (94%)
+rtk pytest              # Python test failures only (90%)
+rtk rake test           # Ruby test failures only (90%)
+rtk rspec               # RSpec test failures only (60%)
 rtk test <cmd>          # Generic test wrapper - failures only
 ```
 
@@ -144,7 +164,7 @@ rtk prisma              # Prisma without ASCII art (88%)
 ```bash
 rtk ls <path>           # Tree format, compact (65%)
 rtk read <file>         # Code reading with filtering (60%)
-rtk grep <pattern>      # Search grouped by file (75%)
+rtk grep <pattern>      # Search grouped by file (75%). Format flags (-c, -l, -L, -o, -Z) run raw.
 rtk find <pattern>      # Find grouped by directory (70%)
 ```
 

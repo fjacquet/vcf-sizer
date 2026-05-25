@@ -164,11 +164,13 @@ export function generateMarkdownReport(): string {
       ``,
       `| ${t('export.parameter')} | ${t('export.value')} |`,
       `|-----------|-------|`,
-      `| ${t('export.hosts')} | ${result.compute.effectiveHostCount} |`,
+      `| ${t('export.provisionedHosts')} | ${result.totalHosts} |`,
+      `| ${t('export.demandHostsPerSite')} | ${result.demandHostsPerSite} |`,
+      `| ${t('export.hostsPerSite')} | ${result.hostsPerSite} |`,
       ...(domain.deploymentMode === 'stretch' ? [
-        `| ${t('export.preferredSiteHosts')} | ${domain.preferredSiteHosts} |`,
-        `| ${t('export.secondarySiteHosts')} | ${domain.secondarySiteHosts} |`,
+        `| ${t('export.totalHosts')} | ${result.hostsPerSite} × 2 = ${result.totalHosts} |`,
       ] : []),
+      `| ${t('export.clusterCountPerSite')} | ${result.clusterCountPerSite} |`,
       `| ${t('export.coresPerSocket')} | ${domain.coresPerSocket} |`,
       `| ${t('export.socketsPerHost')} | ${domain.socketsPerHost} |`,
       `| ${t('export.ramPerHost')} | ${domain.hostRamGB} GB |`,
@@ -199,22 +201,24 @@ export function generateMarkdownReport(): string {
       ``,
       `| ${t('export.metric')} | ${t('export.value')} |`,
       `|--------|-------|`,
-      `| **${t('export.recommendedHostCount')}** | **${result.compute.recommendedHostCount}** |`,
-      // P5.5: stretch — show per-site / total split next to the recommended host count
+      `| **${t('export.provisionedHosts')}** | **${result.totalHosts}** |`,
+      `| ${t('export.demandHostsPerSite')} | ${result.demandHostsPerSite} |`,
+      // Demand-driven: per-site / total split (stretch shows hostsPerSite × 2)
       ...(domain.deploymentMode === 'stretch' ? [
-        `| ${t('export.recommendedPerSite')} | ${domain.preferredSiteHosts} + ${domain.secondarySiteHosts} = ${domain.preferredSiteHosts + domain.secondarySiteHosts} |`,
+        `| ${t('export.recommendedPerSite')} | ${result.hostsPerSite} × 2 = ${result.totalHosts} |`,
       ] : []),
-      `| ${t('export.minHostsCpu')} | ${result.compute.minHostsForCpu} |`,
-      `| ${t('export.minHostsRam')} | ${result.compute.minHostsForRam} |`,
-      ...(result.compute.minHostsForStorage > 0 ? [
-        `| ${t('export.minHostsStorage')} | ${result.compute.minHostsForStorage} |`,
+      `| ${t('export.clusterCountPerSite')} | ${result.clusterCountPerSite} |`,
+      `| ${t('export.minHostsCpu')} | ${result.minHostsForCpu} |`,
+      `| ${t('export.minHostsRam')} | ${result.minHostsForRam} |`,
+      ...(result.minHostsForStorage > 0 ? [
+        `| ${t('export.minHostsStorage')} | ${result.minHostsForStorage} |`,
       ] : []),
-      `| ${t('export.totalVcpuRequired')} | ${result.compute.totalCoresRequired} |`,
-      `| ${t('export.availableVcpu')} | ${result.compute.availableCores} |`,
-      `| ${t('export.cpuUtilization')} | ${result.compute.coreUtilizationPct.toFixed(1)}% |`,
-      `| ${t('export.totalRamRequired')} | ${result.compute.totalRamRequiredGB.toFixed(0)} GB |`,
-      `| ${t('export.availableRamGb')} | ${result.compute.availableRamGB.toFixed(0)} GB |`,
-      `| ${t('export.ramUtilization')} | ${result.compute.ramUtilizationPct.toFixed(1)}% |`,
+      `| ${t('export.totalVcpuRequired')} | ${result.siteCoresRequired} |`,
+      `| ${t('export.availableVcpu')} | ${result.provisionedCores} |`,
+      `| ${t('export.cpuUtilization')} | ${result.coreUtilizationPct.toFixed(1)}% |`,
+      `| ${t('export.totalRamRequired')} | ${result.siteRamRequiredGB.toFixed(0)} GB |`,
+      `| ${t('export.availableRamGb')} | ${result.provisionedRamGB.toFixed(0)} GB |`,
+      `| ${t('export.ramUtilization')} | ${result.ramUtilizationPct.toFixed(1)}% |`,
     )
 
     // H3: Storage Sizing
@@ -229,7 +233,11 @@ export function generateMarkdownReport(): string {
         ...(result.storage.workloadStorageRequiredTiB > 0 ? [
           `| ${t('export.workloadStorageRequired')} | ${fmtS(result.storage.workloadStorageRequiredTiB)} |`,
         ] : []),
-        `| ${t('export.externalPoolCapacity')} | ${fmtS(result.storage.rawCapacityTiB)} |`,
+        `| ${t('export.requiredPool')} | ${fmtS(result.storage.requiredPoolTiB)} |`,
+        `| ${t('export.availablePool')} | ${fmtS(result.storage.availablePoolTiB)} |`,
+        ...(result.storage.poolShortfallTiB > 0 ? [
+          `| ${t('export.poolShortfall')} | ${fmtS(result.storage.poolShortfallTiB)} |`,
+        ] : []),
       ] : [
         `| ${t('export.raidScheme')} | ${result.storage.raidScheme} |`,
         `| ${t('export.rawCapacity')} | ${fmtS(result.storage.rawCapacityTiB)} |`,
@@ -287,12 +295,14 @@ export function generateMarkdownReport(): string {
         ``,
         `| ${t('export.parameter')} | ${t('export.value')} |`,
         `|-----------|-------|`,
-        `| ${t('export.preferredSiteHosts')} | ${domain.preferredSiteHosts} |`,
-        `| ${t('export.secondarySiteHosts')} | ${domain.secondarySiteHosts} |`,
-        `| ${t('export.totalHosts')} | ${s!.totalHosts} |`,
+        `| ${t('export.hostsPerSite')} | ${result.hostsPerSite} |`,
+        `| ${t('export.totalHosts')} | ${result.hostsPerSite} × 2 = ${s!.totalHosts} |`,
         `| ${t('export.minInterSiteBw')} | ${s!.minBandwidthGbps} Gbps |`,
-        `| ${t('export.witnessVcpu')} | ${s!.witnessCores} |`,
-        `| ${t('export.witnessRam')} | ${s!.witnessRamGB} GB |`,
+        // Witness applies only to vSAN ESA stretched clusters; FC/NFS (vMSC) has none.
+        ...(s!.requiresVsanWitness ? [
+          `| ${t('export.witnessVcpu')} | ${s!.witnessCores} |`,
+          `| ${t('export.witnessRam')} | ${s!.witnessRamGB} GB |`,
+        ] : []),
         `| ${t('export.effectivePerSiteStorage')} | ${fmtS(s!.effectivePerSiteStorageTiB)} |`,
         ``,
         `**${t('export.networkChecklist')}:**`,
@@ -301,9 +311,13 @@ export function generateMarkdownReport(): string {
         `|-------------|-------|`,
         `| ${t('export.minInterSiteBandwidth')} | ${s!.networkChecklist.minInterSiteBandwidthGbps} Gbps |`,
         `| ${t('export.maxInterSiteLatency')} | ${s!.networkChecklist.maxInterSiteLatencyMs} ms |`,
-        `| ${t('export.maxWitnessLatency')} | ${s!.networkChecklist.maxWitnessLatencyMs} ms |`,
+        ...(s!.requiresVsanWitness ? [
+          `| ${t('export.maxWitnessLatency')} | ${s!.networkChecklist.maxWitnessLatencyMs} ms |`,
+        ] : []),
         `| ${t('export.jumboFramesRequired')} | ${s!.networkChecklist.jumboFramesRequired ? t('export.yes') : t('export.no')} |`,
-        `| ${t('export.minWitnessBandwidth')} | ${s!.networkChecklist.witnessMinBandwidthMbps} Mbps |`,
+        ...(s!.requiresVsanWitness ? [
+          `| ${t('export.minWitnessBandwidth')} | ${s!.networkChecklist.witnessMinBandwidthMbps} Mbps |`,
+        ] : []),
       )
     }
 
@@ -341,11 +355,15 @@ export function generateMarkdownReport(): string {
       `| ${t('export.aggSecondarySiteHosts')} | ${totals.secondarySiteHosts} |`,
     ] : []),
     `| ${t('export.managementHosts')} | ${store.managementArchitecture === 'dedicated' && calc.dedicatedMgmtHostCount !== null ? String(calc.dedicatedMgmtHostCount) : t('export.colocatedWld1')} |`,
+    `| ${t('export.totalClusterCount')} | ${totals.totalClusterCount} |`,
     `| ${t('export.totalVmCount')} | ${totals.totalVmCount} |`,
     `| ${t('export.totalRawStorage')} | ${fmtS(totals.totalRawStorageTiB)} |`,
     `| ${t('export.totalEffectiveStorage')} | ${fmtS(totals.totalEffectiveStorageTiB)} |`,
     ...(totals.totalWorkloadStorageRequiredTiB > 0 ? [
       `| ${t('export.totalWorkloadStorageRequired')} | ${fmtS(totals.totalWorkloadStorageRequiredTiB)} |`,
+    ] : []),
+    ...(totals.totalPoolShortfallTiB > 0 ? [
+      `| ${t('export.totalPoolShortfall')} | ${fmtS(totals.totalPoolShortfallTiB)} |`,
     ] : []),
   )
 

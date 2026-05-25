@@ -59,6 +59,16 @@ describe('resolveProfileEntry — Standard profile (Q4 default)', () => {
   it('ssp → excluded by default (Q4: OFF — opt-in only)', () => {
     expect(resolveProfileEntry('standard', 'ssp').included).toBe(false)
   })
+  it('vcfmsControl → Medium × 1, included (9.1 common runtime; HA fanout later)', () => {
+    expect(resolveProfileEntry('standard', 'vcfmsControl')).toEqual({
+      included: true, size: 'medium', nodeCount: 1,
+    })
+  })
+  it('vcfmsWorker → Medium × 1, included (9.1 common runtime; HA fanout later)', () => {
+    expect(resolveProfileEntry('standard', 'vcfmsWorker')).toEqual({
+      included: true, size: 'medium', nodeCount: 1,
+    })
+  })
 })
 
 describe('resolveProfileEntry — Lab profile', () => {
@@ -122,7 +132,7 @@ describe('PROFILES table integrity', () => {
     const categories = [
       'vcenter','nsxManager','nsxEdge','aviLb','vrops','vropsCollector',
       'vrli','vrni','vrniCollector','automation','fleetManager',
-      'identityBroker','ssp',
+      'identityBroker','ssp','vcfmsControl','vcfmsWorker',
     ] as const
     for (const profile of ['lab','standard','large'] as const) {
       for (const cat of categories) {
@@ -142,6 +152,7 @@ describe('PROFILES table integrity', () => {
     const sizedCategories = [
       'vcenter','nsxManager','nsxEdge','aviLb','vrops','vropsCollector',
       'vrli','vrni','vrniCollector','automation','identityBroker','ssp',
+      'vcfmsControl','vcfmsWorker',
     ] as const
     for (const profile of ['lab','standard','large'] as const) {
       for (const cat of sizedCategories) {

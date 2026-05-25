@@ -2,6 +2,14 @@
   "app": {
     "title": "VCF 9.x Sizing Calculator"
   },
+  "ui": {
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "toggle": "Theme: {mode} — click to switch"
+    }
+  },
   "language": {
     "label": "Language",
     "en": "EN",
@@ -18,6 +26,7 @@
       "preferredSiteHosts": "Preferred Site Hosts",
       "secondarySiteHosts": "Secondary Site Hosts",
       "witnessLabel": "Witness Node (ESA M profile)",
+      "vmscNote": "External-storage stretch (vMSC): cross-site quorum is handled by the storage array — no vSAN witness.",
       "witnessCpu": "vCPU",
       "witnessRam": "RAM",
       "bandwidthLabel": "Min. Cross-Site Bandwidth",
@@ -41,7 +50,13 @@
       "shared": "Co-located",
       "dedicated": "Dedicated Domains",
       "dedicatedHosts": "Dedicated Management Hosts"
-    }
+    },
+    "hostFailuresToTolerate": "Host Failures to Tolerate (HA reserve)",
+    "hostFailuresToTolerateHint": "Extra hosts reserved per cluster so the cluster survives this many simultaneous host failures (N+1 by default).",
+    "demandHostsPerSite": "Demand hosts per site (raw)",
+    "hostsPerSite": "Hosts per site (provisioned)",
+    "clusterCountPerSite": "Clusters per site",
+    "totalHostsProvisioned": "Total hosts (provisioned)"
   },
   "host": {
     "label": "Host Specifications",
@@ -100,7 +115,8 @@
     "minHosts": "min {count} hosts",
     "workloadRequired": "Workload Storage Required",
     "externalPool": "External Pool Usable",
-    "externalPoolInput": "External Pool Capacity"
+    "externalPoolInput": "External Pool Capacity",
+    "poolShortfall": "Pool Shortfall"
   },
   "topology": {
     "confirmTitle": "Change topology?",
@@ -132,7 +148,9 @@
     "vsanMaxStretchExclusion": "vSAN Max cannot be deployed in Stretch Cluster mode.",
     "mgmt": {
       "stretchParityRequired": "Management domain must be in Stretch Cluster mode when any workload domain is stretched."
-    }
+    },
+    "fcPoolShortfall": "External storage pool is too small for the workload demand. Increase the pool capacity or reduce the workload.",
+    "workloadMultiCluster": "Workload demand exceeds a single cluster — this domain is split across multiple clusters per site."
   },
   "results": {
     "toolbar": {
@@ -150,7 +168,11 @@
       "recommended": "Recommended Hosts",
       "minForCpu": "Min for CPU",
       "minForRam": "Min for RAM",
-      "minForStorage": "Min for Storage"
+      "minForStorage": "Min for Storage",
+      "provisioned": "Provisioned Hosts",
+      "demandPerSite": "Demand / site (raw)",
+      "clusters": "Clusters / site",
+      "layout": "Layout"
     },
     "vsanMaxTitle": "vSAN Max Storage Cluster",
     "vsanMaxStorageNodes": "Storage Nodes",
@@ -174,7 +196,9 @@
       "ramUtilization": "RAM Utilization",
       "storageUsable": "Safe Usable Storage",
       "raidScheme": "RAID Scheme",
-      "workloadRequired": "Workload Storage Required"
+      "workloadRequired": "Workload Storage Required",
+      "availablePool": "Available Pool",
+      "poolShortfall": "Pool Shortfall"
     },
     "aggregate": {
       "title": "Total Procurement Summary",
@@ -187,7 +211,9 @@
       "preferredSiteHosts": "Preferred Site Hosts (all stretched domains)",
       "secondarySiteHosts": "Secondary Site Hosts (all stretched domains)",
       "preferredSite": "preferred site",
-      "secondarySite": "secondary site"
+      "secondarySite": "secondary site",
+      "totalClusters": "Total Clusters",
+      "poolShortfall": "External Pool Shortfall"
     }
   },
   "management": {
@@ -300,7 +326,9 @@
       "ransomwareCloud": "Ransomware Recovery (cloud)",
       "crossCloudMobility": "Cross-Cloud Mobility (HCX)",
       "wldVcenter": "vCenter (per workload domain)",
-      "wldNsxManager": "NSX Manager (per workload domain)"
+      "wldNsxManager": "NSX Manager (per workload domain)",
+      "vcfmsControl": "VCF Services Control Nodes",
+      "vcfmsWorker": "VCF Services Worker Nodes"
     },
     "advancedSizing": {
       "title": "Advanced sizing override",
@@ -433,7 +461,7 @@
     "minHostsCpu": "Min Hosts for CPU",
     "minHostsRam": "Min Hosts for RAM",
     "minHostsStorage": "Min Hosts for Storage",
-    "availableVcpu": "Available vCPU",
+    "availableVcpu": "Provisioned physical cores",
     "availableRamGb": "Available RAM (GB)",
     "cpuUtilization": "CPU Utilization",
     "ramUtilization": "RAM Utilization",
@@ -470,6 +498,7 @@
     "computeNodeCount": "Compute node count",
     "usableCapacity": "Usable capacity",
     "totalRecommendedHosts": "Total recommended hosts (all domains)",
+    "workloadHosts": "Workload hosts",
     "managementHosts": "Management hosts",
     "mgmtStorageType": "Management storage type",
     "totalVmCount": "Total VM count",
@@ -490,12 +519,13 @@
     "total": "Total",
     "dedicatedHostCount": "Dedicated host count",
     "architecture": "Architecture",
-    "totalVcpuRequired": "Total vCPU required",
+    "totalVcpuRequired": "Total physical cores required",
     "totalRamRequired": "Total RAM required",
     "totalVcpu": "Total vCPU",
     "totalRam": "Total RAM",
     "mgmtAppliances": "Management Appliance Sizing",
     "wldOverheadAuto": "Workload-Domain Overhead (Auto-derived)",
+    "continued": "(cont.)",
     "applianceComponent": "Component",
     "applianceNodes": "Nodes",
     "appliancePerNodeCores": "Cores/node",
@@ -507,6 +537,15 @@
     "applianceTotals": "Totals",
     "totalDiskGB": "Total disk (GB)",
     "totalSwapGB": "Total swap (GB)",
-    "externalPoolRequiredTiB": "External pool required"
+    "externalPoolRequiredTiB": "External pool required",
+    "provisionedHosts": "Provisioned hosts",
+    "demandHostsPerSite": "Demand hosts per site (raw)",
+    "hostsPerSite": "Hosts per site (provisioned)",
+    "clusterCountPerSite": "Clusters per site",
+    "requiredPool": "Required pool",
+    "availablePool": "Available pool",
+    "poolShortfall": "Pool shortfall",
+    "totalClusterCount": "Total clusters (all domains)",
+    "totalPoolShortfall": "Total external pool shortfall"
   }
 }

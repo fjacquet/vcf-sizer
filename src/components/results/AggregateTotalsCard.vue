@@ -70,6 +70,9 @@ const isStretchTotal = computed(() =>
         </template>
       </template>
 
+      <span>{{ t('results.aggregate.totalClusters') }}</span>
+      <span class="font-mono text-right">{{ totals.totalClusterCount }}</span>
+
       <span>{{ t('results.aggregate.totalVms') }}</span>
       <span class="font-mono text-right">{{ totals.totalVmCount }}</span>
 
@@ -78,6 +81,12 @@ const isStretchTotal = computed(() =>
 
       <span>{{ t('results.aggregate.totalEffectiveStorage') }}</span>
       <span class="font-mono text-right">{{ fmt(totals.totalEffectiveStorageTiB) }}</span>
+
+      <!-- FC/NFS external pool shortfall (only when at least one pool is undersized) -->
+      <template v-if="totals.totalPoolShortfallTiB > 0">
+        <span class="text-red-600 dark:text-red-400 font-medium">{{ t('results.aggregate.poolShortfall') }}</span>
+        <span class="font-mono text-right text-red-600 dark:text-red-400 font-semibold">{{ fmt(totals.totalPoolShortfallTiB) }}</span>
+      </template>
     </div>
 
     <!-- Aggregate validation warnings -->

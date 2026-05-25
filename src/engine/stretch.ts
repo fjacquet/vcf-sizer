@@ -3,6 +3,7 @@
 // All arithmetic uses Decimal.js (PITFALLS #1)
 
 import Decimal from 'decimal.js'
+import { calcWorkloadStorageTiB } from './shared'
 import type { StretchInputs, StretchResult, StretchNetworkChecklist } from './types'
 
 // ESA witness minimum profile: M = 4 vCPU / 16 GB
@@ -17,15 +18,18 @@ export const STRETCH_MIN_HOSTS_PER_SITE = 3
 export const STRETCH_MIN_BANDWIDTH_GBPS = 10
 
 export function calcStretch(inputs: StretchInputs): StretchResult {
-  const { preferredSiteHosts, secondarySiteHosts, vmCount, avgStorageGbPerVm } = inputs
+  const { hostsPerSite, vmCount, avgStorageGbPerVm, storageType } = inputs
 
-  const totalHosts = new Decimal(preferredSiteHosts).plus(secondarySiteHosts).toNumber()
+  // A vSAN witness appliance applies ONLY to vSAN ESA stretched clusters. With external
+  // storage (FC/NFS) a stretched cluster is a vSphere Metro Storage Cluster (vMSC): the
+  // cross-site quorum/tiebreaker lives at the storage array, NOT in a vSAN witness VM.
+  const requiresVsanWitness = storageType === 'vsan-esa'
+
+  // Demand-driven: both sites are provisioned identically, so total = 2 × per-site.
+  const totalHosts = new Decimal(hostsPerSite).times(2).toNumber()
 
   // Total workload storage in TiB (VMs × average storage per VM, converted from GB)
-  const totalWorkloadStorageTiB = new Decimal(vmCount)
-    .times(avgStorageGbPerVm)
-    .dividedBy(1024)
-    .toNumber()
+  const totalWorkloadStorageTiB = calcWorkloadStorageTiB(vmCount, avgStorageGbPerVm)
 
   // Cross-site bandwidth recommendation: 10% of total workload storage as daily change rate heuristic
   // Apply 10 Gbps floor per VCF 9.0 TechDocs minimum requirement (STRCH-06)
@@ -38,8 +42,7 @@ export function calcStretch(inputs: StretchInputs): StretchResult {
 
   // Witness RTT threshold derived from per-site host count (STRCH-08)
   // <=10 hosts/site: 200ms; 11+ hosts/site: 100ms (conservative fallback)
-  const maxSiteHosts = Math.max(preferredSiteHosts, secondarySiteHosts)
-  const maxWitnessLatencyMs = maxSiteHosts <= 10 ? 200 : 100
+  const maxWitnessLatencyMs = hostsPerSite <= 10 ? 200 : 100
 
   const networkChecklist: StretchNetworkChecklist = {
     minInterSiteBandwidthGbps: STRETCH_MIN_BANDWIDTH_GBPS,
@@ -51,8 +54,9 @@ export function calcStretch(inputs: StretchInputs): StretchResult {
 
   return {
     totalHosts,
-    witnessCores: ESA_WITNESS_CORES,
-    witnessRamGB: ESA_WITNESS_RAM_GB,
+    requiresVsanWitness,
+    witnessCores: requiresVsanWitness ? ESA_WITNESS_CORES : 0,
+    witnessRamGB: requiresVsanWitness ? ESA_WITNESS_RAM_GB : 0,
     minBandwidthGbps,
     effectivePerSiteStorageTiB,
     storageNote: 'deployment.stretch.storageNote',

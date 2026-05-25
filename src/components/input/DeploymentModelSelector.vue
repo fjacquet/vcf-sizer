@@ -27,10 +27,8 @@ function domainField<K extends keyof WorkloadDomainConfig>(key: K) {
 
 // Per-domain fields via domainField helper
 const deploymentMode = domainField('deploymentMode')
-const preferredSiteHosts = domainField('preferredSiteHosts')
-const secondarySiteHosts = domainField('secondarySiteHosts')
 const networkSpeedGbE = domainField('networkSpeedGbE')
-const hostCount = domainField('hostCount')
+const hostFailuresToTolerate = domainField('hostFailuresToTolerate')
 const storageType = domainField('storageType')
 
 // Per-domain calc results
@@ -48,21 +46,12 @@ const vsanMaxStretchError = computed(() =>
 // vSAN Max disables Stretch mode — keep the radio visible but inactive, with reason tooltip
 const stretchDisabledByVsanMax = computed(() => storageType.value === 'vsan-max')
 
-// Contextual hostCount label + hint depending on storage type
-// vSAN ESA: hosts contribute local drives → "storage contributors"
-// FC/NFS: cluster size only — capacity comes from external array
-// vSAN Max: compute-node count, storage lives in separate cluster
-const hostCountLabel = computed(() =>
-  storageType.value === 'vsan-max' ? t('host.hostCountComputeNodes') : t('host.hostCount'),
-)
-const hostCountHint = computed(() => {
-  switch (storageType.value) {
-    case 'vsan-max': return t('host.hostCountHintVsanMax')
-    case 'fc':
-    case 'nfs': return t('host.hostCountHintExternal')
-    default: return t('host.hostCountHintVsan')
-  }
-})
+// Read-only demand-driven host/cluster counts (OUTPUTS of the sizing engine)
+const isStretch = computed(() => deploymentMode.value === 'stretch')
+const demandHostsPerSite = computed(() => domainResult.value?.demandHostsPerSite ?? 0)
+const hostsPerSite = computed(() => domainResult.value?.hostsPerSite ?? 0)
+const clusterCountPerSite = computed(() => domainResult.value?.clusterCountPerSite ?? 0)
+const totalHosts = computed(() => domainResult.value?.totalHosts ?? 0)
 
 const modes = [
   { value: 'simple' as const, labelKey: 'deployment.simple' },
@@ -114,46 +103,48 @@ const bandwidthCappedByLineRate = computed(() => {
       severity="error"
     />
 
-    <!-- Unified host count input — lives in the topology section so the
-         "how many hosts?" decision stays in one place.
-         Stretch mode uses per-site inputs instead (see template block below). -->
-    <div v-if="deploymentMode !== 'stretch'" class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+    <!-- Failover (HA) reserve — the only host-side knob in the demand-driven model.
+         Host/cluster counts are OUTPUTS shown read-only below. -->
+    <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
       <NumberSliderInput
-        v-model="hostCount"
-        :label="hostCountLabel"
-        :min="storageType === 'fc' || storageType === 'nfs' ? 2 : 3"
-        :max="64"
+        v-model="hostFailuresToTolerate"
+        :label="t('deployment.hostFailuresToTolerate')"
+        :min="0"
+        :max="8"
         :step="1"
       />
-      <p class="text-xs text-gray-500 dark:text-gray-400 italic">{{ hostCountHint }}</p>
+      <p class="text-xs text-gray-500 dark:text-gray-400 italic">{{ t('deployment.hostFailuresToTolerateHint') }}</p>
     </div>
-    <!-- Stretch cluster per-site inputs (STRCH-01/02/05) -->
+
+    <!-- Read-only demand-driven sizing outputs -->
+    <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded p-2">
+      <span>{{ t('deployment.demandHostsPerSite') }}</span>
+      <span class="font-mono text-right">{{ demandHostsPerSite }}</span>
+      <span>{{ t('deployment.hostsPerSite') }}</span>
+      <span class="font-mono text-right">{{ hostsPerSite }}</span>
+      <span>{{ t('deployment.clusterCountPerSite') }}</span>
+      <span class="font-mono text-right">{{ clusterCountPerSite }}</span>
+      <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('deployment.totalHostsProvisioned') }}</span>
+      <span class="font-mono text-right font-semibold">
+        <template v-if="isStretch">{{ hostsPerSite }} × 2 = {{ totalHosts }}</template>
+        <template v-else>{{ totalHosts }}</template>
+      </span>
+    </div>
+
+    <!-- Stretch cluster overhead + bandwidth (STRCH-02/05) -->
     <template v-if="deploymentMode === 'stretch'">
       <div class="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumberSliderInput
-            v-model="preferredSiteHosts"
-            :label="t('deployment.stretchSites.preferredSiteHosts')"
-            :min="3"
-            :max="32"
-            :step="1"
-          />
-          <NumberSliderInput
-            v-model="secondarySiteHosts"
-            :label="t('deployment.stretchSites.secondarySiteHosts')"
-            :min="3"
-            :max="32"
-            :step="1"
-          />
-        </div>
-
-        <!-- Witness node overhead (STRCH-02) — ESA M profile: 4 vCPU / 16 GB -->
-        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded p-2">
+        <!-- Witness node overhead (STRCH-02) — ESA M profile: 4 vCPU / 16 GB.
+             vSAN ESA stretched clusters only; FC/NFS (vMSC) use array-based quorum. -->
+        <div v-if="stretch?.requiresVsanWitness" class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded p-2">
           <span class="col-span-2 font-medium text-gray-700 dark:text-gray-300">{{ t('deployment.stretchSites.witnessLabel') }}</span>
           <span>{{ t('deployment.stretchSites.witnessCpu') }}</span>
           <span class="font-mono text-right">{{ stretch?.witnessCores }}</span>
           <span>{{ t('deployment.stretchSites.witnessRam') }}</span>
           <span class="font-mono text-right">{{ stretch?.witnessRamGB }} GB</span>
+        </div>
+        <div v-else class="text-xs text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-gray-700 rounded p-2">
+          {{ t('deployment.stretchSites.vmscNote') }}
         </div>
 
         <!-- Cross-site bandwidth recommendation (STRCH-05/STRCH-06/07) -->

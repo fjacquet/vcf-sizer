@@ -1,25 +1,31 @@
 /// <reference types="vitest/globals" />
 import { getApplianceSpec, SDDC_MANAGER_SPEC, FLEET_MANAGER_SPEC, VALIDATED_SOLUTIONS_SPECS } from './constants'
 
-describe('getApplianceSpec — vCenter sizes (Appendix A)', () => {
-  it('Tiny → 2 / 14 / 579', () => {
-    expect(getApplianceSpec('vcenter', 'tiny')).toEqual({ cores: 2, ramGB: 14, diskGB: 579 })
+describe('getApplianceSpec — vCenter sizes (9.1, Default storage tier)', () => {
+  it('Tiny → 2 / 14 / 604', () => {
+    expect(getApplianceSpec('vcenter', 'tiny')).toEqual({ cores: 2, ramGB: 14, diskGB: 604 })
   })
   it('Small → 4 / 21 / 694', () => {
     expect(getApplianceSpec('vcenter', 'small')).toEqual({ cores: 4, ramGB: 21, diskGB: 694 })
   })
-  it('Medium → 8 / 30 / 908', () => {
-    expect(getApplianceSpec('vcenter', 'medium')).toEqual({ cores: 8, ramGB: 30, diskGB: 908 })
+  it('Medium → 8 / 30 / 858', () => {
+    expect(getApplianceSpec('vcenter', 'medium')).toEqual({ cores: 8, ramGB: 30, diskGB: 858 })
   })
-  it('Large → 16 / 39 / 1358', () => {
-    expect(getApplianceSpec('vcenter', 'large')).toEqual({ cores: 16, ramGB: 39, diskGB: 1358 })
+  it('Large → 16 / 39 / 1158', () => {
+    expect(getApplianceSpec('vcenter', 'large')).toEqual({ cores: 16, ramGB: 39, diskGB: 1158 })
   })
-  it('XLarge → 24 / 58 / 2283', () => {
-    expect(getApplianceSpec('vcenter', 'xlarge')).toEqual({ cores: 24, ramGB: 58, diskGB: 2283 })
+  it('XLarge → 24 / 58 / 1783', () => {
+    expect(getApplianceSpec('vcenter', 'xlarge')).toEqual({ cores: 24, ramGB: 58, diskGB: 1783 })
   })
 })
 
-describe('getApplianceSpec — NSX Manager sizes', () => {
+describe('getApplianceSpec — NSX Manager sizes (9.1 adds Tiny + Small)', () => {
+  it('Tiny → 2 / 8 / 300', () => {
+    expect(getApplianceSpec('nsxManager', 'tiny')).toEqual({ cores: 2, ramGB: 8, diskGB: 300 })
+  })
+  it('Small → 4 / 16 / 300', () => {
+    expect(getApplianceSpec('nsxManager', 'small')).toEqual({ cores: 4, ramGB: 16, diskGB: 300 })
+  })
   it('Medium → 6 / 24 / 300', () => {
     expect(getApplianceSpec('nsxManager', 'medium')).toEqual({ cores: 6, ramGB: 24, diskGB: 300 })
   })
@@ -59,6 +65,9 @@ describe('getApplianceSpec — AVI Load Balancer sizes', () => {
 })
 
 describe('getApplianceSpec — VCF Operations (vROps)', () => {
+  it('Tiny (Extra Small) → 2 / 8 / 274', () => {
+    expect(getApplianceSpec('vrops', 'tiny')).toEqual({ cores: 2, ramGB: 8, diskGB: 274 })
+  })
   it('Small → 4 / 16 / 274', () => {
     expect(getApplianceSpec('vrops', 'small')).toEqual({ cores: 4, ramGB: 16, diskGB: 274 })
   })
@@ -82,15 +91,15 @@ describe('getApplianceSpec — VCF Operations Collector', () => {
   })
 })
 
-describe('getApplianceSpec — vRLI (Logs)', () => {
-  it('Small → 4 / 8 / 530', () => {
-    expect(getApplianceSpec('vrli', 'small')).toEqual({ cores: 4, ramGB: 8, diskGB: 530 })
+describe('getApplianceSpec — vRLI (Logs) (9.1 raises CPU/RAM/disk)', () => {
+  it('Small → 8 / 16 / 575', () => {
+    expect(getApplianceSpec('vrli', 'small')).toEqual({ cores: 8, ramGB: 16, diskGB: 575 })
   })
-  it('Medium → 8 / 16 / 530', () => {
-    expect(getApplianceSpec('vrli', 'medium')).toEqual({ cores: 8, ramGB: 16, diskGB: 530 })
+  it('Medium → 12 / 24 / 575', () => {
+    expect(getApplianceSpec('vrli', 'medium')).toEqual({ cores: 12, ramGB: 24, diskGB: 575 })
   })
-  it('Large → 16 / 32 / 530', () => {
-    expect(getApplianceSpec('vrli', 'large')).toEqual({ cores: 16, ramGB: 32, diskGB: 530 })
+  it('Large → 16 / 32 / 575', () => {
+    expect(getApplianceSpec('vrli', 'large')).toEqual({ cores: 16, ramGB: 32, diskGB: 575 })
   })
 })
 
@@ -121,9 +130,9 @@ describe('getApplianceSpec — vRNI Collector', () => {
   })
 })
 
-describe('getApplianceSpec — VCF Automation', () => {
-  it('Small → 24 / 96 / 455', () => {
-    expect(getApplianceSpec('automation', 'small')).toEqual({ cores: 24, ramGB: 96, diskGB: 455 })
+describe('getApplianceSpec — VCF Automation (9.1 raises small disk to 717)', () => {
+  it('Small → 24 / 96 / 717', () => {
+    expect(getApplianceSpec('automation', 'small')).toEqual({ cores: 24, ramGB: 96, diskGB: 717 })
   })
   it('Medium → 24 / 96 / 334', () => {
     expect(getApplianceSpec('automation', 'medium')).toEqual({ cores: 24, ramGB: 96, diskGB: 334 })
@@ -133,15 +142,15 @@ describe('getApplianceSpec — VCF Automation', () => {
   })
 })
 
-describe('getApplianceSpec — Identity Broker (WSA)', () => {
-  it('Small → 8 / 16 / 290', () => {
-    expect(getApplianceSpec('identityBroker', 'small')).toEqual({ cores: 8, ramGB: 16, diskGB: 290 })
+describe('getApplianceSpec — Identity Broker (WSA) (9.1 shrinks substantially)', () => {
+  it('Small → 2 / 4 / 10', () => {
+    expect(getApplianceSpec('identityBroker', 'small')).toEqual({ cores: 2, ramGB: 4, diskGB: 10 })
   })
-  it('Medium → 8 / 16 / 220', () => {
-    expect(getApplianceSpec('identityBroker', 'medium')).toEqual({ cores: 8, ramGB: 16, diskGB: 220 })
+  it('Medium → 2 / 4 / 10', () => {
+    expect(getApplianceSpec('identityBroker', 'medium')).toEqual({ cores: 2, ramGB: 4, diskGB: 10 })
   })
-  it('Large → 10 / 16 / 100', () => {
-    expect(getApplianceSpec('identityBroker', 'large')).toEqual({ cores: 10, ramGB: 16, diskGB: 100 })
+  it('Large → 4 / 8 / 20', () => {
+    expect(getApplianceSpec('identityBroker', 'large')).toEqual({ cores: 4, ramGB: 8, diskGB: 20 })
   })
 })
 
@@ -154,6 +163,30 @@ describe('getApplianceSpec — SSP (Security Services Platform)', () => {
   })
   it('XLarge → 192 / 734 / 6656', () => {
     expect(getApplianceSpec('ssp', 'xlarge')).toEqual({ cores: 192, ramGB: 734, diskGB: 6656 })
+  })
+})
+
+describe('getApplianceSpec — VCF Management Services Control Nodes (new in 9.1)', () => {
+  it('Small → 4 / 10 / 100', () => {
+    expect(getApplianceSpec('vcfmsControl', 'small')).toEqual({ cores: 4, ramGB: 10, diskGB: 100 })
+  })
+  it('Medium → 4 / 10 / 100', () => {
+    expect(getApplianceSpec('vcfmsControl', 'medium')).toEqual({ cores: 4, ramGB: 10, diskGB: 100 })
+  })
+  it('Large → 8 / 14 / 100', () => {
+    expect(getApplianceSpec('vcfmsControl', 'large')).toEqual({ cores: 8, ramGB: 14, diskGB: 100 })
+  })
+})
+
+describe('getApplianceSpec — VCF Management Services Worker Nodes (new in 9.1)', () => {
+  it('Small → 12 / 24 / 100', () => {
+    expect(getApplianceSpec('vcfmsWorker', 'small')).toEqual({ cores: 12, ramGB: 24, diskGB: 100 })
+  })
+  it('Medium → 24 / 48 / 100', () => {
+    expect(getApplianceSpec('vcfmsWorker', 'medium')).toEqual({ cores: 24, ramGB: 48, diskGB: 100 })
+  })
+  it('Large → 24 / 48 / 100', () => {
+    expect(getApplianceSpec('vcfmsWorker', 'large')).toEqual({ cores: 24, ramGB: 48, diskGB: 100 })
   })
 })
 
@@ -190,7 +223,6 @@ describe('getApplianceSpec — invalid lookups', () => {
     expect(() => getApplianceSpec('bogus', 'medium')).toThrow(/unknown mgmt appliance/i)
   })
   it('throws on unknown size for known category', () => {
-    // @ts-expect-error testing runtime safety
     expect(() => getApplianceSpec('vcenter', 'humongous')).toThrow(/unknown size/i)
   })
   it('throws with a helpful message when called with fleetManager', () => {
