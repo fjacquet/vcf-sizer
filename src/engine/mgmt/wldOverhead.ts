@@ -9,8 +9,34 @@
 // Reference: docs/superpowers/specs/2026-04-28-mgmt-domain-parity-design.md §5 step 2
 
 import { getApplianceSpec } from './constants'
+import { calcWorkloadDemand } from '../workload/demand'
+import { MIN_HOSTS_PER_CLUSTER } from '../workload/constants'
 import type { ApplianceLine, ApplianceSize } from './types'
 import type { WorkloadDomainConfig } from '../types'
+
+// Demand-driven model: host count is no longer a config field, it is an OUTPUT.
+// vCenter/NSX appliance sizing still keys on a per-site host estimate, so we derive
+// the per-site demand host count from the workload profile using the same pure
+// demand helper the sizing engine uses (no sizing math is changed here).
+function estimatePerSiteHosts(wld: WorkloadDomainConfig): number {
+  const demand = calcWorkloadDemand({
+    vmCount: wld.vmCount,
+    avgVcpuPerVm: wld.avgVcpuPerVm,
+    avgVramGbPerVm: wld.avgVramGbPerVm,
+    cpuOvercommitRatio: wld.cpuOvercommitRatio,
+    ramOvercommitRatio: wld.ramOvercommitRatio,
+    gpuVmCount: wld.gpuVmCount,
+    vgpuMemoryGB: wld.vgpuMemoryGB,
+    nvmeTieringEnabled: wld.nvmeTieringEnabled,
+    activeMemoryPct: wld.activeMemoryPct,
+    coresPerSocket: wld.coresPerSocket,
+    socketsPerHost: wld.socketsPerHost,
+    hostRamGB: wld.hostRamGB,
+    mgmtCores: 0,
+    mgmtRamGB: 0,
+  })
+  return Math.max(demand.minHostsForCpu, demand.minHostsForRam, MIN_HOSTS_PER_CLUSTER)
+}
 
 interface VcenterSizeRow {
   maxHosts: number
@@ -44,8 +70,9 @@ export function calcWldOverhead(wlds: readonly WorkloadDomainConfig[]): Applianc
   const lines: ApplianceLine[] = []
 
   for (const wld of wlds) {
+    const perSiteHosts = estimatePerSiteHosts(wld)
     // vCenter: always nodeCount=1
-    const vcSize = pickVcenterSize(wld.vmCount, wld.hostCount)
+    const vcSize = pickVcenterSize(wld.vmCount, perSiteHosts)
     const vcSpec = getApplianceSpec('vcenter', vcSize)
     lines.push({
       category: 'wldVcenter',
@@ -60,7 +87,7 @@ export function calcWldOverhead(wlds: readonly WorkloadDomainConfig[]): Applianc
     })
 
     // NSX Manager: nodeCount = 1 in simple, 3 in HA/Stretch
-    const nsxSize = pickNsxSize(wld.hostCount)
+    const nsxSize = pickNsxSize(perSiteHosts)
     const nsxSpec = getApplianceSpec('nsxManager', nsxSize)
     const nsxNodeCount = wld.deploymentMode === 'simple' ? 1 : 3
     lines.push({

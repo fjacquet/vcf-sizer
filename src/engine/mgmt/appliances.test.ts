@@ -53,7 +53,7 @@ describe('calcAppliances — Standard profile + Simple mode', () => {
     expect(vc).toBeDefined()
     expect(vc!.cores).toBe(8)
     expect(vc!.ramGB).toBe(30)
-    expect(vc!.diskGB).toBe(908)
+    expect(vc!.diskGB).toBe(858)
     expect(vc!.nodeCount).toBe(1)
     expect(vc!.totalCores).toBe(8)
     expect(vc!.totalRamGB).toBe(30)
@@ -102,12 +102,26 @@ describe('calcAppliances — Standard profile + Simple mode', () => {
     expect(lines.find(l => l.category === 'ssp')).toBeUndefined()
   })
 
+  it('emits VCFMS control + worker (Medium × 1) in Simple mode (no HA fanout)', () => {
+    const lines = calcAppliances(baseConfig())
+    const control = lines.find(l => l.category === 'vcfmsControl')!
+    const worker = lines.find(l => l.category === 'vcfmsWorker')!
+    // vcfmsControl medium 4/10/100, vcfmsWorker medium 24/48/100
+    expect(control.nodeCount).toBe(1)
+    expect(control.totalCores).toBe(4)
+    expect(control.totalRamGB).toBe(10)
+    expect(worker.nodeCount).toBe(1)
+    expect(worker.totalCores).toBe(24)
+    expect(worker.totalRamGB).toBe(48)
+  })
+
   it('does not emit lines for excluded categories', () => {
     const lines = calcAppliances(baseConfig())
-    // Standard includes: vcenter, nsxManager, nsxEdge, aviLb, vrops, vrli, vrni, automation, fleetManager (9)
+    // Standard includes: vcenter, nsxManager, nsxEdge, aviLb, vrops, vrli, vrni,
+    //   automation, fleetManager, vcfmsControl, vcfmsWorker (11)
     // Plus always: sddcManager (1)
     // Standard excludes: vropsCollector, vrniCollector, identityBroker, ssp
-    expect(lines.length).toBe(10)
+    expect(lines.length).toBe(12)
   })
 })
 
@@ -144,6 +158,17 @@ describe('calcAppliances — HA fanout (mode = "ha")', () => {
     expect(vrli.nodeCount).toBe(3)
   })
 
+  it('VCFMS control + worker fan out to 3 in HA mode', () => {
+    const cfg = { ...baseConfig(), deploymentMode: 'ha' as const }
+    const lines = calcAppliances(cfg)
+    const control = lines.find(l => l.category === 'vcfmsControl')!
+    const worker = lines.find(l => l.category === 'vcfmsWorker')!
+    expect(control.nodeCount).toBe(3)
+    expect(control.totalCores).toBe(12)   // 4 × 3
+    expect(worker.nodeCount).toBe(3)
+    expect(worker.totalCores).toBe(72)    // 24 × 3
+  })
+
   it('Fleet Manager stays nodeCount=1 in HA (singleton — MGMT-04 invariant)', () => {
     const cfg = { ...baseConfig(), deploymentMode: 'ha' as const }
     const lines = calcAppliances(cfg)
@@ -167,7 +192,7 @@ describe('calcAppliances — overrides', () => {
     const vc = lines.find(l => l.category === 'vcenter')!
     expect(vc.cores).toBe(16)
     expect(vc.ramGB).toBe(39)
-    expect(vc.diskGB).toBe(1358)
+    expect(vc.diskGB).toBe(1158)
     expect(vc.source).toBe('override')
   })
 

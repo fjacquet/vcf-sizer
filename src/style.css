@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Class-based dark variant: `dark:` utilities respond to a `.dark` class on
+   <html> (toggled by uiStore.applyTheme), not just prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @custom-variant print (@media print);
 
 @page {

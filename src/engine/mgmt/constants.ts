@@ -1,23 +1,27 @@
 // VCF 9.x Management Domain — Frozen sizing tables
 // Pure TypeScript — ZERO Vue imports allowed in this file (CALC-01)
 //
-// All values sourced from VMware's VCF 9.0 Planning and Preparation Workbook,
-// "Static Reference Tables" sheet, rows 8–267 (current as of 2026-04-28).
-// Reference: docs/vcf-9.0-planning-and-preparation-workbook.xlsx
+// All values sourced from VMware's VCF 9.1 Planning and Preparation Workbook,
+// "Static Reference Tables" sheet, rows 8–306 (current as of 2026-05-25).
+// Reference: docs/vcf-9.1-planning-and-preparation-workbook.xlsx
 
 import type { ApplianceSpec, MgmtApplianceCategory } from './types'
 
 // ─── Sized appliance tables ───────────────────────────────────────────────
 
+// vCenter disk uses the 9.1 "Default" storage tier (workbook rows R49–R61).
 const VCENTER: Record<string, ApplianceSpec> = {
-  tiny:   { cores: 2,  ramGB: 14, diskGB: 579 },
+  tiny:   { cores: 2,  ramGB: 14, diskGB: 604 },
   small:  { cores: 4,  ramGB: 21, diskGB: 694 },
-  medium: { cores: 8,  ramGB: 30, diskGB: 908 },
-  large:  { cores: 16, ramGB: 39, diskGB: 1358 },
-  xlarge: { cores: 24, ramGB: 58, diskGB: 2283 },
+  medium: { cores: 8,  ramGB: 30, diskGB: 858 },
+  large:  { cores: 16, ramGB: 39, diskGB: 1158 },
+  xlarge: { cores: 24, ramGB: 58, diskGB: 1783 },
 }
 
+// 9.1 adds Extra_Small (tiny) and Small NSX Manager sizes (workbook rows R65–R81).
 const NSX_MANAGER: Record<string, ApplianceSpec> = {
+  tiny:   { cores: 2,  ramGB: 8,  diskGB: 300 },
+  small:  { cores: 4,  ramGB: 16, diskGB: 300 },
   medium: { cores: 6,  ramGB: 24, diskGB: 300 },
   large:  { cores: 12, ramGB: 48, diskGB: 300 },
   xlarge: { cores: 24, ramGB: 96, diskGB: 400 },
@@ -36,7 +40,9 @@ const AVI_LB: Record<string, ApplianceSpec> = {
   xlarge: { cores: 16, ramGB: 64, diskGB: 1750 },
 }
 
+// 9.1 adds an Extra Small (tiny) VCF Operations size (workbook rows R149–R165).
 const VROPS: Record<string, ApplianceSpec> = {
+  tiny:   { cores: 2,  ramGB: 8,  diskGB: 274 },
   small:  { cores: 4,  ramGB: 16, diskGB: 274 },
   medium: { cores: 8,  ramGB: 32, diskGB: 274 },
   large:  { cores: 16, ramGB: 48, diskGB: 274 },
@@ -48,10 +54,11 @@ const VROPS_COLLECTOR: Record<string, ApplianceSpec> = {
   standard: { cores: 8, ramGB: 48, diskGB: 264 },
 }
 
+// 9.1 raises vRLI CPU/RAM and disk (workbook rows R136–R147).
 const VRLI: Record<string, ApplianceSpec> = {
-  small:  { cores: 4,  ramGB: 8,  diskGB: 530 },
-  medium: { cores: 8,  ramGB: 16, diskGB: 530 },
-  large:  { cores: 16, ramGB: 32, diskGB: 530 },
+  small:  { cores: 8,  ramGB: 16, diskGB: 575 },
+  medium: { cores: 12, ramGB: 24, diskGB: 575 },
+  large:  { cores: 16, ramGB: 32, diskGB: 575 },
 }
 
 const VRNI: Record<string, ApplianceSpec> = {
@@ -67,22 +74,42 @@ const VRNI_COLLECTOR: Record<string, ApplianceSpec> = {
   large:  { cores: 8, ramGB: 16, diskGB: 250 },
 }
 
+// 9.1 raises VCF Automation small disk to 717 GB (workbook rows R125–R135).
 const AUTOMATION: Record<string, ApplianceSpec> = {
-  small:  { cores: 24, ramGB: 96,  diskGB: 455 },
+  small:  { cores: 24, ramGB: 96,  diskGB: 717 },
   medium: { cores: 24, ramGB: 96,  diskGB: 334 },
   large:  { cores: 32, ramGB: 128, diskGB: 430 },
 }
 
+// 9.1 substantially shrinks Identity Broker (workbook rows R109–R123).
 const IDENTITY_BROKER: Record<string, ApplianceSpec> = {
-  small:    { cores: 8,  ramGB: 16, diskGB: 290 },
-  medium:   { cores: 8,  ramGB: 16, diskGB: 220 },
-  large:    { cores: 10, ramGB: 16, diskGB: 100 },
+  small:    { cores: 2, ramGB: 4, diskGB: 10 },
+  medium:   { cores: 2, ramGB: 4, diskGB: 10 },
+  large:    { cores: 4, ramGB: 8, diskGB: 20 },
 }
 
 const SSP: Record<string, ApplianceSpec> = {
   medium: { cores: 112, ramGB: 414, diskGB: 4096 },
   large:  { cores: 160, ramGB: 606, diskGB: 5120 },
   xlarge: { cores: 192, ramGB: 734, diskGB: 6656 },
+}
+
+// VCF Management Services (vcfms) — NEW in 9.1. The runtime is counted as two
+// node tiers: control-plane nodes and worker nodes. Workbook "Static Reference
+// Tables" rows R276–R306. The 9.1 "Management Domain Sizing" sheet shows each
+// worker carrying an additional ~1000 GB runtime data volume on top of the base
+// reference-table disk; we use the base table disk (100 GB) here for consistency
+// with how every other appliance spec uses its reference-table disk value.
+const VCFMS_CONTROL: Record<string, ApplianceSpec> = {
+  small:  { cores: 4, ramGB: 10, diskGB: 100 },
+  medium: { cores: 4, ramGB: 10, diskGB: 100 },
+  large:  { cores: 8, ramGB: 14, diskGB: 100 },
+}
+
+const VCFMS_WORKER: Record<string, ApplianceSpec> = {
+  small:  { cores: 12, ramGB: 24, diskGB: 100 },
+  medium: { cores: 24, ramGB: 48, diskGB: 100 },
+  large:  { cores: 24, ramGB: 48, diskGB: 100 },
 }
 
 // ─── Always-on appliances (no size variants) ──────────────────────────────
@@ -125,6 +152,8 @@ const TABLES: Partial<Record<MgmtApplianceCategory, Record<string, ApplianceSpec
   automation: AUTOMATION,
   identityBroker: IDENTITY_BROKER,
   ssp: SSP,
+  vcfmsControl: VCFMS_CONTROL,
+  vcfmsWorker: VCFMS_WORKER,
 }
 
 /**

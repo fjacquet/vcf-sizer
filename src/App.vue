@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useInputStore } from '@/stores/inputStore'
 import { useUiStore } from '@/stores/uiStore'
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher.vue'
+import ThemeToggle from '@/components/shared/ThemeToggle.vue'
 import WizardStepper from '@/components/shared/WizardStepper.vue'
 import TopologySelector from '@/components/shared/TopologySelector.vue'
 import DomainTabStrip from '@/components/shared/DomainTabStrip.vue'
@@ -16,6 +17,7 @@ import ManagementSummary from '@/components/shared/ManagementSummary.vue'
 import ManagementResultCard from '@/components/shared/ManagementResultCard.vue'
 import ManagementCommittedSummary from '@/components/shared/ManagementCommittedSummary.vue'
 import ResultsPanel from '@/components/results/ResultsPanel.vue'
+import ExportToolbar from '@/components/results/ExportToolbar.vue'
 import LandingView from '@/components/shared/LandingView.vue'
 
 const { t } = useI18n()
@@ -32,8 +34,13 @@ const activeDomainId = computed(
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-950 font-sans">
     <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between sticky top-0 z-10 print:hidden">
-      <h1 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('app.title') }}</h1>
-      <LanguageSwitcher />
+      <h1 class="text-lg font-bold text-gray-900 dark:text-gray-100 shrink-0">{{ t('app.title') }}</h1>
+      <div class="flex items-center gap-3 flex-wrap justify-end">
+        <!-- Export actions live here (top of page), next to the theme + language switchers -->
+        <ExportToolbar v-if="!ui.isLandingVisible" />
+        <ThemeToggle />
+        <LanguageSwitcher />
+      </div>
     </header>
 
     <LandingView v-if="ui.isLandingVisible" />

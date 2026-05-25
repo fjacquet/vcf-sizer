@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { DomainResult } from '@/engine/types'
+import type { WorkloadDomainResult } from '@/engine/types'
 import StretchNetworkChecklist from './StretchNetworkChecklist.vue'
 import VsanMaxClusterCard from './VsanMaxClusterCard.vue'
 import CoresChart from './charts/CoresChart.vue'
@@ -9,14 +9,21 @@ import RamChart from './charts/RamChart.vue'
 import StorageChart from './charts/StorageChart.vue'
 import { useStorageFormat } from '@/composables/useStorageFormat'
 
-const props = defineProps<{ result: DomainResult }>()
+const props = defineProps<{ result: WorkloadDomainResult }>()
 const { t } = useI18n()
 const { fmt } = useStorageFormat()
 
+// Demand-driven model: the provisioned total absorbs HA reserve + cluster split,
+// so it should always satisfy the raw per-site demand minimums.
 const isSufficient = computed(() => {
-  const c = props.result.compute
-  return c.recommendedHostCount <= c.minHostsForCpu && c.recommendedHostCount <= c.minHostsForRam
+  const r = props.result
+  return r.demandHostsPerSite <= r.minHostsForCpu && r.demandHostsPerSite <= r.minHostsForRam
+    ? true
+    : r.coreUtilizationPct <= 100 && r.ramUtilizationPct <= 100
 })
+
+const isStretch = computed(() => props.result.stretch !== null)
+const isExternalStorage = computed(() => props.result.storage.workloadStorageRequiredTiB > 0)
 </script>
 
 <template>
@@ -31,24 +38,40 @@ const isSufficient = computed(() => {
           class="text-5xl font-bold leading-none"
           :class="isSufficient ? 'text-emerald-600' : 'text-red-600'"
         >
-          {{ result.compute.recommendedHostCount }}
+          {{ result.totalHosts }}
         </span>
         <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {{ t('results.hostCount.recommended') }}
+          {{ t('results.hostCount.provisioned') }}
         </span>
       </div>
       <div class="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
         <div class="flex items-center gap-2">
-          <span class="w-28 text-right font-medium">{{ t('results.hostCount.minForCpu') }}:</span>
-          <span class="font-bold">{{ result.compute.minHostsForCpu }}</span>
+          <span class="w-32 text-right font-medium">{{ t('results.hostCount.demandPerSite') }}:</span>
+          <span class="font-bold">{{ result.demandHostsPerSite }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-28 text-right font-medium">{{ t('results.hostCount.minForRam') }}:</span>
-          <span class="font-bold">{{ result.compute.minHostsForRam }}</span>
+          <span class="w-32 text-right font-medium">{{ t('results.hostCount.minForCpu') }}:</span>
+          <span class="font-bold">{{ result.minHostsForCpu }}</span>
         </div>
-        <div v-if="result.compute.minHostsForStorage > 0" class="flex items-center gap-2">
-          <span class="w-28 text-right font-medium">{{ t('results.hostCount.minForStorage') }}:</span>
-          <span class="font-bold">{{ result.compute.minHostsForStorage }}</span>
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-right font-medium">{{ t('results.hostCount.minForRam') }}:</span>
+          <span class="font-bold">{{ result.minHostsForRam }}</span>
+        </div>
+        <div v-if="result.minHostsForStorage > 0" class="flex items-center gap-2">
+          <span class="w-32 text-right font-medium">{{ t('results.hostCount.minForStorage') }}:</span>
+          <span class="font-bold">{{ result.minHostsForStorage }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-32 text-right font-medium">{{ t('results.hostCount.clusters') }}:</span>
+          <span class="font-bold">{{ result.clusterCountPerSite }}</span>
+        </div>
+        <!-- Provisioning math: hosts/site × 2 = total (stretch) or hosts/site = total -->
+        <div class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 italic">
+          <span class="w-32 text-right">{{ t('results.hostCount.layout') }}:</span>
+          <span class="font-mono">
+            <template v-if="isStretch">{{ result.hostsPerSite }} × 2 = {{ result.totalHosts }}</template>
+            <template v-else>{{ result.hostsPerSite }} = {{ result.totalHosts }}</template>
+          </span>
         </div>
       </div>
     </div>
@@ -58,34 +81,46 @@ const isSufficient = computed(() => {
       <span>{{ t('results.domain.cpuUtilization') }}</span>
       <span
         class="font-mono text-right font-semibold"
-        :class="result.compute.coreUtilizationPct > 80 ? 'text-red-600' : 'text-emerald-600'"
+        :class="result.coreUtilizationPct > 80 ? 'text-red-600' : 'text-emerald-600'"
       >
-        {{ result.compute.coreUtilizationPct.toFixed(1) }}%
+        {{ result.coreUtilizationPct.toFixed(1) }}%
       </span>
 
       <span>{{ t('results.domain.ramUtilization') }}</span>
       <span
         class="font-mono text-right font-semibold"
-        :class="result.compute.ramUtilizationPct > 80 ? 'text-red-600' : 'text-emerald-600'"
+        :class="result.ramUtilizationPct > 80 ? 'text-red-600' : 'text-emerald-600'"
       >
-        {{ result.compute.ramUtilizationPct.toFixed(1) }}%
+        {{ result.ramUtilizationPct.toFixed(1) }}%
       </span>
 
-      <span>{{ result.storage.workloadStorageRequiredTiB > 0
-        ? t('results.domain.workloadRequired')
-        : t('results.domain.storageUsable') }}</span>
-      <span class="font-mono text-right">{{ fmt(result.storage.workloadStorageRequiredTiB > 0
-        ? result.storage.workloadStorageRequiredTiB
-        : result.storage.safeUsableCapacityTiB) }}</span>
+      <!-- FC/NFS: workload demand + available pool + shortfall. Else: safe usable + RAID scheme. -->
+      <template v-if="isExternalStorage">
+        <span>{{ t('results.domain.workloadRequired') }}</span>
+        <span class="font-mono text-right">{{ fmt(result.storage.workloadStorageRequiredTiB) }}</span>
 
-      <span>{{ t('results.domain.raidScheme') }}</span>
-      <span class="font-mono text-right">{{ result.storage.raidScheme }}</span>
+        <span>{{ t('results.domain.availablePool') }}</span>
+        <span class="font-mono text-right">{{ fmt(result.storage.availablePoolTiB) }}</span>
+
+        <span :class="result.storage.poolShortfallTiB > 0 ? 'text-red-600' : ''">{{ t('results.domain.poolShortfall') }}</span>
+        <span
+          class="font-mono text-right"
+          :class="result.storage.poolShortfallTiB > 0 ? 'text-red-600 font-semibold' : ''"
+        >{{ fmt(result.storage.poolShortfallTiB) }}</span>
+      </template>
+      <template v-else>
+        <span>{{ t('results.domain.storageUsable') }}</span>
+        <span class="font-mono text-right">{{ fmt(result.storage.safeUsableCapacityTiB) }}</span>
+
+        <span>{{ t('results.domain.raidScheme') }}</span>
+        <span class="font-mono text-right">{{ result.storage.raidScheme }}</span>
+      </template>
     </div>
 
     <!-- Per-domain charts (CHART-01) -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-      <CoresChart :compute="result.compute" :domain-id="result.id" />
-      <RamChart :compute="result.compute" :domain-id="result.id" />
+      <CoresChart :required="result.siteCoresRequired" :available="result.provisionedCores" :domain-id="result.id" />
+      <RamChart :required="result.siteRamRequiredGB" :available="result.provisionedRamGB" :domain-id="result.id" />
       <StorageChart :storage="result.storage" :domain-id="result.id" />
     </div>
 

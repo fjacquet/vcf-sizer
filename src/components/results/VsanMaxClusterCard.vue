@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { DomainResult } from '@/engine/types'
+import type { WorkloadDomainResult } from '@/engine/types'
 import WarningBanner from '@/components/shared/WarningBanner.vue'
 import { useStorageFormat } from '@/composables/useStorageFormat'
 
-const props = defineProps<{ result: DomainResult }>()
+const props = defineProps<{ result: WorkloadDomainResult }>()
 const { t } = useI18n()
 const { fmt } = useStorageFormat()
 </script>

@@ -9,7 +9,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
 })
 
-describe('calculationStore — domainResults (DOM-05)', () => {
+describe('calculationStore — domainResults (DOM-05, demand-driven)', () => {
   it('domainResults has length 1 with default store state', () => {
     const calc = useCalculationStore()
     expect(calc.domainResults).toHaveLength(1)
@@ -22,138 +22,103 @@ describe('calculationStore — domainResults (DOM-05)', () => {
     expect(calc.domainResults).toHaveLength(2)
   })
 
-  it('domainResults[0].id matches workloadDomains[0].id', () => {
+  it('domainResults[0].id / name track workloadDomains[0]', () => {
     const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.domainResults[0].id).toBe(input.workloadDomains[0].id)
-  })
-
-  it('domainResults[0].name matches workloadDomains[0].name', () => {
-    const calc = useCalculationStore()
     expect(calc.domainResults[0].name).toBe('WLD-1')
   })
 
-  it('domainResults[0].compute.recommendedHostCount is a positive number', () => {
+  it('demandHostsPerSite and totalHosts are positive (host counts are OUTPUTS)', () => {
     const calc = useCalculationStore()
-    expect(calc.domainResults[0].compute.recommendedHostCount).toBeGreaterThan(0)
+    expect(calc.domainResults[0].demandHostsPerSite).toBeGreaterThan(0)
+    expect(calc.domainResults[0].totalHosts).toBeGreaterThan(0)
+    expect(calc.domainResults[0].clusterCountPerSite).toBeGreaterThanOrEqual(1)
   })
 
-  it('domainResults[0].stretch is null when deploymentMode is "ha"', () => {
+  it('stretch is null when deploymentMode is "ha"; vsanMax is null for vsan-esa', () => {
     const input = useInputStore()
     const calc = useCalculationStore()
     expect(input.workloadDomains[0].deploymentMode).toBe('ha')
     expect(calc.domainResults[0].stretch).toBeNull()
-  })
-
-  it('domainResults[0].vsanMax is null when storageType is "vsan-esa"', () => {
-    const input = useInputStore()
-    const calc = useCalculationStore()
-    expect(input.workloadDomains[0].storageType).toBe('vsan-esa')
     expect(calc.domainResults[0].vsanMax).toBeNull()
   })
 
-  it('domainResults[0].validationErrors is an array', () => {
+  it('validationErrors is an array', () => {
     const calc = useCalculationStore()
     expect(Array.isArray(calc.domainResults[0].validationErrors)).toBe(true)
   })
 })
 
-describe('calculationStore — aggregateTotals (DOM-06)', () => {
-  it('totalRecommendedHosts equals domainResults[0].compute.effectiveHostCount with 1 domain', () => {
+describe('calculationStore — aggregateTotals (DOM-06, demand-driven)', () => {
+  it('totalRecommendedHosts = sum of domain totalHosts (+ mgmt) ', () => {
     const calc = useCalculationStore()
-    expect(calc.aggregateTotals.totalRecommendedHosts).toBe(
-      calc.domainResults[0].compute.effectiveHostCount
-    )
+    const workloadHosts = calc.domainResults.reduce((s, d) => s + d.totalHosts, 0)
+    const mgmt = calc.dedicatedMgmtHostCount ?? 0
+    expect(calc.aggregateTotals.totalRecommendedHosts).toBe(workloadHosts + mgmt)
   })
 
-  it('totalVmCount equals 100 with default single domain', () => {
+  it('totalVmCount = 100 default; doubles after adding identical domain', () => {
+    const input = useInputStore()
     const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalVmCount).toBe(100)
+    input.addDomain()
+    expect(calc.aggregateTotals.totalVmCount).toBe(200)
   })
 
-  it('totalVmCount doubles after adding second identical domain', () => {
+  it('totalRecommendedHosts increases after adding a second domain', () => {
     const input = useInputStore()
     const calc = useCalculationStore()
-    const singleTotal = calc.aggregateTotals.totalVmCount
+    const single = calc.aggregateTotals.totalRecommendedHosts
     input.addDomain()
-    expect(calc.aggregateTotals.totalVmCount).toBe(singleTotal * 2)
+    expect(calc.aggregateTotals.totalRecommendedHosts).toBeGreaterThan(single)
   })
 
-  it('totalRecommendedHosts increases after adding second domain', () => {
-    const input = useInputStore()
+  it('totalClusterCount is at least 1 and matches summed cluster breakdowns', () => {
     const calc = useCalculationStore()
-    const singleHosts = calc.aggregateTotals.totalRecommendedHosts
-    input.addDomain()
-    expect(calc.aggregateTotals.totalRecommendedHosts).toBeGreaterThan(singleHosts)
+    const expected = calc.domainResults.reduce((s, d) => s + d.clusters.length, 0)
+    expect(calc.aggregateTotals.totalClusterCount).toBe(expected)
+    expect(calc.aggregateTotals.totalClusterCount).toBeGreaterThanOrEqual(1)
   })
 
-  it('allValidationErrors is flat array combining all domain errors', () => {
-    const calc = useCalculationStore()
-    expect(Array.isArray(calc.aggregateTotals.allValidationErrors)).toBe(true)
-  })
-
-  it('totalRawStorageTiB is a positive number', () => {
+  it('totalRawStorageTiB / totalEffectiveStorageTiB are positive', () => {
     const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalRawStorageTiB).toBeGreaterThan(0)
-  })
-
-  it('totalEffectiveStorageTiB is a positive number', () => {
-    const calc = useCalculationStore()
     expect(calc.aggregateTotals.totalEffectiveStorageTiB).toBeGreaterThan(0)
   })
 
-  it('totalWorkloadStorageRequiredTiB is 0 for default vsan-esa domain', () => {
+  it('vsan-esa totalRawStorageTiB = provisioned hosts × per-host storage', () => {
     const calc = useCalculationStore()
-    expect(calc.aggregateTotals.totalWorkloadStorageRequiredTiB).toBe(0)
+    const d = calc.domainResults[0]
+    expect(calc.aggregateTotals.totalRawStorageTiB).toBeCloseTo(d.hostsPerSite * 3.84, 2)
   })
 
-  it('totalWorkloadStorageRequiredTiB is computed for FC domain', () => {
+  it('FC domain: reports POOL as raw capacity and demand as required pool (the fix)', () => {
     const input = useInputStore()
     input.updateDomain(input.workloadDomains[0].id, {
       storageType: 'fc',
       vmCount: 1000,
       avgStorageGbPerVm: 970,
+      externalStorageUsableTiB: 100,
     })
     const calc = useCalculationStore()
-    // 1000 × 970 / 1024 = 947.265625
+    // demand = 1000 × 970 / 1024 = 947.265625
     expect(calc.aggregateTotals.totalWorkloadStorageRequiredTiB).toBeCloseTo(947.265625, 2)
+    expect(calc.aggregateTotals.totalRequiredPoolTiB).toBeCloseTo(947.265625, 2)
+    // raw capacity is the actual pool (100), NOT the demand — the old bug reported demand here
+    expect(calc.aggregateTotals.totalRawStorageTiB).toBeCloseTo(100, 2)
+    expect(calc.aggregateTotals.totalPoolShortfallTiB).toBeCloseTo(847.265625, 2)
+    expect(calc.aggregateTotals.allValidationErrors.map(e => e.code)).toContain('FC_POOL_SHORTFALL')
   })
 
-  it('FC domain: totalRawStorageTiB uses workload demand, not pool capacity', () => {
-    const input = useInputStore()
-    input.updateDomain(input.workloadDomains[0].id, {
-      storageType: 'fc',
-      vmCount: 1000,
-      avgStorageGbPerVm: 970,
-    })
-    const calc = useCalculationStore()
-    // workload = 1000 × 970 / 1024 = 947.265625, NOT the 100 TiB pool default
-    expect(calc.aggregateTotals.totalRawStorageTiB).toBeCloseTo(947.265625, 2)
-    expect(calc.aggregateTotals.totalEffectiveStorageTiB).toBeCloseTo(947.265625, 2)
-  })
-
-  it('vsan-esa domain: totalRawStorageTiB uses physical capacity (not workload)', () => {
-    const calc = useCalculationStore()
-    // Default: 4 hosts × 3.84 TiB = 15.36 TiB (physical drives, not workload demand)
-    expect(calc.aggregateTotals.totalRawStorageTiB).toBeCloseTo(15.36, 2)
-  })
-
-  it('stretch domain: totalRecommendedHosts uses effectiveHostCount (preferred + secondary)', () => {
+  it('stretch domain: totalHosts = 2 × per-site; no manual host inputs', () => {
     const input = useInputStore()
     const calc = useCalculationStore()
-    // Switch to stretch mode with 14+14 hosts
-    input.updateDomain(input.workloadDomains[0].id, {
-      deploymentMode: 'stretch',
-      preferredSiteHosts: 14,
-      secondarySiteHosts: 14,
-    })
-    // effectiveHostCount = 14 + 14 = 28
-    expect(calc.domainResults[0].compute.effectiveHostCount).toBe(28)
-    // totalRecommendedHosts should include all 28, not just recommendedHostCount (which is much lower)
-    expect(calc.aggregateTotals.totalRecommendedHosts).toBe(28)
-    expect(calc.aggregateTotals.totalRecommendedHosts).toBeGreaterThan(
-      calc.domainResults[0].compute.recommendedHostCount
-    )
+    input.updateDomain(input.workloadDomains[0].id, { deploymentMode: 'stretch' })
+    const d = calc.domainResults[0]
+    expect(d.totalHosts).toBe(d.hostsPerSite * 2)
+    // single domain + colocated mgmt (0 dedicated hosts) → aggregate equals the domain total
+    expect(calc.aggregateTotals.totalRecommendedHosts).toBe(d.totalHosts)
   })
 })
 
@@ -177,141 +142,104 @@ describe('calculationStore — dedicatedMgmtHostCount (DOM-03)', () => {
     input.managementArchitecture = 'dedicated'
     const calc = useCalculationStore()
     const baseCount = calc.dedicatedMgmtHostCount!
-
-    // Change managementDomain specs — should change dedicatedMgmtHostCount
-    input.managementDomain.coresPerSocket = 8 // halve cores → need more hosts
-    const afterMgmtChange = calc.dedicatedMgmtHostCount!
-    expect(afterMgmtChange).toBeGreaterThanOrEqual(baseCount)
-
-    // Reset managementDomain, change workloadDomains[0] — should NOT change dedicatedMgmtHostCount
+    input.managementDomain.coresPerSocket = 8
+    expect(calc.dedicatedMgmtHostCount!).toBeGreaterThanOrEqual(baseCount)
     input.managementDomain.coresPerSocket = 16
-    const afterReset = calc.dedicatedMgmtHostCount!
-    expect(afterReset).toBe(baseCount)
-
+    expect(calc.dedicatedMgmtHostCount!).toBe(baseCount)
     input.workloadDomains[0].coresPerSocket = 8
-    const afterWorkloadChange = calc.dedicatedMgmtHostCount!
-    expect(afterWorkloadChange).toBe(baseCount) // unchanged — reads from managementDomain
+    expect(calc.dedicatedMgmtHostCount!).toBe(baseCount)
   })
 
-  it('is >= 8 when dedicated and deploymentMode is "stretch"', () => {
+  // Unification: the store reads calcManagementFull.totalHosts — no separate calc.
+  it('equals management.totalHosts (single source of truth)', () => {
+    const input = useInputStore()
+    input.managementArchitecture = 'dedicated'
+    const calc = useCalculationStore()
+    expect(calc.dedicatedMgmtHostCount).toBe(calc.management.totalHosts)
+  })
+
+  // Stretch total is exactly 2 × per-site (no per-site/total double-count).
+  it('stretch total = 2 × per-site (recommendedHostCount), no double-count', () => {
     const input = useInputStore()
     input.managementArchitecture = 'dedicated'
     input.managementDomain.deploymentMode = 'stretch'
     const calc = useCalculationStore()
-    expect(calc.dedicatedMgmtHostCount).toBeGreaterThanOrEqual(8)
+    expect(calc.dedicatedMgmtHostCount).toBe(calc.management.recommendedHostCount * 2)
+    expect(calc.management.preferredSiteHosts).toBe(calc.management.recommendedHostCount)
   })
 
-  it('returns exactly 16 (2 × 8) when stretch floor applies — P5.5: total across both sites', () => {
+  // Floors isolated by making compute/RAM/storage demand tiny (huge host) so the
+  // storage-type-aware PER-SITE floor dominates. FC = 2/site, vSAN = 4/site.
+  it('floor = 2/site when dedicated + FC (KB 416270): HA→2, stretch→4', () => {
     const input = useInputStore()
     input.managementArchitecture = 'dedicated'
-    input.managementDomain.deploymentMode = 'stretch'
-    input.managementDomain.coresPerSocket = 64  // 64×4=256 cores/host → ceil(118/256)=1, but stretch floor=8
-    input.managementDomain.socketsPerHost = 4
-    const calc = useCalculationStore()
-    // P5.5: dedicatedMgmtHostCount returns the procurement TOTAL across both sites.
-    // Per-site = max(stretch floor 8, compute-driven 1) = 8; total = 8 × 2 = 16.
-    expect(calc.dedicatedMgmtHostCount).toBe(16)
-  })
-
-  it('is >= 4 (not forced to 8) when dedicated and deploymentMode is "ha"', () => {
-    const input = useInputStore()
-    input.managementArchitecture = 'dedicated'
-    input.managementDomain.deploymentMode = 'ha'
-    const calc = useCalculationStore()
-    expect(calc.dedicatedMgmtHostCount).toBeGreaterThanOrEqual(4)
-  })
-
-  it('floor = 2 when dedicated + FC + HA (KB 416270)', () => {
-    const input = useInputStore()
-    input.managementArchitecture = 'dedicated'
-    input.managementDomain.deploymentMode = 'ha'
-    input.managementDomain.storageType = 'fc'
-    input.managementDomain.coresPerSocket = 64  // 64×4=256 cores/host → ceil(overhead/256)=1 < 2
-    input.managementDomain.socketsPerHost = 4
-    const calc = useCalculationStore()
-    expect(calc.dedicatedMgmtHostCount).toBe(2)
-  })
-
-  it('total = 8 (2 × 4) when dedicated + FC + stretch (KB 416270) — P5.5: total across both sites', () => {
-    const input = useInputStore()
-    input.managementArchitecture = 'dedicated'
-    input.managementDomain.deploymentMode = 'stretch'
     input.managementDomain.storageType = 'fc'
     input.managementDomain.coresPerSocket = 64
     input.managementDomain.socketsPerHost = 4
+    input.managementDomain.hostRamGB = 4096 // huge → RAM never drives count
     const calc = useCalculationStore()
-    // P5.5: per-site = FC stretch floor 4; total across 2 sites = 8.
-    expect(calc.dedicatedMgmtHostCount).toBe(8)
+    input.managementDomain.deploymentMode = 'ha'
+    expect(calc.dedicatedMgmtHostCount).toBe(2)
+    input.managementDomain.deploymentMode = 'stretch'
+    expect(calc.dedicatedMgmtHostCount).toBe(4) // 2 per site × 2
   })
 
-  it('floor = 4 when dedicated + vSAN + HA (KB 392993, unchanged)', () => {
+  it('floor = 4/site when dedicated + vSAN (KB 392993): HA→4, stretch→8', () => {
     const input = useInputStore()
     input.managementArchitecture = 'dedicated'
-    input.managementDomain.deploymentMode = 'ha'
     input.managementDomain.storageType = 'vsan-esa'
     input.managementDomain.coresPerSocket = 64
     input.managementDomain.socketsPerHost = 4
+    input.managementDomain.hostRamGB = 4096
+    input.managementDomain.hostStorageTiB = 100 // huge → storage never drives count
     const calc = useCalculationStore()
+    input.managementDomain.deploymentMode = 'ha'
     expect(calc.dedicatedMgmtHostCount).toBe(4)
+    input.managementDomain.deploymentMode = 'stretch'
+    expect(calc.dedicatedMgmtHostCount).toBe(8) // 4 per site × 2
   })
 })
 
 describe('calculationStore — management overhead routing (ENGINE-01, ENGINE-02)', () => {
-  it('dedicated mode: WLD-1 compute.recommendedHostCount is NOT inflated by management overhead', () => {
+  it('colocated WLD-1 demand >= dedicated WLD-1 demand (overhead added to WLD-1)', () => {
     const input = useInputStore()
     const calc = useCalculationStore()
-
-    // Set dedicated mode with large management overhead
     input.managementArchitecture = 'dedicated'
-    input.managementDomain.deploymentMode = 'ha' // ha = full 3x overhead
-
-    // Get WLD-1 host count — should be workload-only, no management overhead
-    const wld1Hosts = calc.domainResults[0].compute.recommendedHostCount
-
-    // Set colocated and verify host count increases (proving management overhead is now added)
+    input.managementDomain.deploymentMode = 'ha'
+    const dedicated = calc.domainResults[0].demandHostsPerSite
     input.managementArchitecture = 'colocated'
-    const wld1HostsColocated = calc.domainResults[0].compute.recommendedHostCount
-
-    expect(wld1HostsColocated).toBeGreaterThanOrEqual(wld1Hosts)
+    const colocated = calc.domainResults[0].demandHostsPerSite
+    expect(colocated).toBeGreaterThanOrEqual(dedicated)
   })
 
-  it('dedicated mode: WLD-2 equals WLD-1 with identical config', () => {
+  it('dedicated mode: WLD-2 totalHosts equals WLD-1 with identical config', () => {
     const input = useInputStore()
     input.managementArchitecture = 'dedicated'
     input.addDomain()
-    // Make WLD-2 identical to WLD-1 (addDomain copies defaults, should be same)
     const calc = useCalculationStore()
     const id2 = input.workloadDomains[1].id
     input.updateDomain(id2, { ...input.workloadDomains[0], id: id2, name: 'WLD-2' })
-    expect(calc.domainResults[1].compute.recommendedHostCount).toBe(
-      calc.domainResults[0].compute.recommendedHostCount
-    )
+    expect(calc.domainResults[1].totalHosts).toBe(calc.domainResults[0].totalHosts)
   })
 
-  it('colocated mode: WLD-1 host count absorbs management overhead', () => {
+  it('colocated mode: WLD-1 totalHosts >= WLD-2 (absorbs management overhead)', () => {
     const input = useInputStore()
     input.addDomain()
     input.managementArchitecture = 'colocated'
-    input.managementDomain.deploymentMode = 'ha' // maximize management overhead
+    input.managementDomain.deploymentMode = 'ha'
     const id2 = input.workloadDomains[1].id
     input.updateDomain(id2, { ...input.workloadDomains[0], id: id2, name: 'WLD-2' })
     const calc = useCalculationStore()
-    // WLD-1 absorbs management overhead → host count >= WLD-2
-    expect(calc.domainResults[0].compute.recommendedHostCount).toBeGreaterThanOrEqual(
-      calc.domainResults[1].compute.recommendedHostCount
-    )
+    expect(calc.domainResults[0].totalHosts).toBeGreaterThanOrEqual(calc.domainResults[1].totalHosts)
   })
 })
 
 describe('calculationStore — aggregateTotals mgmt host integration (ENGINE-03)', () => {
-  it('dedicated mode: aggregateTotals.totalRecommendedHosts includes dedicatedMgmtHostCount', () => {
+  it('dedicated mode: totalRecommendedHosts includes dedicatedMgmtHostCount', () => {
     const input = useInputStore()
     input.managementArchitecture = 'dedicated'
     const calc = useCalculationStore()
-    // aggregateTotals uses effectiveHostCount (actual cluster size), not recommendedHostCount
-    const workloadHosts = calc.domainResults.reduce(
-      (sum, d) => sum + d.compute.effectiveHostCount, 0
-    )
+    const workloadHosts = calc.domainResults.reduce((s, d) => s + d.totalHosts, 0)
     const mgmtHosts = calc.dedicatedMgmtHostCount ?? 0
     expect(calc.aggregateTotals.totalRecommendedHosts).toBe(workloadHosts + mgmtHosts)
   })
@@ -333,22 +261,14 @@ describe('calculationStore — aggregateTotals mgmt host integration (ENGINE-03)
 
 describe('calculationStore — CALC-02 compliance', () => {
   it('calculationStore.ts contains zero ref() calls', () => {
-    const source = readFileSync(
-      resolve(__dirname, './calculationStore.ts'),
-      'utf-8'
-    )
-    // Match ref( but not storeToRefs( or Ref< or ComputedRef
+    const source = readFileSync(resolve(__dirname, './calculationStore.ts'), 'utf-8')
     const refCalls = source.match(/(?<!store[Tt]o|Computed)ref\s*\(/g) || []
     expect(refCalls).toHaveLength(0)
   })
 })
 
 describe('calculationStore — calcManagementFull integration (Phase 3)', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-  })
-
-  it('management.appliances is populated (was empty under legacy shim)', () => {
+  it('management.appliances is populated', () => {
     const calc = useCalculationStore()
     expect(calc.management.appliances.length).toBeGreaterThan(0)
     expect(calc.management.appliances.find(l => l.category === 'sddcManager')).toBeDefined()
@@ -357,16 +277,15 @@ describe('calculationStore — calcManagementFull integration (Phase 3)', () => 
   it('management.wldOverhead is auto-derived from inputStore.workloadDomains', () => {
     const input = useInputStore()
     const calc = useCalculationStore()
-    // Default has 1 workload domain → wldOverhead has 2 lines (vcenter + nsxManager)
     expect(calc.management.wldOverhead.length).toBe(input.workloadDomains.length * 2)
   })
 
-  it('management.recommendedHostCount is non-zero (was 0 under legacy shim)', () => {
+  it('management.recommendedHostCount is non-zero', () => {
     const calc = useCalculationStore()
     expect(calc.management.recommendedHostCount).toBeGreaterThan(0)
   })
 
-  it('management.totalDiskGB is populated (was 0 under legacy shim)', () => {
+  it('management.totalDiskGB is populated', () => {
     const calc = useCalculationStore()
     expect(calc.management.totalDiskGB).toBeGreaterThan(0)
   })
@@ -383,7 +302,6 @@ describe('calculationStore — calcManagementFull integration (Phase 3)', () => 
     const calc = useCalculationStore()
     const standardTotal = calc.management.totalCores
     input.managementDomain.profile = 'lab'
-    const labTotal = calc.management.totalCores
-    expect(labTotal).toBeLessThan(standardTotal)
+    expect(calc.management.totalCores).toBeLessThan(standardTotal)
   })
 })

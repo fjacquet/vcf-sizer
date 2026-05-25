@@ -5,7 +5,6 @@ import { storeToRefs } from 'pinia'
 import { useCalculationStore } from '@/stores/calculationStore'
 import DomainResultCard from './DomainResultCard.vue'
 import AggregateTotalsCard from './AggregateTotalsCard.vue'
-import ExportToolbar from './ExportToolbar.vue'
 import MgmtSizingTable from './MgmtSizingTable.vue'
 
 const { t } = useI18n()
@@ -17,6 +16,8 @@ const reportDate = computed(() => new Date().toLocaleDateString())
 
 <template>
   <div class="space-y-4 print:space-y-2">
+    <!-- Export actions live in the global header (App.vue), next to the language/theme switchers. -->
+
     <!-- Print-only header: fixed position repeats on every page -->
     <div class="hidden print:flex fixed top-0 left-0 right-0 justify-between items-center text-xs text-gray-500 border-b border-gray-200 py-2 px-4 bg-white z-50">
       <span>{{ t('print.header.title') }}</span>
@@ -43,8 +44,5 @@ const reportDate = computed(() => new Date().toLocaleDateString())
       :totals="aggregateTotals"
       :management-host-count="dedicatedMgmtHostCount"
     />
-
-    <!-- Export toolbar -->
-    <ExportToolbar />
   </div>
 </template>

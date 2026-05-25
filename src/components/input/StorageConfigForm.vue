@@ -122,7 +122,7 @@ const storageTypes = [
       <!-- RAID scheme badge -->
       <div class="text-xs text-gray-500 dark:text-gray-400">
         {{ t('storage.raidType') }}: <span class="font-mono text-blue-700 dark:text-blue-400">{{ storage?.raidScheme ?? '—' }}</span>
-        ({{ t('storage.minHosts', { count: storage?.minHostsRequired ?? 0 }) }})
+        ({{ t('storage.minHosts', { count: domainResult?.minHostsForStorage ?? 0 }) }})
       </div>
 
       <!-- Global Deduplication (STOR-05, STOR-06, STRCH-04) -->
@@ -240,7 +240,7 @@ const storageTypes = [
         </span>
       </template>
       <template v-else>
-        <!-- FC/NFS: workload demand + external pool capacity -->
+        <!-- FC/NFS: workload demand + external pool capacity + shortfall -->
         <template v-if="(storage?.workloadStorageRequiredTiB ?? 0) > 0">
           <span>{{ t('storage.workloadRequired') }}</span>
           <span class="font-mono text-right text-blue-700 dark:text-blue-400 font-semibold">
@@ -249,8 +249,14 @@ const storageTypes = [
         </template>
         <span>{{ t('storage.externalPool') }}</span>
         <span class="font-mono text-right text-green-700 dark:text-green-400 font-semibold">
-          {{ fmt(storage?.rawCapacityTiB ?? 0) }}
+          {{ fmt(storage?.availablePoolTiB ?? 0) }}
         </span>
+        <template v-if="(storage?.poolShortfallTiB ?? 0) > 0">
+          <span class="text-red-600 dark:text-red-400">{{ t('storage.poolShortfall') }}</span>
+          <span class="font-mono text-right text-red-600 dark:text-red-400 font-semibold">
+            {{ fmt(storage!.poolShortfallTiB) }}
+          </span>
+        </template>
       </template>
     </div>
   </section>

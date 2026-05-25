@@ -30,6 +30,10 @@ const LAB: ProfileMap = {
   fleetManager:   { included: true,  size: 'medium', nodeCount: 1 },
   identityBroker: { included: false, size: 'medium', nodeCount: 1 },
   ssp:            { included: false, size: 'medium', nodeCount: 1 },
+  // VCF Management Services runtime (9.1). nodeCount=1 here; HA fan-out to 3
+  // is applied in appliances.ts based on deployment mode.
+  vcfmsControl:   { included: true,  size: 'small',  nodeCount: 1 },
+  vcfmsWorker:    { included: true,  size: 'small',  nodeCount: 1 },
 }
 
 const STANDARD: ProfileMap = {
@@ -46,6 +50,8 @@ const STANDARD: ProfileMap = {
   fleetManager:   { included: true,  size: 'medium', nodeCount: 1 },
   identityBroker: { included: false, size: 'medium', nodeCount: 1 },
   ssp:            { included: false, size: 'medium', nodeCount: 1 },
+  vcfmsControl:   { included: true,  size: 'medium', nodeCount: 1 },
+  vcfmsWorker:    { included: true,  size: 'medium', nodeCount: 1 },
 }
 
 const LARGE: ProfileMap = {
@@ -62,6 +68,8 @@ const LARGE: ProfileMap = {
   fleetManager:   { included: true,  size: 'medium', nodeCount: 1 },
   identityBroker: { included: true,  size: 'medium', nodeCount: 1 },
   ssp:            { included: false, size: 'medium', nodeCount: 1 },
+  vcfmsControl:   { included: true,  size: 'large',  nodeCount: 1 },
+  vcfmsWorker:    { included: true,  size: 'large',  nodeCount: 1 },
 }
 
 export const PROFILES: Record<MgmtProfile, ProfileMap> = {

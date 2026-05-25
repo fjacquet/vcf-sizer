@@ -7,6 +7,34 @@ type AppLocale = 'en' | 'fr' | 'de' | 'it'
 
 export type ChartType = 'cores' | 'ram' | 'storage'
 
+export type Theme = 'light' | 'dark' | 'system'
+
+const THEME_STORAGE_KEY = 'vcf-sizer-theme'
+
+function readStoredTheme(): Theme {
+  // Browser-only: guard on `window` so the node test env never touches the
+  // localStorage global (avoids Node's experimental-localStorage warning noise).
+  if (typeof window === 'undefined') return 'system'
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
+  } catch {
+    // localStorage unavailable (private mode / SSR-like env) — fall through to default
+  }
+  return 'system'
+}
+
+/** Resolve a Theme to a concrete light/dark value, consulting the OS for 'system'. */
+function resolveTheme(theme: Theme): 'light' | 'dark' {
+  if (theme === 'system') {
+    return typeof window !== 'undefined'
+      && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+  }
+  return theme
+}
+
 export const useUiStore = defineStore('ui', () => {
   // Detect browser locale on init — fall back to 'en' if not one of the four
   const browserLocale: AppLocale = navigator.language.startsWith('fr') ? 'fr'
@@ -33,6 +61,44 @@ export const useUiStore = defineStore('ui', () => {
   // Apply detected locale on store init
   if (locale.value !== 'en') {
     loadLocale(locale.value as 'fr' | 'de' | 'it')
+  }
+
+  // ── Theme (light / dark / system) — persisted to localStorage ──────────────
+  // Default 'system' follows prefers-color-scheme. setTheme() persists + re-applies.
+  // applyTheme() toggles the `.dark` class on <html> so Tailwind's class-based
+  // dark variant (style.css @custom-variant dark) and charts respond to the toggle.
+  const theme = ref<Theme>(readStoredTheme())
+
+  function applyTheme(): void {
+    if (typeof document === 'undefined') return
+    const resolved = resolveTheme(theme.value)
+    document.documentElement.classList.toggle('dark', resolved === 'dark')
+  }
+
+  function setTheme(newTheme: Theme): void {
+    theme.value = newTheme
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, newTheme)
+      } catch {
+        // Persisting is best-effort; the in-memory value still drives the UI.
+      }
+    }
+    applyTheme()
+  }
+
+  // Re-apply when the OS preference changes while in 'system' mode.
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => {
+      if (theme.value === 'system') applyTheme()
+    }
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', onChange)
+    } else if (typeof mql.addListener === 'function') {
+      // Safari < 14 fallback
+      mql.addListener(onChange)
+    }
   }
 
   // Wizard step state — WIZARD-02
@@ -106,5 +172,5 @@ export const useUiStore = defineStore('ui', () => {
     }
   }
 
-  return { locale, setLocale, localeLoading, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, storageUnit, setStorageUnit, chartImages, registerChartImage, autoCorrectionMessageKeys, flashAutoCorrection, dismissAutoCorrection }
+  return { locale, setLocale, localeLoading, theme, setTheme, applyTheme, currentWizardStep, setWizardStep, topologyConfirmed, confirmTopology, isLandingVisible, dismissLanding, storageUnit, setStorageUnit, chartImages, registerChartImage, autoCorrectionMessageKeys, flashAutoCorrection, dismissAutoCorrection }
 })
