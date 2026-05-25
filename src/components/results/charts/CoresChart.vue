@@ -13,16 +13,20 @@ import {
   LinearScale,
 } from 'chart.js'
 import type { ChartData, ChartOptions } from 'chart.js'
-import type { ComputeResult } from '@/engine/types'
 import { useUiStore } from '@/stores/uiStore'
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
-const props = defineProps<{ compute: ComputeResult; domainId: string }>()
+const props = defineProps<{ required: number; available: number; domainId: string }>()
 
 const { t } = useI18n()
 const uiStore = useUiStore()
-const isDark = usePreferredDark()
+const prefersDark = usePreferredDark()
+// Follow the MANUAL theme toggle: 'system' defers to the OS preference, otherwise
+// the explicit light/dark choice wins so chart colors track the in-app switch.
+const isDark = computed(() =>
+  uiStore.theme === 'system' ? prefersDark.value : uiStore.theme === 'dark'
+)
 
 const canvasId = computed(() => 'cores-chart-' + props.domainId)
 
@@ -31,9 +35,9 @@ const chartData = computed((): ChartData<'bar'> => ({
   datasets: [
     {
       label: t('results.charts.cores'),
-      data: [props.compute.totalCoresRequired, props.compute.availableCores],
+      data: [props.required, props.available],
       backgroundColor: [
-        props.compute.totalCoresRequired > props.compute.availableCores
+        props.required > props.available
           ? 'rgba(239,68,68,0.75)'
           : 'rgba(20,184,166,0.75)',
         'rgba(100,116,139,0.4)',
@@ -76,7 +80,7 @@ function captureChartImage(): void {
   })
 }
 onMounted(captureChartImage)
-watch(() => props.compute, captureChartImage, { deep: true })
+watch(() => [props.required, props.available], captureChartImage, { deep: true })
 </script>
 
 <template>
@@ -97,8 +101,8 @@ watch(() => props.compute, captureChartImage, { deep: true })
       <tbody>
         <tr>
           <td class="py-1">{{ t('results.charts.cores') }}</td>
-          <td class="text-right font-mono">{{ props.compute.totalCoresRequired }}</td>
-          <td class="text-right font-mono">{{ props.compute.availableCores }}</td>
+          <td class="text-right font-mono">{{ props.required }}</td>
+          <td class="text-right font-mono">{{ props.available }}</td>
         </tr>
       </tbody>
     </table>

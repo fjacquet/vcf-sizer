@@ -26,10 +26,76 @@ import {
   buildValidationWarningsSlideData,
 } from './usePptxExport'
 
-// Mock i18n — t() returns the key so assertions check i18n key usage
+// Mock i18n — t() returns the key so assertions check i18n key usage.
+// te() returns false so makeCategoryLabel falls back to the raw category key.
 vi.mock('@/i18n', () => ({
-  i18n: { global: { t: (key: string) => key } },
+  i18n: { global: { t: (key: string) => key, te: () => false } },
 }))
+
+// ─── pptxgenjs mock — records deck structure (section/slide order) ──────────────
+// Captures the order PptxGenJS APIs are called so the integration test can assert
+// the new section layout (Cover → Management → workload domains → Summary) and
+// that the aggregate-totals slide is the final content slide.
+interface DeckWitness {
+  sections: string[]
+  // Each recorded slide: its sectionTitle (if any) and its first addText (== frame title)
+  slides: Array<{ sectionTitle?: string; title?: string }>
+  wroteFile: boolean
+}
+
+const deckWitness: DeckWitness = { sections: [], slides: [], wroteFile: false }
+
+function resetDeckWitness() {
+  deckWitness.sections = []
+  deckWitness.slides = []
+  deckWitness.wroteFile = false
+}
+
+vi.mock('pptxgenjs', () => {
+  class FakeSlide {
+    private record: { sectionTitle?: string; title?: string }
+    background: unknown
+    constructor(record: { sectionTitle?: string; title?: string }) {
+      this.record = record
+    }
+    addText(text: unknown) {
+      // addSlideFrame() makes the first addText the slide title (a string).
+      if (this.record.title === undefined && typeof text === 'string') {
+        this.record.title = text
+      }
+      return this
+    }
+    addShape() { return this }
+    addChart() { return this }
+    addImage() { return this }
+    addTable() { return this }
+  }
+  class FakePptxGenJS {
+    layout = ''
+    theme: unknown = {}
+    author = ''
+    company = ''
+    title = ''
+    ShapeType = new Proxy({}, { get: (_t, p) => String(p) })
+    ChartType = new Proxy({}, { get: (_t, p) => String(p) })
+    addSection(opts: { title: string }) {
+      deckWitness.sections.push(opts.title)
+    }
+    defineSlideMaster() { /* no-op */ }
+    addSlide(opts?: { sectionTitle?: string; masterName?: string }) {
+      const record: { sectionTitle?: string; title?: string } = {
+        sectionTitle: opts?.sectionTitle,
+      }
+      deckWitness.slides.push(record)
+      return new FakeSlide(record)
+    }
+    async writeFile() {
+      deckWitness.wroteFile = true
+      return 'vcf-sizing-report.pptx'
+    }
+  }
+  return { default: FakePptxGenJS }
+})
 
 // Identity t function for helper tests
 const t = (k: string) => k
@@ -78,32 +144,32 @@ describe('buildConfigSummaryData — PPTX-04', () => {
 
   it('returns an array with at least 8 config field rows', () => {
     const store = useInputStore()
+    const calc = useCalculationStore()
     const domain = store.workloadDomains[0]
-    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, calc.domainResults[0], t)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThanOrEqual(8)
   })
 
   it('each row has label and value properties', () => {
     const store = useInputStore()
+    const calc = useCalculationStore()
     const domain = store.workloadDomains[0]
-    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, calc.domainResults[0], t)
     result.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
     })
   })
 
-  it('hostCount row value contains the default value 4', () => {
+  it('provisioned-hosts row value contains the computed totalHosts', () => {
     const store = useInputStore()
+    const calc = useCalculationStore()
     const domain = store.workloadDomains[0]
-    const effectiveHostCount = domain.hostCount // HA mode: effectiveHostCount = hostCount
-    const result = buildConfigSummaryData(domain, store.managementArchitecture, effectiveHostCount, t)
-    const hostRow = result.find((row) =>
-      String(row.label).toLowerCase().includes('host')
-    )
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, calc.domainResults[0], t)
+    const hostRow = result.find((row) => row.label === 'export.provisionedHosts')
     expect(hostRow).toBeDefined()
-    expect(String(hostRow!.value)).toContain('4')
+    expect(String(hostRow!.value)).toContain(String(calc.domainResults[0].totalHosts))
   })
 })
 
@@ -115,8 +181,9 @@ describe('buildConfigSummaryData — FC/NFS storagePerHost (ADR-009)', () => {
   it('FC domain does NOT include storagePerHost row', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { storageType: 'fc' })
+    const calc = useCalculationStore()
     const domain = store.workloadDomains[0]
-    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, calc.domainResults[0], t)
     const storagePerHostRow = result.find((r) => r.label === 'export.storagePerHost')
     expect(storagePerHostRow).toBeUndefined()
   })
@@ -124,16 +191,18 @@ describe('buildConfigSummaryData — FC/NFS storagePerHost (ADR-009)', () => {
   it('NFS domain does NOT include storagePerHost row', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { storageType: 'nfs' })
+    const calc = useCalculationStore()
     const domain = store.workloadDomains[0]
-    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, calc.domainResults[0], t)
     const storagePerHostRow = result.find((r) => r.label === 'export.storagePerHost')
     expect(storagePerHostRow).toBeUndefined()
   })
 
   it('vsan-esa domain DOES include storagePerHost row', () => {
     const store = useInputStore()
+    const calc = useCalculationStore()
     const domain = store.workloadDomains[0] // default is vsan-esa
-    const result = buildConfigSummaryData(domain, store.managementArchitecture, domain.hostCount, t)
+    const result = buildConfigSummaryData(domain, store.managementArchitecture, calc.domainResults[0], t)
     const storagePerHostRow = result.find((r) => r.label === 'export.storagePerHost')
     expect(storagePerHostRow).toBeDefined()
   })
@@ -223,21 +292,21 @@ describe('buildComputeResultsData — PPTX-07', () => {
     setActivePinia(createPinia())
   })
 
-  it('returns recommendedHostCount as a number', () => {
+  it('returns provisionedHostCount as a number', () => {
     const calc = useCalculationStore()
-    const result = buildComputeResultsData(calc.domainResults[0].compute)
-    expect(typeof result.recommendedHostCount).toBe('number')
+    const result = buildComputeResultsData(calc.domainResults[0])
+    expect(typeof result.provisionedHostCount).toBe('number')
   })
 
   it('returns coreUtilizationPct as a number', () => {
     const calc = useCalculationStore()
-    const result = buildComputeResultsData(calc.domainResults[0].compute)
+    const result = buildComputeResultsData(calc.domainResults[0])
     expect(typeof result.coreUtilizationPct).toBe('number')
   })
 
   it('returns ramUtilizationPct as a number', () => {
     const calc = useCalculationStore()
-    const result = buildComputeResultsData(calc.domainResults[0].compute)
+    const result = buildComputeResultsData(calc.domainResults[0])
     expect(typeof result.ramUtilizationPct).toBe('number')
   })
 })
@@ -285,10 +354,12 @@ describe('buildStorageResultsData — PPTX-08', () => {
     expect(typeof result.workloadStorageRequiredTiB).toBe('number')
   })
 
-  it('workloadStorageRequiredTiB is 0 for default vsan-esa domain', () => {
+  it('workloadStorageRequiredTiB reflects VM demand for default vsan-esa domain', () => {
+    // Demand-driven engine reports per-VM storage demand for ALL storage types.
+    // Default 100 VMs × 100 GB = 9.765625 TiB.
     const calc = useCalculationStore()
     const result = buildStorageResultsData(calc.domainResults[0].storage)
-    expect(result.workloadStorageRequiredTiB).toBe(0)
+    expect(result.workloadStorageRequiredTiB).toBeCloseTo(9.765625, 4)
   })
 
   it('workloadStorageRequiredTiB is computed for FC domain', () => {
@@ -312,12 +383,74 @@ describe('buildAggregateSlideData — EXP-04', () => {
     setActivePinia(createPinia())
   })
 
-  it('returns exactly 5 rows (includes management hosts row — EXPORT-02)', () => {
+  it('returns exactly 7 base rows (grand total, workload, mgmt, clusters, VMs, raw, effective) when no workload-storage demand', () => {
     const store = useInputStore()
+    // vmCount=0 → no workload-storage-required row → just the 7 always-present rows
+    // (now includes the explicit Workload Hosts row mirroring AggregateTotalsCard).
+    store.updateDomain(store.workloadDomains[0].id, { vmCount: 0 })
     const calc = useCalculationStore()
     const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
     expect(Array.isArray(result)).toBe(true)
-    expect(result).toHaveLength(5)
+    expect(result).toHaveLength(7)
+  })
+
+  it('includes a workload-hosts row equal to grand total minus management hosts', () => {
+    const store = useInputStore()
+    const calc = useCalculationStore()
+    const totals = calc.aggregateTotals
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
+    const wkldHostsRow = result.find((r) => r.label === 'export.workloadHosts')
+    expect(wkldHostsRow).toBeDefined()
+    expect(wkldHostsRow!.value).toBe(String(totals.totalRecommendedHosts - totals.mgmtHostCount))
+  })
+
+  it('includes total-clusters row matching aggregateTotals.totalClusterCount', () => {
+    const store = useInputStore()
+    const calc = useCalculationStore()
+    const totals = calc.aggregateTotals
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
+    const clusterRow = result.find((r) => r.label === 'export.totalClusterCount')
+    expect(clusterRow).toBeDefined()
+    expect(clusterRow!.value).toBe(String(totals.totalClusterCount))
+  })
+
+  it('omits per-site host rows when no domain is stretched', () => {
+    const store = useInputStore()
+    const calc = useCalculationStore()
+    const result = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
+    expect(result.find((r) => r.label === 'export.aggPreferredSiteHosts')).toBeUndefined()
+    expect(result.find((r) => r.label === 'export.aggSecondarySiteHosts')).toBeUndefined()
+  })
+
+  it('includes per-site host rows when a stretched domain exists', () => {
+    const store = useInputStore()
+    store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
+    const calc = useCalculationStore()
+    const totals = calc.aggregateTotals
+    expect(totals.preferredSiteHosts).not.toBeUndefined()
+    const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
+    const prefRow = result.find((r) => r.label === 'export.aggPreferredSiteHosts')
+    const secRow = result.find((r) => r.label === 'export.aggSecondarySiteHosts')
+    expect(prefRow).toBeDefined()
+    expect(secRow).toBeDefined()
+    expect(prefRow!.value).toBe(String(totals.preferredSiteHosts))
+    expect(secRow!.value).toBe(String(totals.secondarySiteHosts))
+  })
+
+  it('includes pool-shortfall row only when totalPoolShortfallTiB > 0', () => {
+    const store = useInputStore()
+    // No shortfall in default state — row absent.
+    const calc0 = useCalculationStore()
+    const noShortfall = buildAggregateSlideData(calc0.aggregateTotals, store.managementArchitecture, calc0.dedicatedMgmtHostCount, undefined, t)
+    expect(noShortfall.find((r) => r.label === 'export.totalPoolShortfall')).toBeUndefined()
+    // Force an undersized FC pool → shortfall row present.
+    store.updateDomain(store.workloadDomains[0].id, {
+      storageType: 'fc', vmCount: 5000, avgStorageGbPerVm: 1000, externalStorageUsableTiB: 10,
+    })
+    const calc1 = useCalculationStore()
+    expect(calc1.aggregateTotals.totalPoolShortfallTiB).toBeGreaterThan(0)
+    const withShortfall = buildAggregateSlideData(calc1.aggregateTotals, store.managementArchitecture, calc1.dedicatedMgmtHostCount, undefined, t)
+    expect(withShortfall.find((r) => r.label === 'export.totalPoolShortfall')).toBeDefined()
   })
 
   it('each row has label and value properties', () => {
@@ -390,6 +523,75 @@ describe('buildAggregateSlideData — EXP-04', () => {
 describe('generatePptxReport — PPTX-01', () => {
   it('is a function', () => {
     expect(typeof generatePptxReport).toBe('function')
+  })
+})
+
+// ─── generatePptxReport — deck section/slide order (Tasks 3 & 4) ─────────────
+
+describe('generatePptxReport — section & slide order', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    resetDeckWitness()
+  })
+
+  it('emits sections in order: Cover → Management → <domain> → Summary', async () => {
+    await generatePptxReport()
+    // Cover and Management precede every per-domain section; Summary is last.
+    expect(deckWitness.sections[0]).toBe('Cover')
+    expect(deckWitness.sections[1]).toBe('Management')
+    expect(deckWitness.sections[deckWitness.sections.length - 1]).toBe('Summary')
+    expect(deckWitness.sections.indexOf('Management')).toBeLessThan(
+      deckWitness.sections.indexOf('Summary'),
+    )
+  })
+
+  it('places the management appliance section before the first workload domain content', async () => {
+    const store = useInputStore()
+    const domainName = store.workloadDomains[0].name
+    await generatePptxReport()
+
+    const mgmtApplianceIdx = deckWitness.slides.findIndex(
+      (s) => s.title === 'export.mgmtAppliances',
+    )
+    // First workload-domain slide carries sectionTitle === the domain name.
+    const firstDomainSlideIdx = deckWitness.slides.findIndex(
+      (s) => s.sectionTitle === domainName,
+    )
+    expect(mgmtApplianceIdx).toBeGreaterThanOrEqual(0)
+    expect(firstDomainSlideIdx).toBeGreaterThanOrEqual(0)
+    expect(mgmtApplianceIdx).toBeLessThan(firstDomainSlideIdx)
+  })
+
+  it('makes the aggregate-totals slide the final content slide', async () => {
+    await generatePptxReport()
+    const lastSlide = deckWitness.slides[deckWitness.slides.length - 1]
+    expect(lastSlide.title).toBe('export.aggregateTotals')
+    expect(lastSlide.sectionTitle).toBe('Summary')
+    expect(deckWitness.wroteFile).toBe(true)
+  })
+
+  it('places validation warnings before the aggregate-totals slide when warnings exist', async () => {
+    const store = useInputStore()
+    store.updateDomain(store.workloadDomains[0].id, {
+      storageType: 'fc', vmCount: 5000, avgStorageGbPerVm: 1000, externalStorageUsableTiB: 10,
+    })
+    await generatePptxReport()
+    const warnIdx = deckWitness.slides.findIndex((s) => s.title === 'export.validationWarnings')
+    const aggIdx = deckWitness.slides.findIndex((s) => s.title === 'export.aggregateTotals')
+    expect(warnIdx).toBeGreaterThanOrEqual(0)
+    expect(aggIdx).toBeGreaterThanOrEqual(0)
+    expect(warnIdx).toBeLessThan(aggIdx)
+    // And the aggregate-totals slide remains the very last slide.
+    expect(aggIdx).toBe(deckWitness.slides.length - 1)
+  })
+
+  it('places the management overhead slide before the management appliance section', async () => {
+    await generatePptxReport()
+    const overheadIdx = deckWitness.slides.findIndex((s) => s.title === 'export.mgmtOverhead')
+    const applianceIdx = deckWitness.slides.findIndex((s) => s.title === 'export.mgmtAppliances')
+    expect(overheadIdx).toBeGreaterThanOrEqual(0)
+    expect(applianceIdx).toBeGreaterThanOrEqual(0)
+    expect(overheadIdx).toBeLessThan(applianceIdx)
   })
 })
 
@@ -476,7 +678,7 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!, t)
+    const result = buildStretchTopologySlideData(calc.domainResults[0].hostsPerSite, calc.domainResults[0].stretch!, t)
     expect(result).toHaveProperty('topology')
     expect(Array.isArray(result.topology)).toBe(true)
     expect(result.topology.length).toBeGreaterThanOrEqual(5)
@@ -486,7 +688,7 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!, t)
+    const result = buildStretchTopologySlideData(calc.domainResults[0].hostsPerSite, calc.domainResults[0].stretch!, t)
     expect(result).toHaveProperty('checklist')
     expect(Array.isArray(result.checklist)).toBe(true)
     expect(result.checklist.length).toBeGreaterThanOrEqual(3)
@@ -496,7 +698,7 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!, t)
+    const result = buildStretchTopologySlideData(calc.domainResults[0].hostsPerSite, calc.domainResults[0].stretch!, t)
     result.topology.forEach((row) => {
       expect(row).toHaveProperty('label')
       expect(row).toHaveProperty('value')
@@ -507,7 +709,7 @@ describe('buildStretchTopologySlideData — PPTX-12', () => {
     const store = useInputStore()
     store.updateDomain(store.workloadDomains[0].id, { deploymentMode: 'stretch' })
     const calc = useCalculationStore()
-    const result = buildStretchTopologySlideData(store.workloadDomains[0], calc.domainResults[0].stretch!, t)
+    const result = buildStretchTopologySlideData(calc.domainResults[0].hostsPerSite, calc.domainResults[0].stretch!, t)
     result.checklist.forEach((item) => {
       expect(typeof item).toBe('string')
     })
@@ -561,7 +763,10 @@ describe('buildValidationWarningsSlideData — PPTX-14', () => {
 
   it('returns entries matching validationErrors when warnings exist', () => {
     const store = useInputStore()
-    store.updateDomain(store.workloadDomains[0].id, { hostCount: 1 })
+    // FC pool shortfall: huge VM demand against a tiny external pool → FC_POOL_SHORTFALL.
+    store.updateDomain(store.workloadDomains[0].id, {
+      storageType: 'fc', vmCount: 5000, avgStorageGbPerVm: 1000, externalStorageUsableTiB: 10,
+    })
     const calc = useCalculationStore()
     const result = buildValidationWarningsSlideData(calc)
     expect(Array.isArray(result)).toBe(true)
@@ -570,7 +775,9 @@ describe('buildValidationWarningsSlideData — PPTX-14', () => {
 
   it('each entry has severity and messageKey properties', () => {
     const store = useInputStore()
-    store.updateDomain(store.workloadDomains[0].id, { hostCount: 1 })
+    store.updateDomain(store.workloadDomains[0].id, {
+      storageType: 'fc', vmCount: 5000, avgStorageGbPerVm: 1000, externalStorageUsableTiB: 10,
+    })
     const calc = useCalculationStore()
     const result = buildValidationWarningsSlideData(calc)
     result.forEach((entry) => {
@@ -668,22 +875,24 @@ describe('multi-domain PPTX helpers (EXP-03, EXP-04)', () => {
 
   it('buildConfigSummaryData returns correct values for domain 2 (not domain 1)', () => {
     const store = useInputStore()
-    // Add a second domain with distinct hostCount
+    // Add a second domain whose larger VM demand drives more provisioned hosts than domain 1.
     store.addDomain()
-    store.updateDomain(store.workloadDomains[1].id, { hostCount: 12, vmCount: 500 })
+    store.updateDomain(store.workloadDomains[1].id, { vmCount: 4000, avgVcpuPerVm: 8 })
+    const calc = useCalculationStore()
     const managementArchitecture = store.managementArchitecture
-    // Domain 2 config
+    // Domain 2 — provisioned host count reflects its own (larger) demand
     const domain2 = store.workloadDomains[1]
-    const result2 = buildConfigSummaryData(domain2, managementArchitecture, domain2.hostCount, t)
-    const hostRow = result2.find((r) => r.label.toLowerCase().includes('host'))
-    expect(hostRow).toBeDefined()
-    expect(String(hostRow!.value)).toContain('12')
-    // Domain 1 config should still reflect domain 1 defaults
+    const result2 = buildConfigSummaryData(domain2, managementArchitecture, calc.domainResults[1], t)
+    const hostRow2 = result2.find((r) => r.label === 'export.provisionedHosts')
+    expect(hostRow2).toBeDefined()
+    expect(String(hostRow2!.value)).toContain(String(calc.domainResults[1].totalHosts))
+    // Domain 1 — provisioned host count reflects its own defaults, distinct from domain 2
     const domain1 = store.workloadDomains[0]
-    const result1 = buildConfigSummaryData(domain1, managementArchitecture, domain1.hostCount, t)
-    const hostRow1 = result1.find((r) => r.label.toLowerCase().includes('host'))
+    const result1 = buildConfigSummaryData(domain1, managementArchitecture, calc.domainResults[0], t)
+    const hostRow1 = result1.find((r) => r.label === 'export.provisionedHosts')
     expect(hostRow1).toBeDefined()
-    expect(String(hostRow1!.value)).toContain('4')
+    expect(String(hostRow1!.value)).toContain(String(calc.domainResults[0].totalHosts))
+    expect(calc.domainResults[1].totalHosts).toBeGreaterThan(calc.domainResults[0].totalHosts)
   })
 
   it('buildAggregateSlideData returns correct totals from calc.aggregateTotals', () => {
@@ -692,7 +901,7 @@ describe('multi-domain PPTX helpers (EXP-03, EXP-04)', () => {
     const calc = useCalculationStore()
     const totals = calc.aggregateTotals
     const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
-    expect(result).toHaveLength(5)
+    expect(result.length).toBeGreaterThanOrEqual(6)
     // Verify hosts row matches aggregate totals
     const hostsRow = result.find((r) => r.label.toLowerCase().includes('recommended'))
     expect(hostsRow).toBeDefined()
@@ -710,18 +919,22 @@ describe('multi-domain PPTX helpers (EXP-03, EXP-04)', () => {
     const totals = calc.aggregateTotals
     expect(totals.totalWorkloadStorageRequiredTiB).toBeGreaterThan(0)
     const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
-    const wkldRow = result.find((r) => r.label.toLowerCase().includes('workload'))
+    // Target the storage row precisely — a Workload Hosts row now also contains "workload".
+    const wkldRow = result.find((r) => r.label === 'export.totalWorkloadStorageRequired')
     expect(wkldRow).toBeDefined()
     expect(wkldRow!.value).toContain('TiB')
   })
 
-  it('buildAggregateSlideData omits workload storage row when all vsan-esa', () => {
+  it('buildAggregateSlideData omits workload storage row when there is no VM demand (vmCount=0)', () => {
     const store = useInputStore()
+    // Demand-driven engine reports per-VM storage demand for ALL storage types, so the
+    // row only disappears when there is no VM demand at all.
+    store.updateDomain(store.workloadDomains[0].id, { vmCount: 0 })
     const calc = useCalculationStore()
     const totals = calc.aggregateTotals
     expect(totals.totalWorkloadStorageRequiredTiB).toBe(0)
     const result = buildAggregateSlideData(totals, store.managementArchitecture, calc.dedicatedMgmtHostCount, undefined, t)
-    const wkldRow = result.find((r) => r.label.toLowerCase().includes('workload'))
+    const wkldRow = result.find((r) => r.label === 'export.totalWorkloadStorageRequired')
     expect(wkldRow).toBeUndefined()
   })
 })

@@ -2,6 +2,14 @@
   "app": {
     "title": "VCF 9.x Sizing Calculator"
   },
+  "ui": {
+    "theme": {
+      "light": "Chiaro",
+      "dark": "Scuro",
+      "system": "Sistema",
+      "toggle": "Tema: {mode} — clicca per cambiare"
+    }
+  },
   "language": {
     "label": "Language",
     "en": "EN",
@@ -18,6 +26,7 @@
       "preferredSiteHosts": "Host sito preferito",
       "secondarySiteHosts": "Host sito secondario",
       "witnessLabel": "Nodo witness (profilo ESA M)",
+      "vmscNote": "Stretch con storage esterno (vMSC): il quorum tra siti è gestito dall'array di storage — nessun witness vSAN.",
       "witnessCpu": "vCPU",
       "witnessRam": "RAM",
       "bandwidthLabel": "Banda minima cross-site",
@@ -41,7 +50,13 @@
       "shared": "Co-locata",
       "dedicated": "Domini dedicati",
       "dedicatedHosts": "Host di gestione dedicati"
-    }
+    },
+    "hostFailuresToTolerate": "Guasti host tollerati (riserva HA)",
+    "hostFailuresToTolerateHint": "Host aggiuntivi riservati per cluster affinche il cluster sopravviva a questo numero di guasti host simultanei (N+1 predefinito).",
+    "demandHostsPerSite": "Host richiesti per sito (grezzo)",
+    "hostsPerSite": "Host per sito (provisioned)",
+    "clusterCountPerSite": "Cluster per sito",
+    "totalHostsProvisioned": "Host totali (provisioned)"
   },
   "host": {
     "label": "Specifiche host",
@@ -100,7 +115,8 @@
     "minHosts": "min {count} host",
     "workloadRequired": "Archiviazione richiesta dalle VM",
     "externalPool": "Pool esterno utilizzabile",
-    "externalPoolInput": "Capacità pool esterno"
+    "externalPoolInput": "Capacità pool esterno",
+    "poolShortfall": "Deficit del pool"
   },
   "topology": {
     "confirmTitle": "Cambiare topologia?",
@@ -132,7 +148,9 @@
     "vsanMaxStretchExclusion": "vSAN Max non può essere distribuito in modalità Stretch Cluster.",
     "mgmt": {
       "stretchParityRequired": "Il dominio di gestione deve essere in modalità Stretch Cluster quando un dominio di carico è esteso."
-    }
+    },
+    "fcPoolShortfall": "Il pool di storage esterno e troppo piccolo per la domanda del workload. Aumentare la capacita del pool o ridurre il workload.",
+    "workloadMultiCluster": "La domanda supera un singolo cluster — questo dominio e suddiviso su piu cluster per sito."
   },
   "results": {
     "toolbar": {
@@ -150,7 +168,11 @@
       "recommended": "Host consigliati",
       "minForCpu": "Min per CPU",
       "minForRam": "Min per RAM",
-      "minForStorage": "Min per archiviazione"
+      "minForStorage": "Min per archiviazione",
+      "provisioned": "Host provisioned",
+      "demandPerSite": "Domanda / sito (grezzo)",
+      "clusters": "Cluster / sito",
+      "layout": "Disposizione"
     },
     "vsanMaxTitle": "Cluster di archiviazione vSAN Max",
     "vsanMaxStorageNodes": "Nodi di archiviazione",
@@ -174,7 +196,9 @@
       "ramUtilization": "Utilizzo RAM",
       "storageUsable": "Storage utilizzabile",
       "raidScheme": "Schema RAID",
-      "workloadRequired": "Archiviazione richiesta dalle VM"
+      "workloadRequired": "Archiviazione richiesta dalle VM",
+      "availablePool": "Pool disponibile",
+      "poolShortfall": "Deficit del pool"
     },
     "aggregate": {
       "title": "Riepilogo totale acquisti",
@@ -187,7 +211,9 @@
       "preferredSiteHosts": "Host sito preferito (tutti i domini estesi)",
       "secondarySiteHosts": "Host sito secondario (tutti i domini estesi)",
       "preferredSite": "sito preferito",
-      "secondarySite": "sito secondario"
+      "secondarySite": "sito secondario",
+      "totalClusters": "Cluster totali",
+      "poolShortfall": "Deficit pool esterno"
     }
   },
   "management": {
@@ -300,7 +326,9 @@
       "ransomwareCloud": "Ransomware Recovery (cloud)",
       "crossCloudMobility": "Cross-Cloud Mobility (HCX)",
       "wldVcenter": "vCenter (per dominio di carico)",
-      "wldNsxManager": "NSX Manager (per dominio di carico)"
+      "wldNsxManager": "NSX Manager (per dominio di carico)",
+      "vcfmsControl": "Nodi di controllo VCF Services",
+      "vcfmsWorker": "Nodi worker VCF Services"
     },
     "advancedSizing": {
       "title": "Dimensionamento avanzato",
@@ -433,7 +461,7 @@
     "minHostsCpu": "Host min. per CPU",
     "minHostsRam": "Host min. per RAM",
     "minHostsStorage": "Host min. per archiviazione",
-    "availableVcpu": "vCPU disponibili",
+    "availableVcpu": "Core fisici provisioned",
     "availableRamGb": "RAM disponibile (GB)",
     "cpuUtilization": "Utilizzo CPU",
     "ramUtilization": "Utilizzo RAM",
@@ -470,6 +498,7 @@
     "computeNodeCount": "Numero nodi di calcolo",
     "usableCapacity": "Capacita utilizzabile",
     "totalRecommendedHosts": "Host consigliati totali (tutti i domini)",
+    "workloadHosts": "Host di carico di lavoro",
     "managementHosts": "Host di gestione",
     "mgmtStorageType": "Tipo di storage di gestione",
     "totalVmCount": "Numero totale di VM",
@@ -490,7 +519,7 @@
     "total": "Totale",
     "dedicatedHostCount": "Numero host dedicati",
     "architecture": "Architettura",
-    "totalVcpuRequired": "Totale vCPU richiesti",
+    "totalVcpuRequired": "Core fisici totali richiesti",
     "totalRamRequired": "Totale RAM richiesta",
     "totalVcpu": "Totale vCPU",
     "totalRam": "Totale RAM",
@@ -507,6 +536,15 @@
     "applianceTotals": "Totali",
     "totalDiskGB": "Disco totale (GB)",
     "totalSwapGB": "Swap totale (GB)",
-    "externalPoolRequiredTiB": "Pool esterno richiesto"
+    "externalPoolRequiredTiB": "Pool esterno richiesto",
+    "provisionedHosts": "Host provisioned",
+    "demandHostsPerSite": "Host richiesti per sito (grezzo)",
+    "hostsPerSite": "Host per sito (provisioned)",
+    "clusterCountPerSite": "Cluster per sito",
+    "requiredPool": "Pool richiesto",
+    "availablePool": "Pool disponibile",
+    "poolShortfall": "Deficit del pool",
+    "totalClusterCount": "Cluster totali (tutti i domini)",
+    "totalPoolShortfall": "Deficit totale pool esterno"
   }
 }

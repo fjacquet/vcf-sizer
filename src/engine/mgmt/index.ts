@@ -47,10 +47,18 @@ import { mgmtStorageDemand } from './storage'
 import { perHostRequirements } from './hostMath'
 import { validateMgmt } from './validation'
 import { calcMinHostsForVsanEsa } from '../storage'
+import { DEDICATED_MGMT_MIN_HOSTS, DEDICATED_MGMT_MIN_HOSTS_EXTERNAL } from '../validation'
 import type { ApplianceLine, ManagementDomainConfig, MgmtDomainResult, ValidatedSolutionsConfig } from './types'
 import type { WorkloadDomainConfig } from '../types'
 
-const DEPLOYMENT_FLOOR = { simple: 4, ha: 4, stretch: 8 } as const
+// Dedicated-management PER-SITE minimum host floor, by storage type (Broadcom KB 392993 / 416270):
+//   vSAN  → 4 hosts (vSAN is the storage layer; 4 single-site, 4 per site stretched)
+//   FC/NFS → 2 hosts (external storage; only the vSphere-HA minimum, 2 per site stretched)
+// This is PER SITE in every mode — stretch totals (8 vSAN / 4 FC) are 2 × the per-site floor,
+// applied at the topology layer below (NOT duplicated again).
+function perSiteFloor(isExternal: boolean): number {
+  return isExternal ? DEDICATED_MGMT_MIN_HOSTS_EXTERNAL : DEDICATED_MGMT_MIN_HOSTS
+}
 
 const DEFAULT_VALIDATED_SOLUTIONS: ValidatedSolutionsConfig = {
   siteProtection: { included: false },
@@ -145,12 +153,17 @@ export function calcManagementFull(
       storage.storageDemandTiB,
     )
   }
-  const floor = DEPLOYMENT_FLOOR[config.deploymentMode]
+  // recommendedHostCount is PER SITE — a stretched cluster runs the full mgmt stack
+  // independently at each site, so minHostsForCpu/Ram/Storage (derived from the full mgmt
+  // load with oversubscription + N-1 host sizing) already represent one site's need. The
+  // per-site floor is storage-type aware; the ×2 for stretch happens once, below.
+  const isExternalStorage =
+    (config.storageType ?? 'vsan-esa') === 'fc' || (config.storageType ?? 'vsan-esa') === 'nfs'
   const recommendedHostCount = Math.max(
     perHost.minHostsForCpu,
     perHost.minHostsForRam,
     minHostsForStorage,
-    floor,
+    perSiteFloor(isExternalStorage),
   )
 
   // Recompute per-host using the actual recommended host count
@@ -171,6 +184,9 @@ export function calcManagementFull(
   const isStretch = config.deploymentMode === 'stretch'
   const preferredSiteHosts = isStretch ? recommendedHostCount : undefined
   const secondarySiteHosts = isStretch ? recommendedHostCount : undefined
+  // Grand total across both sites for stretch; single-site count otherwise. This is the
+  // single authority for the dedicated mgmt host count (the store no longer recomputes it).
+  const totalHosts = isStretch ? recommendedHostCount * 2 : recommendedHostCount
 
   // Build draft result, run validation
   const draft: MgmtDomainResult = {
@@ -187,6 +203,7 @@ export function calcManagementFull(
     minHostsForStorage,
     externalPoolRequiredTiB: perHostFinal.externalPoolRequiredTiB,
     recommendedHostCount,
+    totalHosts,
     preferredSiteHosts,
     secondarySiteHosts,
     validationWarnings: [],

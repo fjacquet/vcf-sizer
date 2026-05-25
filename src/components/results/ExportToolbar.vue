@@ -54,7 +54,7 @@ async function handleExportPptx() {
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-2 pt-2 print:hidden">
+  <div class="flex flex-wrap gap-2 print:hidden">
     <button
       class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
       :disabled="uiStore.localeLoading"

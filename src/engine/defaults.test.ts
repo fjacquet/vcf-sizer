@@ -22,18 +22,17 @@ describe('createDefaultWorkloadDomain', () => {
     expect(a.id).not.toBe(b.id)
   })
 
-  it('has all 26 WorkloadDomainConfig fields with correct defaults', () => {
+  it('has all WorkloadDomainConfig fields with correct defaults', () => {
     const d = createDefaultWorkloadDomain(0)
     expect(d.coresPerSocket).toBe(16)
     expect(d.socketsPerHost).toBe(2)
     expect(d.hostRamGB).toBe(512)
     expect(d.hostStorageTiB).toBe(3.84)
     expect(d.externalStorageUsableTiB).toBe(100)
-    expect(d.hostCount).toBe(4)
+    // Demand-driven model: host/cluster counts are OUTPUTS; HA reserve is the only host-side input.
+    expect(d.hostFailuresToTolerate).toBe(1)
     expect(d.nvmeTieringEnabled).toBe(false)
     expect(d.activeMemoryPct).toBe(50)
-    expect(d.preferredSiteHosts).toBe(3)
-    expect(d.secondarySiteHosts).toBe(3)
     expect(d.vmCount).toBe(100)
     expect(d.avgVcpuPerVm).toBe(4)
     expect(d.avgVramGbPerVm).toBe(8)

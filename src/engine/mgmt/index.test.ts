@@ -124,8 +124,8 @@ describe('calcManagementFull — WLD overhead routing', () => {
     return {
       id: 'w01', name: 'wld-01', coresPerSocket: 32, socketsPerHost: 2,
       hostRamGB: 512, hostStorageTiB: 8, externalStorageUsableTiB: 0,
-      hostCount: 4, nvmeTieringEnabled: false, activeMemoryPct: 50,
-      preferredSiteHosts: 4, secondarySiteHosts: 4,
+      nvmeTieringEnabled: false, activeMemoryPct: 50,
+      hostFailuresToTolerate: 1,
       vmCount: 100, avgVcpuPerVm: 2, avgVramGbPerVm: 4, avgStorageGbPerVm: 100,
       cpuOvercommitRatio: 4, ramOvercommitRatio: 1,
       gpuVmCount: 0, vgpuMemoryGB: 16,
@@ -209,29 +209,37 @@ describe('calcManagementFull — workbook-parity snapshots (P6.4)', () => {
   // If a defaults table changes, update these expected values DELIBERATELY
   // and reference the spec change in the commit message.
 
-  it('Standard / Simple — totals match VMware workbook (no HA fanout)', () => {
+  it('Standard / Simple — totals match VCF 9.1 workbook (no HA fanout)', () => {
     const cfg = { ...baseConfig(), profile: 'standard' as const, deploymentMode: 'simple' as const }
     const r = calcManagementFull(cfg, [])
 
-    // Appliances summed from Standard preset × per-line spec:
-    // SDDC 4/16/914 · vCenter-M 8/30/908 · NSX-Mgr-M ×1 6/24/300 ·
+    // Appliances summed from Standard preset × per-line spec (9.1 values):
+    // SDDC 4/16/914 · vCenter-M 8/30/858 · NSX-Mgr-M ×1 6/24/300 ·
     // NSX-Edge-L ×2 16/64/400 · AVI-S ×3 18/96/1536 · vROps-M ×1 8/32/274 ·
-    // vRLI-M ×1 8/16/530 · vRNI-M ×1 8/32/1024 · Auto-M ×1 24/96/334 ·
-    // Fleet ×1 4/12/194
-    expect(r.totalCores).toBe(104)
-    expect(r.totalRamGB).toBe(418)
-    expect(r.totalDiskGB).toBe(6414)
+    // vRLI-M ×1 12/24/575 · vRNI-M ×1 8/32/1024 · Auto-M ×1 24/96/334 ·
+    // Fleet ×1 4/12/194 · vcfmsControl-M ×1 4/10/100 · vcfmsWorker-M ×1 24/48/100
+    // cores: 4+8+6+16+18+8+12+8+24+4+4+24 = 136
+    // ram:   16+30+24+64+96+32+24+32+96+12+10+48 = 484
+    // disk:  914+858+300+400+1536+274+575+1024+334+194+100+100 = 6609
+    expect(r.totalCores).toBe(136)
+    expect(r.totalRamGB).toBe(484)
+    expect(r.totalDiskGB).toBe(6609)
     expect(r.recommendedHostCount).toBeGreaterThanOrEqual(4)  // simple/HA floor
   })
 
-  it('Standard / HA — NSX Mgr / vROps / vRLI / Automation fan out ×3', () => {
+  it('Standard / HA — NSX Mgr / vROps / vRLI / Automation / VCFMS fan out ×3', () => {
     const cfg = { ...baseConfig(), profile: 'standard' as const, deploymentMode: 'ha' as const }
     const r = calcManagementFull(cfg, [])
 
-    // Same as Simple but NSX-Mgr ×3, vROps ×3, vRLI ×3, Auto ×3.
-    expect(r.totalCores).toBe(196)
-    expect(r.totalRamGB).toBe(754)
-    expect(r.totalDiskGB).toBe(9290)
+    // Same as Simple but NSX-Mgr, vROps, vRLI, Auto, vcfmsControl, vcfmsWorker ×3.
+    // Per-line ×3 fanout adds 2× of: NSX-Mgr 6/24/300, vROps 8/32/274,
+    // vRLI 12/24/575, Auto 24/96/334, vcfmsControl 4/10/100, vcfmsWorker 24/48/100.
+    // cores delta = 2×(6+8+12+24+4+24) = 156 → 136+156 = 292
+    // ram delta   = 2×(24+32+24+96+10+48) = 468 → 484+468 = 952
+    // disk delta  = 2×(300+274+575+334+100+100) = 3366 → 6609+3366 = 9975
+    expect(r.totalCores).toBe(292)
+    expect(r.totalRamGB).toBe(952)
+    expect(r.totalDiskGB).toBe(9975)
     expect(r.recommendedHostCount).toBeGreaterThanOrEqual(4)
   })
 
@@ -240,9 +248,9 @@ describe('calcManagementFull — workbook-parity snapshots (P6.4)', () => {
     const r = calcManagementFull(cfg, [])
 
     // Stretch uses HA fanout (×3), then applies floor=8 to recommendedHostCount.
-    expect(r.totalCores).toBe(196)
-    expect(r.totalRamGB).toBe(754)
-    expect(r.totalDiskGB).toBe(9290)
+    expect(r.totalCores).toBe(292)
+    expect(r.totalRamGB).toBe(952)
+    expect(r.totalDiskGB).toBe(9975)
     expect(r.recommendedHostCount).toBeGreaterThanOrEqual(8)  // stretch floor
     expect(r.preferredSiteHosts).toBe(r.recommendedHostCount)  // P5.5: per-site = total
     expect(r.secondarySiteHosts).toBe(r.recommendedHostCount)

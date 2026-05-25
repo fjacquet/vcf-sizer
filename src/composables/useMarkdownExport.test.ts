@@ -220,10 +220,12 @@ describe('generateMarkdownReport — MD-08 Validation Warnings', () => {
     expect(report).not.toContain('## export.validationWarnings')
   })
 
-  it('Validation warnings section present when hostCount triggers warning', () => {
+  it('Validation warnings section present when FC pool is too small (shortfall)', () => {
     const input = useInputStore()
-    input.workloadDomains[0].hostCount = 1
-    input.workloadDomains[0].deploymentMode = 'ha'
+    // FC pool shortfall: large VM demand against a tiny external pool → FC_POOL_SHORTFALL.
+    input.updateDomain(input.workloadDomains[0].id, {
+      storageType: 'fc', vmCount: 5000, avgStorageGbPerVm: 1000, externalStorageUsableTiB: 10,
+    })
     const report = generateMarkdownReport()
     expect(report).toContain('## export.validationWarnings')
   })
@@ -267,9 +269,9 @@ describe('generateMarkdownReport — no regression', () => {
     setActivePinia(createPinia())
   })
 
-  it('export.recommendedHostCount row is present in compute section', () => {
+  it('export.provisionedHosts row is present in compute section', () => {
     const report = generateMarkdownReport()
-    expect(report).toContain('export.recommendedHostCount')
+    expect(report).toContain('export.provisionedHosts')
   })
 
   it('export.safeUsableCapacity row is present in storage section', () => {

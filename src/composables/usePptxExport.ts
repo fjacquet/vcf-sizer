@@ -12,8 +12,8 @@ import { formatStorage } from '@/utils/formatStorage'
 import type { StorageUnit } from '@/utils/formatStorage'
 import type {
   MgmtDomainResult,
-  ComputeResult,
-  StorageResult,
+  WorkloadDomainResult,
+  WorkloadCapacityResult,
   StretchResult,
   VsanMaxResult,
   WorkloadDomainConfig,
@@ -70,7 +70,7 @@ export const PPTX_LIGHT_TEXT = PALETTE.footerText
 export const PPTX_HEADER_BG = PALETTE.headerBg
 export const MASTER_NAME = 'VCF_MODERN'
 
-const FONT = 'Segoe UI'
+const FONT = 'Arial'
 
 // P6.4 (CR-4): Maximum data rows that fit on a single appliance-table slide.
 // Conservative: with rowH=0.32 and the LAYOUT_WIDE working area (~5.4in vertical
@@ -123,23 +123,27 @@ export function buildTitleSlideData(domainCount: number, date?: string): {
 }
 
 /**
- * buildConfigSummaryData — returns 8 label/value rows for config summary slide (PPTX-04)
- * Phase 14: accepts WorkloadDomainConfig directly instead of reading store.workloadDomains[0]
+ * buildConfigSummaryData — returns label/value rows for config summary slide (PPTX-04)
+ * Demand-driven: host/cluster counts come from the WorkloadDomainResult (OUTPUTS),
+ * not the config. Stretch shows hostsPerSite × 2 = totalHosts.
  */
 export function buildConfigSummaryData(
   domain: WorkloadDomainConfig,
   managementArchitecture: string,
-  effectiveHostCount: number,
+  result: WorkloadDomainResult,
   t: (key: string) => string = (k) => k,
   unit: StorageUnit = 'TiB',
 ): Array<{ label: string; value: string }> {
   const fmtS = (v: number, p = 2) => formatStorage(v, unit, p)
+  const isStretch = result.stretch !== null
   return [
-    { label: t('export.hosts'), value: String(effectiveHostCount) },
-    ...(domain.deploymentMode === 'stretch' ? [
-      { label: t('export.preferredSiteHosts'), value: String(domain.preferredSiteHosts) },
-      { label: t('export.secondarySiteHosts'), value: String(domain.secondarySiteHosts) },
+    { label: t('export.provisionedHosts'), value: String(result.totalHosts) },
+    { label: t('export.demandHostsPerSite'), value: String(result.demandHostsPerSite) },
+    { label: t('export.hostsPerSite'), value: String(result.hostsPerSite) },
+    ...(isStretch ? [
+      { label: t('export.totalHosts'), value: `${result.hostsPerSite} × 2 = ${result.totalHosts}` },
     ] : []),
+    { label: t('export.clusterCountPerSite'), value: String(result.clusterCountPerSite) },
     { label: t('export.coresPerSocket'), value: String(domain.coresPerSocket) },
     { label: t('export.socketsPerHost'), value: String(domain.socketsPerHost) },
     { label: t('export.ramPerHost'), value: `${domain.hostRamGB} GB` },
@@ -192,33 +196,40 @@ export function buildMgmtOverheadData(
 
 /**
  * buildComputeResultsData — returns key compute metrics for compute results slide (PPTX-07)
+ * Demand-driven: reads flat WorkloadDomainResult fields. provisionedHostCount is the
+ * grand total at the provisioned size; provisionedCores/RamGB are physical capacity.
  */
-export function buildComputeResultsData(compute: ComputeResult): {
-  recommendedHostCount: number
+export function buildComputeResultsData(result: WorkloadDomainResult): {
+  provisionedHostCount: number
+  demandHostsPerSite: number
+  clusterCountPerSite: number
   coreUtilizationPct: number
   ramUtilizationPct: number
-  availableCores: number
-  availableRamGB: number
+  provisionedCores: number
+  provisionedRamGB: number
   minHostsForCpu: number
   minHostsForRam: number
   minHostsForStorage: number
 } {
   return {
-    recommendedHostCount: compute.recommendedHostCount,
-    coreUtilizationPct: compute.coreUtilizationPct,
-    ramUtilizationPct: compute.ramUtilizationPct,
-    availableCores: compute.availableCores,
-    availableRamGB: compute.availableRamGB,
-    minHostsForCpu: compute.minHostsForCpu,
-    minHostsForRam: compute.minHostsForRam,
-    minHostsForStorage: compute.minHostsForStorage,
+    provisionedHostCount: result.totalHosts,
+    demandHostsPerSite: result.demandHostsPerSite,
+    clusterCountPerSite: result.clusterCountPerSite,
+    coreUtilizationPct: result.coreUtilizationPct,
+    ramUtilizationPct: result.ramUtilizationPct,
+    provisionedCores: result.provisionedCores,
+    provisionedRamGB: result.provisionedRamGB,
+    minHostsForCpu: result.minHostsForCpu,
+    minHostsForRam: result.minHostsForRam,
+    minHostsForStorage: result.minHostsForStorage,
   }
 }
 
 /**
  * buildStorageResultsData — returns key storage metrics for storage results slide (PPTX-08)
+ * FC/NFS surface required pool vs available pool + shortfall; vSAN surfaces the overhead stack.
  */
-export function buildStorageResultsData(storage: StorageResult): {
+export function buildStorageResultsData(storage: WorkloadCapacityResult): {
   rawCapacityTiB: number
   usableAfterRaidTiB: number
   lfsOverheadTiB: number
@@ -226,6 +237,9 @@ export function buildStorageResultsData(storage: StorageResult): {
   safeUsableCapacityTiB: number
   raidScheme: string
   workloadStorageRequiredTiB: number
+  requiredPoolTiB: number
+  availablePoolTiB: number
+  poolShortfallTiB: number
 } {
   return {
     rawCapacityTiB: storage.rawCapacityTiB,
@@ -235,12 +249,17 @@ export function buildStorageResultsData(storage: StorageResult): {
     safeUsableCapacityTiB: storage.safeUsableCapacityTiB,
     raidScheme: storage.raidScheme,
     workloadStorageRequiredTiB: storage.workloadStorageRequiredTiB,
+    requiredPoolTiB: storage.requiredPoolTiB,
+    availablePoolTiB: storage.availablePoolTiB,
+    poolShortfallTiB: storage.poolShortfallTiB,
   }
 }
 
 /**
- * buildAggregateSlideData — returns 5 label/value rows for aggregate totals slide (EXP-04, EXPORT-02)
- * Replaces buildRecommendationsData — summarizes all workload domains.
+ * buildAggregateSlideData — returns label/value rows for the aggregate totals slide (EXP-04, EXPORT-02)
+ * Mirrors the app's "Total Procurement Summary" card (AggregateTotalsCard.vue):
+ *   grand total → per-site split (stretch only) → workload hosts → management hosts →
+ *   total clusters → total VMs → combined raw & effective storage → pool shortfall (only when > 0).
  * Management hosts row shows numeric count for dedicated architecture, or localized 'colocated with WLD-1'.
  */
 export function buildAggregateSlideData(
@@ -255,10 +274,25 @@ export function buildAggregateSlideData(
   const mgmtLine = managementArchitecture === 'dedicated' && dedicatedMgmtHostCount !== null
     ? String(dedicatedMgmtHostCount)
     : t('export.colocatedWld1')
+  // Workload-only host count = grand total − management hosts (matches AggregateTotalsCard)
+  const workloadHostCount = totals.totalRecommendedHosts - totals.mgmtHostCount
+  // Per-site split is defined only when at least one stretched domain exists.
+  const isStretch = totals.preferredSiteHosts !== undefined && totals.secondarySiteHosts !== undefined
+
   const rows: Array<{ label: string; value: string }> = [
     { label: t('export.totalRecommendedHosts'), value: String(totals.totalRecommendedHosts) },
-    { label: t('export.managementHosts'), value: mgmtLine },
   ]
+  if (isStretch) {
+    rows.push(
+      { label: t('export.aggPreferredSiteHosts'), value: String(totals.preferredSiteHosts) },
+      { label: t('export.aggSecondarySiteHosts'), value: String(totals.secondarySiteHosts) },
+    )
+  }
+  rows.push(
+    { label: t('export.workloadHosts'), value: String(workloadHostCount) },
+    { label: t('export.managementHosts'), value: mgmtLine },
+    { label: t('export.totalClusterCount'), value: String(totals.totalClusterCount) },
+  )
   if (managementStorageType !== undefined) {
     rows.push({ label: t('export.mgmtStorageType'), value: managementStorageType })
   }
@@ -269,6 +303,9 @@ export function buildAggregateSlideData(
   )
   if (totals.totalWorkloadStorageRequiredTiB > 0) {
     rows.push({ label: t('export.totalWorkloadStorageRequired'), value: fmtS(totals.totalWorkloadStorageRequiredTiB) })
+  }
+  if (totals.totalPoolShortfallTiB > 0) {
+    rows.push({ label: t('export.totalPoolShortfall'), value: fmtS(totals.totalPoolShortfallTiB) })
   }
   return rows
 }
@@ -303,32 +340,34 @@ export function buildNvmeTieringSlideData(
 
 /**
  * buildStretchTopologySlideData — returns topology rows + network checklist for stretch slide (PPTX-12)
- * Phase 14: accepts WorkloadDomainConfig directly instead of reading store.workloadDomains[0]
- * Accepts stretch: StretchResult directly (not full calc store) to keep function pure/testable.
+ * Demand-driven: per-site host count is symmetric (result.hostsPerSite); total = ×2.
+ * Accepts stretch: StretchResult + hostsPerSite directly to keep the function pure/testable.
  */
 export function buildStretchTopologySlideData(
-  domain: WorkloadDomainConfig,
+  hostsPerSite: number,
   stretch: StretchResult,
   t: (key: string) => string = (k) => k,
   unit: StorageUnit = 'TiB',
 ): { topology: Array<{ label: string; value: string }>; checklist: string[] } {
   const fmtS = (v: number, p = 2) => formatStorage(v, unit, p)
+  // Witness rows apply only to vSAN ESA stretched clusters; FC/NFS (vMSC) has no vSAN witness.
   const topology = [
-    { label: t('export.preferredSiteHosts'), value: String(domain.preferredSiteHosts) },
-    { label: t('export.secondarySiteHosts'), value: String(domain.secondarySiteHosts) },
-    { label: t('export.totalHosts'), value: String(stretch.totalHosts) },
+    { label: t('export.hostsPerSite'), value: String(hostsPerSite) },
+    { label: t('export.totalHosts'), value: `${hostsPerSite} × 2 = ${stretch.totalHosts}` },
     { label: t('export.minInterSiteBw'), value: `${stretch.minBandwidthGbps} Gbps` },
-    { label: t('export.witnessVcpu'), value: String(stretch.witnessCores) },
-    { label: t('export.witnessRam'), value: `${stretch.witnessRamGB} GB` },
+    ...(stretch.requiresVsanWitness ? [
+      { label: t('export.witnessVcpu'), value: String(stretch.witnessCores) },
+      { label: t('export.witnessRam'), value: `${stretch.witnessRamGB} GB` },
+    ] : []),
     { label: t('export.effectivePerSiteStorage'), value: fmtS(stretch.effectivePerSiteStorageTiB) },
   ]
   const nc = stretch.networkChecklist
   const checklist = [
     `${t('export.minInterSiteBandwidth')}: ${nc.minInterSiteBandwidthGbps} Gbps`,
     `${t('export.maxInterSiteLatency')}: ${nc.maxInterSiteLatencyMs} ms`,
-    `${t('export.maxWitnessLatency')}: ${nc.maxWitnessLatencyMs} ms`,
+    ...(stretch.requiresVsanWitness ? [`${t('export.maxWitnessLatency')}: ${nc.maxWitnessLatencyMs} ms`] : []),
     `${t('export.jumboFramesRequired')}: ${nc.jumboFramesRequired ? t('export.yes') : t('export.no')}`,
-    `${t('export.minWitnessBandwidth')}: ${nc.witnessMinBandwidthMbps} Mbps`,
+    ...(stretch.requiresVsanWitness ? [`${t('export.minWitnessBandwidth')}: ${nc.witnessMinBandwidthMbps} Mbps`] : []),
   ]
   return { topology, checklist }
 }
@@ -620,6 +659,7 @@ export async function generatePptxReport(): Promise<void> {
     title: string,
     lines: readonly ApplianceLine[],
     categoryLabel: (line: ApplianceLine) => string,
+    sectionTitle = 'Management',
   ) {
     if (lines.length === 0) return
 
@@ -637,7 +677,7 @@ export async function generatePptxReport(): Promise<void> {
 
     chunks.forEach((chunk, idx) => {
       const isLast = idx === chunks.length - 1
-      const slide = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
+      const slide = pres.addSlide({ masterName: MASTER_NAME, sectionTitle })
       const slideTitle = idx === 0 ? title : `${title} (cont.)`
       addSlideFrame(slide, slideTitle)
       addApplianceTable(slide, chunk, categoryLabel, {
@@ -664,12 +704,12 @@ export async function generatePptxReport(): Promise<void> {
     slideNumber: { x: 12.5, y: 7.0, color: PALETTE.footerText, fontSize: 9 },
   })
 
-  // ── Section: Overview ───────────────────────────────────────────────────────
-  pres.addSection({ title: 'Overview' })
+  // ── Section: Cover ──────────────────────────────────────────────────────────
+  pres.addSection({ title: 'Cover' })
 
   // ── Title slide (custom — no master, split layout) ──────────────────────────
   const titleData = buildTitleSlideData(store.workloadDomains.length)
-  const s1 = pres.addSlide({ sectionTitle: 'Overview' })
+  const s1 = pres.addSlide({ sectionTitle: 'Cover' })
   s1.background = { color: PALETTE.primary }
   // White right panel
   s1.addShape(pres.ShapeType.rect, {
@@ -709,9 +749,16 @@ export async function generatePptxReport(): Promise<void> {
     color: PALETTE.footerText, fontSize: 9, fontFace: FONT,
   })
 
+  // ── Section: Management ─────────────────────────────────────────────────────
+  // ALL management content lives here, in order: domain overhead summary, then
+  // the itemized appliance + WLD-overhead paginated tables (P6.3). Previously the
+  // appliance tables were emitted AFTER the aggregate totals — they now belong to
+  // this section so management is never split across the deck.
+  pres.addSection({ title: 'Management' })
+
   // ── Management Domain Overhead ──────────────────────────────────────────────
   const mgmtData = buildMgmtOverheadData(calc.management, t)
-  const s2 = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Overview' })
+  const s2 = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Management' })
   addSlideFrame(s2, t('export.mgmtOverhead'))
   modernTable(
     s2,
@@ -721,13 +768,37 @@ export async function generatePptxReport(): Promise<void> {
     { lastRowBold: true },
   )
 
+  // ── P6.3: Management appliance + WLD overhead slides (MOVED UP into Management) ─
+  // Mirrors the markdown export's itemized appliance tables (P6.1).
+  // Reuses i18n.global.te (same direct-API pattern as i18n.global.t above) so we don't
+  // need to introduce a useI18n() call inside this plain TypeScript module.
+  // NOTE: te must be bound to i18n.global; pulling it off as a bare reference loses `this`.
+  const te = (key: string): boolean => i18n.global.te(key)
+  const categoryLabel = makeCategoryLabel(t, te)
+
+  // P6.4 (CR-4): Both sections use the paginated wrapper. With small
+  // appliance/wld-overhead lists, behavior is unchanged (single slide,
+  // header + data + totals footer). Large lists (Large profile + multiple
+  // validated solutions) are now split across multiple slides instead of
+  // overflowing the single-slide layout.
+  addPaginatedApplianceSection(
+    t('export.mgmtAppliances'),
+    calc.management.appliances,
+    categoryLabel,
+  )
+  addPaginatedApplianceSection(
+    t('export.wldOverheadAuto'),
+    calc.management.wldOverhead,
+    categoryLabel,
+  )
+
   // ── Per-domain slide groups ──────────────────────────────────────────────────
   for (const domain of store.workloadDomains) {
     const result = calc.domainResults.find(r => r.id === domain.id)!
     pres.addSection({ title: domain.name })
 
     // Domain: Configuration Summary
-    const configData = buildConfigSummaryData(domain, store.managementArchitecture, result.compute.effectiveHostCount, t, unit)
+    const configData = buildConfigSummaryData(domain, store.managementArchitecture, result, t, unit)
     const sCfg = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
     addSlideFrame(sCfg, `${t('export.domain')}: ${domain.name}`, t('export.hostConfig'))
     modernTable(
@@ -749,18 +820,18 @@ export async function generatePptxReport(): Promise<void> {
     )
 
     // Domain: Compute Results — hero KPIs + doughnut charts
-    const computeData = buildComputeResultsData(result.compute)
+    const computeData = buildComputeResultsData(result)
     const sComp = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
     addSlideFrame(sComp, `${domain.name} — ${t('export.computeSizing')}`)
 
     // Hero KPI cards across the top (3 or 4 depending on storage constraint)
     if (computeData.minHostsForStorage > 0) {
-      addHeroKpi(sComp, 0.4, 1.4, 2.9, 1.3, t('export.recommendedHostCount'), String(computeData.recommendedHostCount), 'hosts')
+      addHeroKpi(sComp, 0.4, 1.4, 2.9, 1.3, t('export.provisionedHosts'), String(computeData.provisionedHostCount), 'hosts')
       addHeroKpi(sComp, 3.6, 1.4, 2.9, 1.3, t('export.minHostsCpu'), String(computeData.minHostsForCpu))
       addHeroKpi(sComp, 6.8, 1.4, 2.9, 1.3, t('export.minHostsRam'), String(computeData.minHostsForRam))
       addHeroKpi(sComp, 10.0, 1.4, 2.9, 1.3, t('export.minHostsStorage'), String(computeData.minHostsForStorage))
     } else {
-      addHeroKpi(sComp, 0.4, 1.4, 3.9, 1.3, t('export.recommendedHostCount'), String(computeData.recommendedHostCount), 'hosts')
+      addHeroKpi(sComp, 0.4, 1.4, 3.9, 1.3, t('export.provisionedHosts'), String(computeData.provisionedHostCount), 'hosts')
       addHeroKpi(sComp, 4.7, 1.4, 3.9, 1.3, t('export.minHostsCpu'), String(computeData.minHostsForCpu))
       addHeroKpi(sComp, 9.0, 1.4, 3.9, 1.3, t('export.minHostsRam'), String(computeData.minHostsForRam))
     }
@@ -769,13 +840,13 @@ export async function generatePptxReport(): Promise<void> {
     addDoughnutChart(sComp, 1.5, 3.1, 3.5, 3.2, computeData.coreUtilizationPct, t('export.cpuUtilization'))
     addDoughnutChart(sComp, 8.3, 3.1, 3.5, 3.2, computeData.ramUtilizationPct, t('export.ramUtilization'))
 
-    // Compact detail column between doughnuts
+    // Compact detail column between doughnuts — physical cores/RAM provisioned
     sComp.addText([
       { text: `${t('export.availableVcpu')}: `, options: { fontSize: 10, color: PALETTE.textMuted } },
-      { text: String(computeData.availableCores), options: { fontSize: 10, bold: true, color: PALETTE.textDark } },
+      { text: String(computeData.provisionedCores), options: { fontSize: 10, bold: true, color: PALETTE.textDark } },
       { text: '\n', options: { fontSize: 10, breakLine: true } },
       { text: `${t('export.availableRamGb')}: `, options: { fontSize: 10, color: PALETTE.textMuted } },
-      { text: `${Math.round(computeData.availableRamGB)} GB`, options: { fontSize: 10, bold: true, color: PALETTE.textDark } },
+      { text: `${Math.round(computeData.provisionedRamGB)} GB`, options: { fontSize: 10, bold: true, color: PALETTE.textDark } },
     ], {
       x: 5.4, y: 3.8, w: 2.7, h: 1.5,
       fontFace: FONT, valign: 'middle', align: 'center',
@@ -791,7 +862,11 @@ export async function generatePptxReport(): Promise<void> {
           ...(storageData.workloadStorageRequiredTiB > 0 ? [
             [t('export.workloadStorageRequired'), fmtS(storageData.workloadStorageRequiredTiB)],
           ] : []),
-          [t('export.externalPoolCapacity'), fmtS(storageData.rawCapacityTiB)],
+          [t('export.requiredPool'), fmtS(storageData.requiredPoolTiB)],
+          [t('export.availablePool'), fmtS(storageData.availablePoolTiB)],
+          ...(storageData.poolShortfallTiB > 0 ? [
+            [t('export.poolShortfall'), fmtS(storageData.poolShortfallTiB)],
+          ] : []),
         ]
       : [
           [t('export.raidScheme'), storageData.raidScheme],
@@ -833,7 +908,7 @@ export async function generatePptxReport(): Promise<void> {
 
     // Domain: Conditional — Stretch Cluster Topology (PPTX-12)
     if (domain.deploymentMode === 'stretch') {
-      const stretchData = buildStretchTopologySlideData(domain, result.stretch!, t, unit)
+      const stretchData = buildStretchTopologySlideData(result.hostsPerSite, result.stretch!, t, unit)
       const sStretch = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: domain.name })
       addSlideFrame(sStretch, `${domain.name} — ${t('export.stretchTopology')}`)
       modernTable(
@@ -912,52 +987,11 @@ export async function generatePptxReport(): Promise<void> {
   } // end per-domain loop
 
   // ── Section: Summary ────────────────────────────────────────────────────────
+  // Order: Validation Warnings (if any) FIRST, then the Aggregate Totals slide is
+  // the FINAL content slide of the deck (Tasks 3 & 4).
   pres.addSection({ title: 'Summary' })
 
-  // ── Aggregate Totals slide — hero KPIs + detail table ───────────────────────
-  const aggData = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, store.managementDomain.storageType ?? 'vsan-esa', t, unit)
-  const sAgg = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
-  addSlideFrame(sAgg, t('export.aggregateTotals'))
-
-  // 3 hero KPI cards
-  addHeroKpi(sAgg, 0.4, 1.4, 3.9, 1.3, t('export.totalRecommendedHosts'), String(calc.aggregateTotals.totalRecommendedHosts), 'hosts')
-  addHeroKpi(sAgg, 4.7, 1.4, 3.9, 1.3, t('export.totalVmCount'), String(calc.aggregateTotals.totalVmCount), 'VMs')
-  addHeroKpi(sAgg, 9.0, 1.4, 3.9, 1.3, t('export.totalEffectiveStorage'), fmtS(calc.aggregateTotals.totalEffectiveStorageTiB, 1))
-
-  // Detail table below KPIs
-  modernTable(
-    sAgg,
-    [t('export.metric'), t('export.value')],
-    aggData.map(r => [r.label, r.value]),
-    [6.25, 6.25],
-    { y: 3.1 },
-  )
-
-  // ── P6.3: Management appliance + WLD overhead slides ────────────────────────
-  // Mirrors the markdown export's itemized appliance tables (P6.1).
-  // Reuses i18n.global.te (same direct-API pattern as i18n.global.t above) so we don't
-  // need to introduce a useI18n() call inside this plain TypeScript module.
-  // NOTE: te must be bound to i18n.global; pulling it off as a bare reference loses `this`.
-  const te = (key: string): boolean => i18n.global.te(key)
-  const categoryLabel = makeCategoryLabel(t, te)
-
-  // P6.4 (CR-4): Both sections use the paginated wrapper. With small
-  // appliance/wld-overhead lists, behavior is unchanged (single slide,
-  // header + data + totals footer). Large lists (Large profile + multiple
-  // validated solutions) are now split across multiple slides instead of
-  // overflowing the single-slide layout.
-  addPaginatedApplianceSection(
-    t('export.mgmtAppliances'),
-    calc.management.appliances,
-    categoryLabel,
-  )
-  addPaginatedApplianceSection(
-    t('export.wldOverheadAuto'),
-    calc.management.wldOverhead,
-    categoryLabel,
-  )
-
-  // ── Conditional: Validation Warnings (PPTX-14) — always last ────────────────
+  // ── Conditional: Validation Warnings (PPTX-14) ──────────────────────────────
   if (calc.aggregateTotals.allValidationErrors.length > 0) {
     const warningsData = buildValidationWarningsSlideData(calc)
     const sWarn = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
@@ -985,6 +1019,25 @@ export async function generatePptxReport(): Promise<void> {
       border: { type: 'solid', pt: 0.5, color: PALETTE.border },
     })
   }
+
+  // ── Aggregate Totals slide — hero KPIs + detail table — ALWAYS LAST ─────────
+  const aggData = buildAggregateSlideData(calc.aggregateTotals, store.managementArchitecture, calc.dedicatedMgmtHostCount, store.managementDomain.storageType ?? 'vsan-esa', t, unit)
+  const sAgg = pres.addSlide({ masterName: MASTER_NAME, sectionTitle: 'Summary' })
+  addSlideFrame(sAgg, t('export.aggregateTotals'))
+
+  // 3 hero KPI cards
+  addHeroKpi(sAgg, 0.4, 1.4, 3.9, 1.3, t('export.totalRecommendedHosts'), String(calc.aggregateTotals.totalRecommendedHosts), 'hosts')
+  addHeroKpi(sAgg, 4.7, 1.4, 3.9, 1.3, t('export.totalVmCount'), String(calc.aggregateTotals.totalVmCount), 'VMs')
+  addHeroKpi(sAgg, 9.0, 1.4, 3.9, 1.3, t('export.totalEffectiveStorage'), fmtS(calc.aggregateTotals.totalEffectiveStorageTiB, 1))
+
+  // Detail table below KPIs
+  modernTable(
+    sAgg,
+    [t('export.metric'), t('export.value')],
+    aggData.map(r => [r.label, r.value]),
+    [6.25, 6.25],
+    { y: 3.1 },
+  )
 
   // Trigger browser download — MUST await (Pitfall 5)
   await pres.writeFile({ fileName: 'vcf-sizing-report.pptx' })

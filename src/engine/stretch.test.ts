@@ -1,122 +1,65 @@
 /// <reference types="vitest/globals" />
 import { calcStretch } from './stretch'
+import type { StretchInputs } from './types'
+
+function inp(o: Partial<StretchInputs> = {}): StretchInputs {
+  return { hostsPerSite: 3, vmCount: 100, avgStorageGbPerVm: 100, storageType: 'vsan-esa', ...o }
+}
 
 describe('calcStretch — witness and topology (STRCH-01/02/03/05)', () => {
-  it('preferredSiteHosts=3, secondarySiteHosts=3 → totalHosts=6', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 3,
-      secondarySiteHosts: 3,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 100,
-    })
-    expect(result.totalHosts).toBe(6)
+  it('hostsPerSite=3 → totalHosts=6 (symmetric, demand-driven)', () => {
+    expect(calcStretch(inp()).totalHosts).toBe(6)
   })
 
-  it('witness = 4 vCPU, 16 GB RAM (ESA M profile — NOT 2/8 OSA Tiny)', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 3,
-      secondarySiteHosts: 3,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 100,
-    })
-    expect(result.witnessCores).toBe(4)
-    expect(result.witnessRamGB).toBe(16)
+  it('vSAN ESA → requires a witness (ESA M profile: 4 vCPU / 16 GB)', () => {
+    const r = calcStretch(inp({ storageType: 'vsan-esa' }))
+    expect(r.requiresVsanWitness).toBe(true)
+    expect(r.witnessCores).toBe(4)
+    expect(r.witnessRamGB).toBe(16)
   })
 
-  it('bandwidth floor: 100 VMs x 100 GB/VM -> formula ~0.097 Gbps < 10 Gbps floor -> returns 10 Gbps', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 3,
-      secondarySiteHosts: 3,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 100,
-    })
-    expect(result.minBandwidthGbps).toBe(10)
-    expect(result.bandwidthFloorApplied).toBe(true)
+  it('FC stretch (vMSC) → NO vSAN witness (witness fields zeroed)', () => {
+    const r = calcStretch(inp({ storageType: 'fc' }))
+    expect(r.requiresVsanWitness).toBe(false)
+    expect(r.witnessCores).toBe(0)
+    expect(r.witnessRamGB).toBe(0)
   })
 
-  it('bandwidth floor NOT applied: large workload formula > 10 Gbps -> bandwidthFloorApplied=false', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 3,
-      secondarySiteHosts: 3,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 200_000,
-    })
-    expect(result.minBandwidthGbps).toBeGreaterThan(10)
-    expect(result.bandwidthFloorApplied).toBe(false)
+  it('NFS stretch (vMSC) → NO vSAN witness', () => {
+    expect(calcStretch(inp({ storageType: 'nfs' })).requiresVsanWitness).toBe(false)
   })
 
-  it('preferredSiteHosts=4, secondarySiteHosts=2 → totalHosts=6 (asymmetric sites)', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 4,
-      secondarySiteHosts: 2,
-      hostStorageTiB: 3.84,
-      vmCount: 50,
-      avgStorageGbPerVm: 200,
-    })
-    expect(result.totalHosts).toBe(6)
+  it('bandwidth floor: 100 VMs x 100 GB/VM -> ~0.097 Gbps < 10 Gbps floor -> returns 10 Gbps', () => {
+    const r = calcStretch(inp())
+    expect(r.minBandwidthGbps).toBe(10)
+    expect(r.bandwidthFloorApplied).toBe(true)
+  })
+
+  it('bandwidth floor NOT applied: large workload formula > 10 Gbps', () => {
+    const r = calcStretch(inp({ avgStorageGbPerVm: 200_000 }))
+    expect(r.minBandwidthGbps).toBeGreaterThan(10)
+    expect(r.bandwidthFloorApplied).toBe(false)
   })
 
   it('storageNote field = i18n key string (not hardcoded English)', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 3,
-      secondarySiteHosts: 3,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 100,
-    })
-    expect(result.storageNote).toBe('deployment.stretch.storageNote')
+    expect(calcStretch(inp()).storageNote).toBe('deployment.stretch.storageNote')
   })
 })
 
 describe('calcStretch -- network checklist (STRCH-08)', () => {
   it('checklist populated with correct static values', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 3,
-      secondarySiteHosts: 3,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 100,
-    })
-    expect(result.networkChecklist.minInterSiteBandwidthGbps).toBe(10)
-    expect(result.networkChecklist.maxInterSiteLatencyMs).toBe(5)
-    expect(result.networkChecklist.jumboFramesRequired).toBe(true)
-    expect(result.networkChecklist.witnessMinBandwidthMbps).toBe(2)
+    const nc = calcStretch(inp()).networkChecklist
+    expect(nc.minInterSiteBandwidthGbps).toBe(10)
+    expect(nc.maxInterSiteLatencyMs).toBe(5)
+    expect(nc.jumboFramesRequired).toBe(true)
+    expect(nc.witnessMinBandwidthMbps).toBe(2)
   })
 
-  it('witness RTT = 200ms when max site hosts <= 10', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 5,
-      secondarySiteHosts: 5,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 100,
-    })
-    expect(result.networkChecklist.maxWitnessLatencyMs).toBe(200)
+  it('witness RTT = 200ms when hosts/site <= 10', () => {
+    expect(calcStretch(inp({ hostsPerSite: 5 })).networkChecklist.maxWitnessLatencyMs).toBe(200)
   })
 
-  it('witness RTT = 100ms when max site hosts 11-15', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 8,
-      secondarySiteHosts: 12,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 100,
-    })
-    expect(result.networkChecklist.maxWitnessLatencyMs).toBe(100)
-  })
-
-  it('witness RTT = 100ms for > 15 hosts/site (conservative fallback)', () => {
-    const result = calcStretch({
-      preferredSiteHosts: 3,
-      secondarySiteHosts: 20,
-      hostStorageTiB: 3.84,
-      vmCount: 100,
-      avgStorageGbPerVm: 100,
-    })
-    expect(result.networkChecklist.maxWitnessLatencyMs).toBe(100)
+  it('witness RTT = 100ms when hosts/site > 10', () => {
+    expect(calcStretch(inp({ hostsPerSite: 12 })).networkChecklist.maxWitnessLatencyMs).toBe(100)
   })
 })

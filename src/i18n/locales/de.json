@@ -2,6 +2,14 @@
   "app": {
     "title": "VCF 9.x Sizing Calculator"
   },
+  "ui": {
+    "theme": {
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System",
+      "toggle": "Thema: {mode} — zum Wechseln klicken"
+    }
+  },
   "language": {
     "label": "Language",
     "en": "EN",
@@ -18,6 +26,7 @@
       "preferredSiteHosts": "Hosts bevorzugter Standort",
       "secondarySiteHosts": "Hosts sekundärer Standort",
       "witnessLabel": "Witness-Knoten (ESA M-Profil)",
+      "vmscNote": "Stretch mit externem Speicher (vMSC): Das standortübergreifende Quorum übernimmt das Speicher-Array — kein vSAN-Witness.",
       "witnessCpu": "vCPU",
       "witnessRam": "RAM",
       "bandwidthLabel": "Min. standortübergreifende Bandbreite",
@@ -41,7 +50,13 @@
       "shared": "Zusammengefasst",
       "dedicated": "Dedizierte Domanen",
       "dedicatedHosts": "Dedizierte Management-Hosts"
-    }
+    },
+    "hostFailuresToTolerate": "Tolerierte Host-Ausfaelle (HA-Reserve)",
+    "hostFailuresToTolerateHint": "Zusaetzliche pro Cluster reservierte Hosts, damit der Cluster so viele gleichzeitige Host-Ausfaelle ueberlebt (Standard N+1).",
+    "demandHostsPerSite": "Benoetigte Hosts pro Standort (roh)",
+    "hostsPerSite": "Hosts pro Standort (bereitgestellt)",
+    "clusterCountPerSite": "Cluster pro Standort",
+    "totalHostsProvisioned": "Hosts gesamt (bereitgestellt)"
   },
   "host": {
     "label": "Host-Spezifikationen",
@@ -100,7 +115,8 @@
     "minHosts": "mind. {count} Hosts",
     "workloadRequired": "Benötigter VM-Speicher",
     "externalPool": "Externer Pool nutzbar",
-    "externalPoolInput": "Externe Pool-Kapazität"
+    "externalPoolInput": "Externe Pool-Kapazität",
+    "poolShortfall": "Pool-Defizit"
   },
   "topology": {
     "confirmTitle": "Topologie \u00e4ndern?",
@@ -132,7 +148,9 @@
     "vsanMaxStretchExclusion": "vSAN Max kann nicht im Stretch-Cluster-Modus bereitgestellt werden.",
     "mgmt": {
       "stretchParityRequired": "Die Management-Domain muss im Stretch-Cluster-Modus sein, wenn eine Workload-Domain gestreckt ist."
-    }
+    },
+    "fcPoolShortfall": "Der externe Speicherpool ist zu klein fuer den Workload-Bedarf. Erhoehen Sie die Pool-Kapazitaet oder reduzieren Sie den Workload.",
+    "workloadMultiCluster": "Der Bedarf uebersteigt einen einzelnen Cluster — diese Domaene wird pro Standort auf mehrere Cluster verteilt."
   },
   "results": {
     "toolbar": {
@@ -150,7 +168,11 @@
       "recommended": "Empfohlene Hosts",
       "minForCpu": "Min. für CPU",
       "minForRam": "Min. für RAM",
-      "minForStorage": "Min. für Speicher"
+      "minForStorage": "Min. für Speicher",
+      "provisioned": "Bereitgestellte Hosts",
+      "demandPerSite": "Bedarf / Standort (roh)",
+      "clusters": "Cluster / Standort",
+      "layout": "Aufteilung"
     },
     "vsanMaxTitle": "vSAN Max Speichercluster",
     "vsanMaxStorageNodes": "Speicherknoten",
@@ -174,7 +196,9 @@
       "ramUtilization": "RAM-Auslastung",
       "storageUsable": "Nutzbarer Speicher",
       "raidScheme": "RAID-Schema",
-      "workloadRequired": "Benoetigter VM-Speicher"
+      "workloadRequired": "Benoetigter VM-Speicher",
+      "availablePool": "Verfuegbarer Pool",
+      "poolShortfall": "Pool-Defizit"
     },
     "aggregate": {
       "title": "Beschaffungsuebersicht",
@@ -187,7 +211,9 @@
       "preferredSiteHosts": "Hosts bevorzugter Standort (alle gestreckten Domains)",
       "secondarySiteHosts": "Hosts sekundaerer Standort (alle gestreckten Domains)",
       "preferredSite": "bevorzugter Standort",
-      "secondarySite": "sekundaerer Standort"
+      "secondarySite": "sekundaerer Standort",
+      "totalClusters": "Cluster gesamt",
+      "poolShortfall": "Defizit externer Pool"
     }
   },
   "management": {
@@ -300,7 +326,9 @@
       "ransomwareCloud": "Ransomware Recovery (cloud)",
       "crossCloudMobility": "Cross-Cloud Mobility (HCX)",
       "wldVcenter": "vCenter (pro Workload-Domain)",
-      "wldNsxManager": "NSX Manager (pro Workload-Domain)"
+      "wldNsxManager": "NSX Manager (pro Workload-Domain)",
+      "vcfmsControl": "VCF Services Steuerungsknoten",
+      "vcfmsWorker": "VCF Services Worker-Knoten"
     },
     "advancedSizing": {
       "title": "Erweiterte Dimensionierung",
@@ -433,7 +461,7 @@
     "minHostsCpu": "Min. Hosts fuer CPU",
     "minHostsRam": "Min. Hosts fuer RAM",
     "minHostsStorage": "Min. Hosts fuer Speicher",
-    "availableVcpu": "Verfuegbare vCPU",
+    "availableVcpu": "Bereitgestellte physische Kerne",
     "availableRamGb": "Verfuegbarer RAM (GB)",
     "cpuUtilization": "CPU-Auslastung",
     "ramUtilization": "RAM-Auslastung",
@@ -470,6 +498,7 @@
     "computeNodeCount": "Anzahl Compute-Knoten",
     "usableCapacity": "Nutzbare Kapazitaet",
     "totalRecommendedHosts": "Empfohlene Hosts gesamt (alle Domanen)",
+    "workloadHosts": "Workload-Hosts",
     "managementHosts": "Management-Hosts",
     "mgmtStorageType": "Management-Speichertyp",
     "totalVmCount": "Gesamtanzahl VMs",
@@ -490,7 +519,7 @@
     "total": "Gesamt",
     "dedicatedHostCount": "Dedizierte Hostanzahl",
     "architecture": "Architektur",
-    "totalVcpuRequired": "Gesamt vCPU erforderlich",
+    "totalVcpuRequired": "Physische Kerne gesamt erforderlich",
     "totalRamRequired": "Gesamt RAM erforderlich",
     "totalVcpu": "Gesamt vCPU",
     "totalRam": "Gesamt RAM",
@@ -507,6 +536,15 @@
     "applianceTotals": "Summen",
     "totalDiskGB": "Gesamt-Festplatte (GB)",
     "totalSwapGB": "Gesamt-Swap (GB)",
-    "externalPoolRequiredTiB": "Externer Pool erforderlich"
+    "externalPoolRequiredTiB": "Externer Pool erforderlich",
+    "provisionedHosts": "Bereitgestellte Hosts",
+    "demandHostsPerSite": "Benoetigte Hosts pro Standort (roh)",
+    "hostsPerSite": "Hosts pro Standort (bereitgestellt)",
+    "clusterCountPerSite": "Cluster pro Standort",
+    "requiredPool": "Erforderlicher Pool",
+    "availablePool": "Verfuegbarer Pool",
+    "poolShortfall": "Pool-Defizit",
+    "totalClusterCount": "Cluster gesamt (alle Domaenen)",
+    "totalPoolShortfall": "Gesamtdefizit externer Pool"
   }
 }

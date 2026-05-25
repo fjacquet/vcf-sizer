@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { DomainResult } from '@/engine/types'
+import type { WorkloadDomainResult } from '@/engine/types'
 
-const props = defineProps<{ result: DomainResult }>()
+const props = defineProps<{ result: WorkloadDomainResult }>()
 const { t } = useI18n()
 </script>
 
@@ -21,16 +21,20 @@ const { t } = useI18n()
       <span>{{ t('deployment.stretchSites.networkChecklist.maxLatency') }}</span>
       <span class="font-mono text-right">&lt; {{ props.result.stretch.networkChecklist.maxInterSiteLatencyMs }} ms</span>
 
-      <span>{{ t('deployment.stretchSites.networkChecklist.maxWitnessLatency') }}</span>
-      <span class="font-mono text-right">&lt; {{ props.result.stretch.networkChecklist.maxWitnessLatencyMs }} ms</span>
+      <template v-if="props.result.stretch.requiresVsanWitness">
+        <span>{{ t('deployment.stretchSites.networkChecklist.maxWitnessLatency') }}</span>
+        <span class="font-mono text-right">&lt; {{ props.result.stretch.networkChecklist.maxWitnessLatencyMs }} ms</span>
+      </template>
 
       <span>{{ t('deployment.stretchSites.networkChecklist.jumboFrames') }}</span>
       <span class="font-mono text-right text-green-600 dark:text-green-400">
         {{ t('deployment.stretchSites.networkChecklist.required') }}
       </span>
 
-      <span>{{ t('deployment.stretchSites.networkChecklist.witnessBandwidth') }}</span>
-      <span class="font-mono text-right">{{ props.result.stretch.networkChecklist.witnessMinBandwidthMbps }} Mbps</span>
+      <template v-if="props.result.stretch.requiresVsanWitness">
+        <span>{{ t('deployment.stretchSites.networkChecklist.witnessBandwidth') }}</span>
+        <span class="font-mono text-right">{{ props.result.stretch.networkChecklist.witnessMinBandwidthMbps }} Mbps</span>
+      </template>
     </div>
     <!-- High host count note (>15 hosts/site) -->
     <p

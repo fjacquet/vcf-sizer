@@ -13,17 +13,22 @@ import {
   LinearScale,
 } from 'chart.js'
 import type { ChartData, ChartOptions } from 'chart.js'
-import type { StorageResult } from '@/engine/types'
+import type { WorkloadCapacityResult } from '@/engine/types'
 import { useUiStore } from '@/stores/uiStore'
 import { useStorageFormat } from '@/composables/useStorageFormat'
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
-const props = defineProps<{ storage: StorageResult; domainId: string }>()
+const props = defineProps<{ storage: WorkloadCapacityResult; domainId: string }>()
 
 const { t } = useI18n()
 const uiStore = useUiStore()
-const isDark = usePreferredDark()
+const prefersDark = usePreferredDark()
+// Follow the MANUAL theme toggle: 'system' defers to the OS preference, otherwise
+// the explicit light/dark choice wins so chart colors track the in-app switch.
+const isDark = computed(() =>
+  uiStore.theme === 'system' ? prefersDark.value : uiStore.theme === 'dark'
+)
 const { unit, fmt } = useStorageFormat()
 
 const canvasId = computed(() => 'storage-chart-' + props.domainId)

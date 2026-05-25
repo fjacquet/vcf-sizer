@@ -18,11 +18,10 @@ const WorkloadDomainSchema = z
     hostRamGB: z.number().positive().default(512),
     hostStorageTiB: z.number().positive().default(3.84),
     externalStorageUsableTiB: z.number().positive().default(100),
-    hostCount: z.number().int().min(1).max(64).default(4),
     nvmeTieringEnabled: z.boolean().default(false),
     activeMemoryPct: z.number().min(1).max(100).default(50),
-    preferredSiteHosts: z.number().int().min(1).default(3),
-    secondarySiteHosts: z.number().int().min(1).default(3),
+    // Demand-driven: host/cluster counts are outputs; HA reserve is the only host-side input.
+    hostFailuresToTolerate: z.number().int().min(0).max(8).default(1),
     vmCount: z.number().int().min(0).default(100),
     avgVcpuPerVm: z.number().positive().default(4),
     avgVramGbPerVm: z.number().positive().default(8),
@@ -181,25 +180,21 @@ describe('URL-03 — Multi-domain round-trip', () => {
   const domain0 = {
     ...createDefaultWorkloadDomain(0),
     name: 'Production',
-    hostCount: 8,
+    hostFailuresToTolerate: 2,
     vmCount: 500,
     storageType: 'fc' as const,
   }
   const domain1 = {
     ...createDefaultWorkloadDomain(1),
     name: 'Dev-Test',
-    hostCount: 3,
     vmCount: 50,
     deploymentMode: 'simple' as const,
   }
   const domain2 = {
     ...createDefaultWorkloadDomain(2),
     name: 'DR-Site',
-    hostCount: 6,
     vmCount: 200,
     deploymentMode: 'stretch' as const,
-    preferredSiteHosts: 3,
-    secondarySiteHosts: 3,
   }
 
   const threeDomainsState = {
@@ -231,7 +226,7 @@ describe('URL-03 — Multi-domain round-trip', () => {
     const result = InputStateSchema.safeParse(parsed)
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.workloadDomains[0].hostCount).toBe(8)
+      expect(result.data.workloadDomains[0].hostFailuresToTolerate).toBe(2)
       expect(result.data.workloadDomains[0].vmCount).toBe(500)
       expect(result.data.workloadDomains[0].storageType).toBe('fc')
       expect(result.data.workloadDomains[1].deploymentMode).toBe('simple')

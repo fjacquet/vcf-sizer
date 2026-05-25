@@ -11,11 +11,10 @@ function wld(overrides: Partial<WorkloadDomainConfig> = {}): WorkloadDomainConfi
     hostRamGB: 512,
     hostStorageTiB: 8,
     externalStorageUsableTiB: 0,
-    hostCount: 4,
     nvmeTieringEnabled: false,
     activeMemoryPct: 50,
-    preferredSiteHosts: 4,
-    secondarySiteHosts: 4,
+    // Demand-driven: host/cluster counts are OUTPUTS; HA reserve is the only host-side input.
+    hostFailuresToTolerate: 1,
     vmCount: 100,
     avgVcpuPerVm: 2,
     avgVramGbPerVm: 4,
@@ -82,13 +81,13 @@ describe('calcWldOverhead — empty input', () => {
 
 describe('calcWldOverhead — single WLD, default-sized', () => {
   it('emits 1 vCenter Tiny + 1 NSX Manager Medium (Simple → nodeCount=1)', () => {
-    const lines = calcWldOverhead([wld({ hostCount: 4, vmCount: 100, deploymentMode: 'simple' })])
+    const lines = calcWldOverhead([wld({ vmCount: 100, deploymentMode: 'simple' })])
     expect(lines.length).toBe(2)
     const vc = lines.find(l => l.category === 'wldVcenter')
     const nsx = lines.find(l => l.category === 'wldNsxManager')
     expect(vc).toBeDefined()
     expect(nsx).toBeDefined()
-    expect(vc!.cores).toBe(2)         // Tiny: 4 hosts ≤ 10 AND 100 VMs ≤ 100
+    expect(vc!.cores).toBe(2)         // Tiny: 3 demand hosts ≤ 10 AND 100 VMs ≤ 100
     expect(nsx!.cores).toBe(6)        // Medium NSX
     expect(nsx!.nodeCount).toBe(1)    // Simple mode
     expect(vc!.source).toBe('auto-derived')
@@ -121,8 +120,11 @@ describe('calcWldOverhead — multiple WLDs', () => {
   })
 
   it('large WLD: vCenter Medium + NSX Manager Large × 3 in HA', () => {
+    // Demand-driven: RAM demand drives the per-site host estimate above the NSX
+    // Large threshold (>128 hosts). 4000 VMs × 17 GB / 1 = 68000 GB → ceil(68000/512)=133 hosts.
+    // 133 hosts ≤ 400 AND 4000 VMs ≤ 4000 → vCenter Medium.
     const lines = calcWldOverhead([
-      wld({ vmCount: 3000, hostCount: 200, deploymentMode: 'ha' }),
+      wld({ vmCount: 4000, avgVramGbPerVm: 17, deploymentMode: 'ha' }),
     ])
     const vc = lines.find(l => l.category === 'wldVcenter')!
     const nsx = lines.find(l => l.category === 'wldNsxManager')!

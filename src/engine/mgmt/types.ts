@@ -46,6 +46,8 @@ export type MgmtApplianceCategory =
   | 'fleetManager'
   | 'identityBroker'
   | 'ssp'
+  | 'vcfmsControl'   // VCF Management Services runtime — control plane nodes (new in 9.1)
+  | 'vcfmsWorker'    // VCF Management Services runtime — worker nodes (new in 9.1)
 
 // Categories that may appear in ApplianceLine but are NOT user-overridable.
 // Includes SDDC Manager (always-on) and the validated-solution outputs.
@@ -158,7 +160,12 @@ export interface MgmtDomainResult {
   minHostsForStorage: number           // ceil(demand / usable-per-host) for vSAN; 0 for FC/NFS
   externalPoolRequiredTiB: number      // FC/NFS demand the array must provide; 0 for vSAN
 
-  recommendedHostCount: number
+  recommendedHostCount: number   // PER SITE (stretch) or single-cluster count (simple/HA)
+
+  // Grand total dedicated mgmt hosts across both sites: recommendedHostCount × 2 for
+  // stretch, else == recommendedHostCount. Single source of truth for the host count
+  // (the calculation store reads this directly instead of recomputing).
+  totalHosts: number
 
   // P5.5: per-site host counts when deploymentMode === 'stretch'.
   // Both equal `recommendedHostCount` (each site is procured as an

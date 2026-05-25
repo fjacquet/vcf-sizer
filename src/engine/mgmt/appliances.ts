@@ -1,8 +1,9 @@
 // VCF 9.x Management Domain — appliance resolution
 // Pure TypeScript — ZERO Vue imports allowed in this file (CALC-01)
 //
-// Walks all 13 user-overridable categories: profile default → merge override
-// → apply HA fanout (×3 for nsxManager/vrops/automation/vrli in HA/Stretch)
+// Walks all 15 user-overridable categories: profile default → merge override
+// → apply HA fanout (×3 for nsxManager/vrops/automation/vrli/vcfmsControl/
+//   vcfmsWorker in HA/Stretch)
 // → multiply per-node specs by nodeCount → emit ApplianceLine.
 // Always-on: SDDC Manager + Fleet Manager.
 // Validated solutions handled by calcValidatedSolutions().
@@ -34,12 +35,17 @@ const HA_FANOUT_CATEGORIES: ReadonlySet<MgmtApplianceCategory> = new Set<MgmtApp
   'vrops',
   'automation',
   'vrli',
+  // VCF Management Services runtime (9.1): both control + worker tiers run as
+  // 3-node clusters under HA/stretch, same fan-out pattern as NSX Manager/vROps.
+  'vcfmsControl',
+  'vcfmsWorker',
 ])
 
 const ALL_CATEGORIES: readonly MgmtApplianceCategory[] = [
   'vcenter', 'nsxManager', 'nsxEdge', 'aviLb',
   'vrops', 'vropsCollector', 'vrli', 'vrni', 'vrniCollector',
   'automation', 'fleetManager', 'identityBroker', 'ssp',
+  'vcfmsControl', 'vcfmsWorker',
 ]
 
 function applyHaFanout(
@@ -91,7 +97,7 @@ export function calcAppliances(config: ManagementDomainConfig): ApplianceLine[] 
   // Always-on: SDDC Manager
   lines.push(buildLine('sddcManager', SDDC_MANAGER_SPEC, 1, 'profile'))
 
-  // 13 user-overridable categories. Fleet Manager is special (no size variants).
+  // 15 user-overridable categories. Fleet Manager is special (no size variants).
   for (const category of ALL_CATEGORIES) {
     const base = resolveProfileEntry(profile, category)
     const ovr = overrides[category]
