@@ -525,6 +525,7 @@
     "totalRam": "Total RAM",
     "mgmtAppliances": "Management Appliance Sizing",
     "wldOverheadAuto": "Workload-Domain Overhead (Auto-derived)",
+    "continued": "(cont.)",
     "applianceComponent": "Component",
     "applianceNodes": "Nodes",
     "appliancePerNodeCores": "Cores/node",

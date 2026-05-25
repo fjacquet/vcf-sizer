@@ -678,7 +678,7 @@ export async function generatePptxReport(): Promise<void> {
     chunks.forEach((chunk, idx) => {
       const isLast = idx === chunks.length - 1
       const slide = pres.addSlide({ masterName: MASTER_NAME, sectionTitle })
-      const slideTitle = idx === 0 ? title : `${title} (cont.)`
+      const slideTitle = idx === 0 ? title : `${title} ${t('export.continued')}`
       addSlideFrame(slide, slideTitle)
       addApplianceTable(slide, chunk, categoryLabel, {
         includeFooter: isLast,

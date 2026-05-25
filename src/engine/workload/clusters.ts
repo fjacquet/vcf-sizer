@@ -41,7 +41,11 @@ export function splitIntoClusters(inputs: ClusterSplitInputs): ClusterSplitResul
   const maxPer = maxHostsPerCluster(storageType, stretch)
   const demand = Math.max(0, demandHostsPerSite)
 
-  const clusterCountPerSite = Math.max(1, Math.ceil(demand / maxPer))
+  // Reserve room for the per-cluster HA hosts: each cluster carries demand + reserve, and
+  // that TOTAL must stay within the VMware cap. Dividing demand by (maxPer − reserve) ensures
+  // demandPerCluster + reserve ≤ maxPer (otherwise a near-cap demand + N+1 would breach it).
+  const usablePerCluster = Math.max(1, maxPer - reserve)
+  const clusterCountPerSite = Math.max(1, Math.ceil(demand / usablePerCluster))
   const demandPerCluster = Math.ceil(demand / clusterCountPerSite)
   const hostsPerCluster = demandPerCluster + reserve
   const hostsPerSite = hostsPerCluster * clusterCountPerSite

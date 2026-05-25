@@ -13,17 +13,24 @@ const props = defineProps<{ result: WorkloadDomainResult }>()
 const { t } = useI18n()
 const { fmt } = useStorageFormat()
 
-// Demand-driven model: the provisioned total absorbs HA reserve + cluster split,
-// so it should always satisfy the raw per-site demand minimums.
+// Sufficiency = the PROVISIONED per-site hosts cover the compute/RAM/storage minimums,
+// utilization is within capacity, and (FC/NFS) the external pool meets demand.
 const isSufficient = computed(() => {
   const r = props.result
-  return r.demandHostsPerSite <= r.minHostsForCpu && r.demandHostsPerSite <= r.minHostsForRam
-    ? true
-    : r.coreUtilizationPct <= 100 && r.ramUtilizationPct <= 100
+  const meetsHostMins =
+    r.hostsPerSite >= r.minHostsForCpu &&
+    r.hostsPerSite >= r.minHostsForRam &&
+    (r.minHostsForStorage === 0 || r.hostsPerSite >= r.minHostsForStorage)
+  return meetsHostMins
+    && r.coreUtilizationPct <= 100
+    && r.ramUtilizationPct <= 100
+    && r.storage.poolSufficient
 })
 
 const isStretch = computed(() => props.result.stretch !== null)
-const isExternalStorage = computed(() => props.result.storage.workloadStorageRequiredTiB > 0)
+const isExternalStorage = computed(
+  () => props.result.storage.storageType === 'fc' || props.result.storage.storageType === 'nfs',
+)
 </script>
 
 <template>

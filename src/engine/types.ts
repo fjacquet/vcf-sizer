@@ -27,27 +27,6 @@ export interface ValidationWarning {
   messageKey: string // i18n key, NOT an English string
 }
 
-export interface ComputeInputs {
-  deploymentMode: DeploymentMode
-  coresPerSocket: number
-  socketsPerHost: number
-  hostRamGB: number
-  hostCount: number
-  vmCount: number
-  avgVcpuPerVm: number
-  avgVramGbPerVm: number
-  cpuOvercommitRatio: number
-  ramOvercommitRatio: number
-  managementCores: number
-  managementRamGB: number
-  // Phase 3 additions (optional — all existing callers unaffected):
-  nvmeTieringEnabled?: boolean   // default false
-  activeMemoryPct?: number       // default 50
-  gpuVmCount?: number            // default 0
-  vgpuMemoryGB?: number          // default 16
-  minHostsForStorage?: number    // default 0 — vSAN ESA storage-driven host minimum
-}
-
 export interface StretchInputs {
   hostsPerSite: number   // symmetric: both sites provisioned identically (demand-driven)
   vmCount: number
@@ -73,20 +52,6 @@ export interface StretchResult {
   storageNote: string        // i18n key: 'deployment.stretch.storageNote'
   bandwidthFloorApplied: boolean
   networkChecklist: StretchNetworkChecklist
-}
-
-export interface ComputeResult {
-  totalCoresRequired: number
-  totalRamRequiredGB: number
-  availableCores: number
-  availableRamGB: number
-  coreUtilizationPct: number
-  ramUtilizationPct: number
-  minHostsForCpu: number
-  minHostsForRam: number
-  minHostsForStorage: number  // vSAN ESA storage-driven minimum (0 for FC/NFS/vSAN Max)
-  recommendedHostCount: number
-  effectiveHostCount: number  // actual hostCount used for capacity calculations
 }
 
 export interface StorageInputs {
@@ -177,16 +142,6 @@ export interface WorkloadDomainConfig {
   vsanMaxStorageNodes: number
   networkSpeedGbE: 10 | 25 | 100
   deploymentMode: DeploymentMode
-}
-
-export interface DomainResult {
-  id: string
-  name: string
-  compute: ComputeResult
-  storage: StorageResult
-  stretch: StretchResult | null
-  vsanMax: VsanMaxResult | null
-  validationErrors: ValidationWarning[]
 }
 
 export interface AggregateTotals {
