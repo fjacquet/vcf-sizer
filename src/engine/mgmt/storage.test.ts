@@ -110,11 +110,11 @@ describe('mgmtStorageDemand — demandBeforeFttTiB (logical demand for vSAN host
     expect(r.demandBeforeFttTiB).toBeCloseTo(r.storageDemandTiB / 1.5, 5)
   })
 
-  it('FC/NFS: equals storageDemandTiB (FTT multiplier is 1)', () => {
+  it.each(['fc', 'nfs'] as const)('%s: equals storageDemandTiB (FTT multiplier is 1)', (storageType) => {
     const r = mgmtStorageDemand({
       totalDiskGB: 500,
       totalRamGB: 500,
-      storageType: 'fc',
+      storageType,
       reservePct: 30,
       growthPct: 10,
     })
