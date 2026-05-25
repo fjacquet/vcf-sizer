@@ -174,30 +174,4 @@ export interface MgmtDomainResult {
   secondarySiteHosts?: number
 
   validationWarnings: ValidationWarning[]
-
-  // ─── Legacy flat fields (DEPRECATED) ───────────────────────────────────
-  // Retained for backward compatibility during the P2/P3 migration.
-  // Once usePptxExport.ts and other callers consume `appliances[]`,
-  // these can be removed.
-
-  /** @deprecated Use `appliances` filtered by category 'vcenter' */
-  vcenterCores?: number
-  /** @deprecated Use `appliances` filtered by category 'vcenter' */
-  vcenterRamGB?: number
-  /** @deprecated Use `appliances` filtered by category 'sddcManager' */
-  sddcCores?: number
-  /** @deprecated Use `appliances` filtered by category 'sddcManager' */
-  sddcRamGB?: number
-  /** @deprecated Use `appliances` filtered by category 'nsxManager' */
-  nsxCores?: number
-  /** @deprecated Use `appliances` filtered by category 'nsxManager' */
-  nsxRamGB?: number
-  /** @deprecated Use `appliances` filtered by categories vrops/vropsCollector/fleetManager */
-  opsCores?: number
-  /** @deprecated Use `appliances` filtered by categories vrops/vropsCollector/fleetManager */
-  opsRamGB?: number
-  /** @deprecated Use `appliances` filtered by category 'automation' */
-  automationCores?: number
-  /** @deprecated Use `appliances` filtered by category 'automation' */
-  automationRamGB?: number
 }

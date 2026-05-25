@@ -1,19 +1,30 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCalculationStore } from '@/stores/calculationStore'
+import { rollupApplianceTotals } from '@/engine/mgmt'
 import { storeToRefs } from 'pinia'
 
 const { t } = useI18n()
 const calc = useCalculationStore()
 const { management } = storeToRefs(calc)
 
-const rows = [
-  { key: 'management.vcenter',    cores: () => management.value.vcenterCores,    ram: () => management.value.vcenterRamGB },
-  { key: 'management.sddc',       cores: () => management.value.sddcCores,       ram: () => management.value.sddcRamGB },
-  { key: 'management.nsx',        cores: () => management.value.nsxCores,        ram: () => management.value.nsxRamGB },
-  { key: 'management.ops',        cores: () => management.value.opsCores,        ram: () => management.value.opsRamGB },
-  { key: 'management.automation', cores: () => management.value.automationCores, ram: () => management.value.automationRamGB },
-]
+// Rollup rows derived directly from the canonical `appliances` array.
+const rows = computed(() => {
+  const appliances = management.value.appliances
+  const vcenter = rollupApplianceTotals(appliances, ['vcenter'])
+  const sddc = rollupApplianceTotals(appliances, ['sddcManager'])
+  const nsx = rollupApplianceTotals(appliances, ['nsxManager'])
+  const ops = rollupApplianceTotals(appliances, ['vrops', 'vropsCollector', 'fleetManager'])
+  const automation = rollupApplianceTotals(appliances, ['automation'])
+  return [
+    { key: 'management.vcenter',    cores: vcenter.cores,    ram: vcenter.ramGB },
+    { key: 'management.sddc',       cores: sddc.cores,       ram: sddc.ramGB },
+    { key: 'management.nsx',        cores: nsx.cores,        ram: nsx.ramGB },
+    { key: 'management.ops',        cores: ops.cores,        ram: ops.ramGB },
+    { key: 'management.automation', cores: automation.cores, ram: automation.ramGB },
+  ]
+})
 </script>
 
 <template>
@@ -30,8 +41,8 @@ const rows = [
       <tbody>
         <tr v-for="row in rows" :key="row.key" class="border-b border-gray-50 dark:border-gray-700 text-gray-700 dark:text-gray-300">
           <td class="py-1">{{ t(row.key) }}</td>
-          <td class="text-right font-mono">{{ row.cores() }}</td>
-          <td class="text-right font-mono">{{ row.ram() }}</td>
+          <td class="text-right font-mono">{{ row.cores }}</td>
+          <td class="text-right font-mono">{{ row.ram }}</td>
         </tr>
       </tbody>
       <tfoot>

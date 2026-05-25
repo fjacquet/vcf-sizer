@@ -20,6 +20,7 @@ import type {
   AggregateTotals,
 } from '@/engine/types'
 import type { ApplianceLine } from '@/engine/mgmt/types'
+import { rollupApplianceTotals } from '@/engine/mgmt'
 // Local type definitions matching pptxgenjs TableCell/TableRow shapes.
 // We use local types rather than importing from pptxgenjs to avoid
 // namespace resolution issues with the dynamic-import-only pattern (PPTX-15).
@@ -181,15 +182,18 @@ export function buildMgmtOverheadData(
   mgmt: MgmtDomainResult,
   t: (key: string) => string = (k) => k
 ): Array<{ label: string; cores: number; ramGB: number }> {
-  // Legacy flat fields are now @deprecated optionals on MgmtDomainResult; fall
-  // back to 0 if absent. calcManagement() always populates them today, so this
-  // is a typing concession only — no behavior change.
+  // Rollup rows derived directly from the canonical `appliances` array.
+  const vcenter = rollupApplianceTotals(mgmt.appliances, ['vcenter'])
+  const sddc = rollupApplianceTotals(mgmt.appliances, ['sddcManager'])
+  const nsx = rollupApplianceTotals(mgmt.appliances, ['nsxManager'])
+  const ops = rollupApplianceTotals(mgmt.appliances, ['vrops', 'vropsCollector', 'fleetManager'])
+  const automation = rollupApplianceTotals(mgmt.appliances, ['automation'])
   return [
-    { label: t('export.vcenter'), cores: mgmt.vcenterCores ?? 0, ramGB: mgmt.vcenterRamGB ?? 0 },
-    { label: t('export.sddcManager'), cores: mgmt.sddcCores ?? 0, ramGB: mgmt.sddcRamGB ?? 0 },
-    { label: t('export.nsx'), cores: mgmt.nsxCores ?? 0, ramGB: mgmt.nsxRamGB ?? 0 },
-    { label: t('export.ariaOps'), cores: mgmt.opsCores ?? 0, ramGB: mgmt.opsRamGB ?? 0 },
-    { label: t('export.automation'), cores: mgmt.automationCores ?? 0, ramGB: mgmt.automationRamGB ?? 0 },
+    { label: t('export.vcenter'), cores: vcenter.cores, ramGB: vcenter.ramGB },
+    { label: t('export.sddcManager'), cores: sddc.cores, ramGB: sddc.ramGB },
+    { label: t('export.nsx'), cores: nsx.cores, ramGB: nsx.ramGB },
+    { label: t('export.ariaOps'), cores: ops.cores, ramGB: ops.ramGB },
+    { label: t('export.automation'), cores: automation.cores, ramGB: automation.ramGB },
     { label: t('export.total'), cores: mgmt.totalCores, ramGB: mgmt.totalRamGB },
   ]
 }
