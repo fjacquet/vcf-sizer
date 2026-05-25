@@ -95,6 +95,33 @@ describe('mgmtStorageDemand — swap calculation', () => {
   })
 })
 
+describe('mgmtStorageDemand — demandBeforeFttTiB (logical demand for vSAN host-count)', () => {
+  it('vSAN ESA: excludes the 1.5× FTT but keeps reserve + growth', () => {
+    // diskAndSwap = 1000; reserve+growth (NO FTT) = 1000 × 1.3 × 1.1 = 1430
+    const r = mgmtStorageDemand({
+      totalDiskGB: 500,
+      totalRamGB: 500,
+      storageType: 'vsan-esa',
+      reservePct: 30,
+      growthPct: 10,
+    })
+    expect(r.demandBeforeFttTiB).toBeCloseTo(1430 / 1024, 5)
+    // == storageDemandTiB with the FTT multiplier divided back out
+    expect(r.demandBeforeFttTiB).toBeCloseTo(r.storageDemandTiB / 1.5, 5)
+  })
+
+  it.each(['fc', 'nfs'] as const)('%s: equals storageDemandTiB (FTT multiplier is 1)', (storageType) => {
+    const r = mgmtStorageDemand({
+      totalDiskGB: 500,
+      totalRamGB: 500,
+      storageType,
+      reservePct: 30,
+      growthPct: 10,
+    })
+    expect(r.demandBeforeFttTiB).toBeCloseTo(r.storageDemandTiB, 5)
+  })
+})
+
 describe('mgmtStorageDemand — invalid input', () => {
   it('rejects negative reserve', () => {
     expect(() => mgmtStorageDemand({

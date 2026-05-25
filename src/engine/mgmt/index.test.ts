@@ -89,11 +89,13 @@ describe('calcManagementFull — FC routing', () => {
   })
 })
 
-describe('calcManagementFull — Stretch deployment floor of 8', () => {
-  it('stretch mode: recommendedHostCount ≥ 8', () => {
+describe('calcManagementFull — Stretch total floor of 8 (4/site × 2)', () => {
+  it('stretch mode: per-site ≥ 4 (vSAN floor) and total ≥ 8 = 2 × per-site', () => {
     const cfg = { ...baseConfig(), deploymentMode: 'stretch' as const }
     const r = calcManagementFull(cfg, [])
-    expect(r.recommendedHostCount).toBeGreaterThanOrEqual(8)
+    expect(r.recommendedHostCount).toBeGreaterThanOrEqual(4)  // per-site vSAN floor
+    expect(r.totalHosts).toBeGreaterThanOrEqual(8)            // total stretch floor
+    expect(r.totalHosts).toBe(r.recommendedHostCount * 2)     // no double-count
   })
 
   // P5.5: per-site host counts on the result
@@ -116,6 +118,28 @@ describe('calcManagementFull — Stretch deployment floor of 8', () => {
     const r = calcManagementFull(cfg, [])
     expect(r.preferredSiteHosts).toBeUndefined()
     expect(r.secondarySiteHosts).toBeUndefined()
+  })
+})
+
+describe('calcManagementFull — vSAN ESA host count: no FTT/stretch double-count (bug fix)', () => {
+  // Regression for the report bug: a Standard/Stretch/vSAN-ESA mgmt domain was
+  // recommending ~14 hosts/site (28 total) because the demand fed to
+  // calcMinHostsForVsanEsa double-counted (a) the 1.5× FTT multiplier (RAID is
+  // already applied inside the helper) and (b) the stretch factor (S=0.5 in the
+  // call AND ×2 at the topology layer). calcMinHostsForVsanEsa must receive the
+  // pre-FTT logical demand and 'simple' (per-site) — mirroring the workload engine.
+  it('Standard / Stretch: per-site count, total = 2× per-site (was inflated to 28)', () => {
+    const cfg = { ...baseConfig(), profile: 'standard' as const, deploymentMode: 'stretch' as const }
+    const r = calcManagementFull(cfg, [])
+    expect(r.recommendedHostCount).toBe(6)   // PER SITE
+    expect(r.totalHosts).toBe(12)            // 6 × 2 — not the buggy 28
+  })
+
+  it('Standard / Simple: storage drives 4 hosts (vSAN floor), no FTT inflation', () => {
+    const cfg = { ...baseConfig(), profile: 'standard' as const, deploymentMode: 'simple' as const }
+    const r = calcManagementFull(cfg, [])
+    expect(r.recommendedHostCount).toBe(4)
+    expect(r.totalHosts).toBe(4)
   })
 })
 
@@ -243,16 +267,17 @@ describe('calcManagementFull — workbook-parity snapshots (P6.4)', () => {
     expect(r.recommendedHostCount).toBeGreaterThanOrEqual(4)
   })
 
-  it('Standard / Stretch — same totals as HA, recommended floor of 8', () => {
+  it('Standard / Stretch — same totals as HA; per-site 6, total 12 (8-host total floor)', () => {
     const cfg = { ...baseConfig(), profile: 'standard' as const, deploymentMode: 'stretch' as const }
     const r = calcManagementFull(cfg, [])
 
-    // Stretch uses HA fanout (×3), then applies floor=8 to recommendedHostCount.
+    // Stretch uses HA fanout (×3). Host counts are PER SITE; total = ×2.
     expect(r.totalCores).toBe(292)
     expect(r.totalRamGB).toBe(952)
     expect(r.totalDiskGB).toBe(9975)
-    expect(r.recommendedHostCount).toBeGreaterThanOrEqual(8)  // stretch floor
-    expect(r.preferredSiteHosts).toBe(r.recommendedHostCount)  // P5.5: per-site = total
+    expect(r.recommendedHostCount).toBe(6)                     // per-site (storage-driven)
+    expect(r.totalHosts).toBe(12)                              // 6 × 2; ≥ 8 total floor
+    expect(r.preferredSiteHosts).toBe(r.recommendedHostCount)  // P5.5: per-site
     expect(r.secondarySiteHosts).toBe(r.recommendedHostCount)
   })
 })

@@ -40,6 +40,7 @@ function baseResult(overrides: Partial<MgmtDomainResult> = {}): MgmtDomainResult
     minHostsForStorage: 0,
     externalPoolRequiredTiB: 0,
     recommendedHostCount: 4,
+    totalHosts: 4,
     validationWarnings: [],
     ...overrides,
   }
@@ -99,9 +100,9 @@ describe('validateMgmt — MGMT-AVI-CLUSTER (warning)', () => {
 })
 
 describe('validateMgmt — MGMT-SSP-HOSTS (error)', () => {
-  it('errors when ssp included and recommendedHostCount < 8', () => {
+  it('errors when ssp included and totalHosts < 8', () => {
     const cfg = baseConfig()
-    const result = baseResult({ appliances: [appliance('ssp', 1)], recommendedHostCount: 4 })
+    const result = baseResult({ appliances: [appliance('ssp', 1)], recommendedHostCount: 4, totalHosts: 4 })
     const warns = validateMgmt(cfg, result)
     expect(warns.find(w => w.code === 'MGMT-SSP-HOSTS')).toMatchObject({
       severity: 'error',
@@ -109,9 +110,9 @@ describe('validateMgmt — MGMT-SSP-HOSTS (error)', () => {
     })
   })
 
-  it('does not error when ssp included and recommendedHostCount >= 8', () => {
+  it('does not error when ssp included and totalHosts >= 8 (e.g. 4/site stretched)', () => {
     const cfg = baseConfig()
-    const result = baseResult({ appliances: [appliance('ssp', 1)], recommendedHostCount: 8 })
+    const result = baseResult({ appliances: [appliance('ssp', 1)], recommendedHostCount: 4, totalHosts: 8 })
     expect(validateMgmt(cfg, result).find(w => w.code === 'MGMT-SSP-HOSTS')).toBeUndefined()
   })
 })

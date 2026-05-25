@@ -57,9 +57,10 @@ export function validateMgmt(
     })
   }
 
-  // MGMT-SSP-HOSTS
+  // MGMT-SSP-HOSTS — SSP needs ≥ 8 hosts TOTAL. recommendedHostCount is per-site
+  // (×2 for stretch), so compare against totalHosts to keep the original intent.
   const ssp = result.appliances.find(l => l.category === 'ssp')
-  if (ssp && result.recommendedHostCount < 8) {
+  if (ssp && result.totalHosts < 8) {
     warnings.push({
       code: 'MGMT-SSP-HOSTS',
       severity: 'error',
