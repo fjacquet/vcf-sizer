@@ -88,8 +88,6 @@ function calcVsanEsaCapacity(inputs: WorkloadCapacityInputs): WorkloadCapacityRe
     raidType,
     dedupEnabled,
     dedupRatio,
-    vmCount,
-    avgStorageGbPerVm,
   } = inputs
 
   // RAID scheme is a per-CLUSTER property (2+1 vs 4+1 depends on hosts in a cluster).
@@ -120,7 +118,7 @@ function calcVsanEsaCapacity(inputs: WorkloadCapacityInputs): WorkloadCapacityRe
     effectiveCapacityTiB: netUsable.toNumber(),
     safeUsableCapacityTiB,
     raidScheme,
-    workloadStorageRequiredTiB: calcWorkloadStorageTiB(vmCount, avgStorageGbPerVm),
+    workloadStorageRequiredTiB: 0, // vSAN ESA: demand drives host count via minHostsForStorage, not this field
     requiredPoolTiB: 0, // vSAN demand is satisfied via the storage-driven host minimum, not a pool
     availablePoolTiB: 0,
     poolShortfallTiB: 0,

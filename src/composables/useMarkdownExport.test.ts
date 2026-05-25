@@ -228,6 +228,8 @@ describe('generateMarkdownReport — MD-08 Validation Warnings', () => {
     })
     const report = generateMarkdownReport()
     expect(report).toContain('## export.validationWarnings')
+    // Assert the SPECIFIC scenario warning, not merely that some warning exists.
+    expect(report).toContain('validation.fcPoolShortfall')
   })
 })
 
@@ -271,7 +273,8 @@ describe('generateMarkdownReport — no regression', () => {
 
   it('export.provisionedHosts row is present in compute section', () => {
     const report = generateMarkdownReport()
-    expect(report).toContain('export.provisionedHosts')
+    // Scope to the compute section so a regression elsewhere can't satisfy this.
+    expect(report).toMatch(/### export\.computeSizing[\s\S]*?export\.provisionedHosts/)
   })
 
   it('export.safeUsableCapacity row is present in storage section', () => {

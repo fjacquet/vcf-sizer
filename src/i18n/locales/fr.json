@@ -525,6 +525,7 @@
     "totalRam": "Total RAM",
     "mgmtAppliances": "Dimensionnement des appliances de gestion",
     "wldOverheadAuto": "Surcout domaine de charge (auto-derive)",
+    "continued": "(suite)",
     "applianceComponent": "Composant",
     "applianceNodes": "Noeuds",
     "appliancePerNodeCores": "Coeurs/noeud",

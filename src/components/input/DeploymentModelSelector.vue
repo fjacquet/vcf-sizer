@@ -110,7 +110,7 @@ const bandwidthCappedByLineRate = computed(() => {
         v-model="hostFailuresToTolerate"
         :label="t('deployment.hostFailuresToTolerate')"
         :min="0"
-        :max="4"
+        :max="8"
         :step="1"
       />
       <p class="text-xs text-gray-500 dark:text-gray-400 italic">{{ t('deployment.hostFailuresToTolerateHint') }}</p>

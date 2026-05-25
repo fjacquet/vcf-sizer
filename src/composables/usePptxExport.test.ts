@@ -354,12 +354,12 @@ describe('buildStorageResultsData — PPTX-08', () => {
     expect(typeof result.workloadStorageRequiredTiB).toBe('number')
   })
 
-  it('workloadStorageRequiredTiB reflects VM demand for default vsan-esa domain', () => {
-    // Demand-driven engine reports per-VM storage demand for ALL storage types.
-    // Default 100 VMs × 100 GB = 9.765625 TiB.
+  it('workloadStorageRequiredTiB is 0 for vsan-esa (demand drives host count, not a pool)', () => {
+    // vSAN ESA: VM storage demand is satisfied via minHostsForStorage, so this field
+    // is 0 — non-zero only for FC/NFS external pools. Default domain is vsan-esa.
     const calc = useCalculationStore()
     const result = buildStorageResultsData(calc.domainResults[0].storage)
-    expect(result.workloadStorageRequiredTiB).toBeCloseTo(9.765625, 4)
+    expect(result.workloadStorageRequiredTiB).toBe(0)
   })
 
   it('workloadStorageRequiredTiB is computed for FC domain', () => {

@@ -525,6 +525,7 @@
     "totalRam": "Gesamt RAM",
     "mgmtAppliances": "Management-Appliance-Dimensionierung",
     "wldOverheadAuto": "Workload-Domain-Overhead (auto-abgeleitet)",
+    "continued": "(Forts.)",
     "applianceComponent": "Komponente",
     "applianceNodes": "Knoten",
     "appliancePerNodeCores": "Kerne/Knoten",
