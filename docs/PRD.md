@@ -172,7 +172,7 @@ Key constraints enforced by convention:
 | PPTX generation | pptxgenjs 4 |
 | Markdown rendering | marked 15 |
 | Sanitization | DOMPurify 3 |
-| Deployment | GitHub Pages (GitHub Actions on `maincd` branch) |
+| Deployment | GitHub Pages (GitHub Actions on `main` branch) |
 
 ---
 

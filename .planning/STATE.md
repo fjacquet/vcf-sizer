@@ -82,4 +82,4 @@ v3.3: [██████████] 100%
 ## Session Continuity
 
 Last session: 2026-04-11
-Next action: Milestone v3.3 complete. Merge branch to maincd or plan next milestone.
+Next action: Milestone v3.3 complete. Merge branch to main or plan next milestone.
