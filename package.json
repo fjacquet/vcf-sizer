@@ -8,7 +8,9 @@
     "build": "vue-tsc -b tsconfig.app.json tsconfig.node.json && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:run": "vitest run",
     "type-check": "vue-tsc --noEmit",
+    "typecheck": "vue-tsc --noEmit",
     "lint": "eslint src --ext .ts,.vue"
   },
   "dependencies": {
