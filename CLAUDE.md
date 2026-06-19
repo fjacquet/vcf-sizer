@@ -79,7 +79,7 @@ host-side inputs are the building-block host spec, `deploymentMode`, and `hostFa
 
 ## Deployment
 
-GitHub Pages via `.github/workflows/deploy.yml`. Triggers on push to `maincd` branch (not `main`). Build output goes to `dist/`. The Vite `base` is `/vcf-sizer/`.
+GitHub Pages via `.github/workflows/deploy.yml`. Triggers on push to `main` branch. Build output goes to `dist/`. The Vite `base` is `/vcf-sizer/`.
 
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands

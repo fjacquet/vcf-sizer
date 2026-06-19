@@ -42,7 +42,7 @@ docs(readme): update test count badge
 
 ## Pull Request Process
 
-1. Create a feature branch from `maincd`
+1. Create a feature branch from `main`
 2. Make your changes with tests for any new engine logic
 3. Ensure all checks pass (`lint`, `test`, `type-check`)
 4. Fill out the PR template
