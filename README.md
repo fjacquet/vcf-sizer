@@ -6,6 +6,8 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)](https://www.typescriptlang.org/)
 [![Tests](https://img.shields.io/badge/tests-313%20passing-brightgreen)](src/engine)
+[![CI](https://github.com/fjacquet/vcf-sizer/actions/workflows/ci.yml/badge.svg)](https://github.com/fjacquet/vcf-sizer/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/fjacquet/vcf-sizer?sort=semver)](https://github.com/fjacquet/vcf-sizer/releases/latest)
 
 Interactive sizing calculator for VMware Cloud Foundation 9.x deployments. Runs entirely in the browser — no backend required.
 
