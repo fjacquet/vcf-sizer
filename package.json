@@ -28,10 +28,10 @@
     "pptxgenjs": "^4.0.1",
     "tailwindcss": "^4.3.1",
     "vite": "^8.2.2",
-    "vue": "^3.5.41",
+    "vue": "^3.5.42",
     "vue-chartjs": "^5.3.4",
-    "vue-i18n": "^11.4.8",
-    "vue-router": "^5.2.0",
+    "vue-i18n": "^11.4.10",
+    "vue-router": "^5.3.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
