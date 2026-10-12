@@ -30,8 +30,8 @@
     "vite": "^8.3.2",
     "vue": "^3.5.42",
     "vue-chartjs": "^5.3.4",
-    "vue-i18n": "^11.4.10",
-    "vue-router": "^5.3.1",
+    "vue-i18n": "^11.4.13",
+    "vue-router": "^5.4.0",
     "zod": "^4.6.2"
   },
   "devDependencies": {
