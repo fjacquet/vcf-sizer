@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- Full npm refresh: `source-map-js` 1.2.2 (GHSA-68fv-2mgg-jv7q); `postcss-selector-parser` forced to 7.1.6 under `@tailwindcss/typography` via `overrides` (GHSA-rj75-hqrm-r3gf).
+
 ## [3.4.0] - 2026-04-16 -- Step 3 Workload Wizard UX + Dep Refresh
 
 ### Added
